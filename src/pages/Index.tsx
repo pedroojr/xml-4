@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Info, History, Edit2, Trash2 } from "lucide-react";
 import FileUpload from "@/components/FileUpload";
-import { SefazIntegration } from "@/components/SefazIntegration";
+
 import FileUploadPDF from "@/components/FileUploadPDF";
 import ProductPreview from "@/components/product-preview/ProductPreview";
 import { useNFEStorage } from "@/hooks/useNFEStorage";
@@ -128,9 +128,7 @@ const Index = () => {
     }
   };
 
-  const handleXmlFromSefaz = (xmlContent: string) => {
-    handleFileSelect(new File([xmlContent], 'nfe.xml', { type: 'text/xml' }));
-  };
+
 
   const extractInvoiceNumber = (xmlDoc: Document): string => {
     const ideNode = xmlDoc.querySelector('ide');
@@ -221,16 +219,15 @@ const Index = () => {
                 </div>
                 <h1 className="text-3xl font-bold text-slate-900 mb-2">Importação de Produtos via XML</h1>
                 <p className="text-slate-600 w-full max-w-2xl">
-                  Faça upload do arquivo XML da NF-e ou consulte diretamente na SEFAZ para importar automaticamente os produtos
+                  Faça upload do arquivo XML da NF-e para importar automaticamente os produtos
                 </p>
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
                 <div className="w-full">
                   <Tabs defaultValue="upload" value={currentTab} onValueChange={setCurrentTab} className="w-full">
-                                      <TabsList className="grid w-full grid-cols-3 mb-6">
+                                      <TabsList className="grid w-full grid-cols-2 mb-6">
                     <TabsTrigger value="upload">Upload de XML</TabsTrigger>
-                    <TabsTrigger value="sefaz">Consulta SEFAZ</TabsTrigger>
                     <TabsTrigger value="pdf">Upload de PDF</TabsTrigger>
                   </TabsList>
                     
@@ -238,9 +235,7 @@ const Index = () => {
                       <FileUpload onFileSelect={handleFileSelect} />
                     </TabsContent>
                     
-                    <TabsContent value="sefaz">
-                      <SefazIntegration onXmlReceived={handleXmlFromSefaz} />
-                    </TabsContent>
+
 
                     <TabsContent value="pdf">
                       <FileUploadPDF onItemsExtracted={setPdfItems} />

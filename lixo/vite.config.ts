@@ -29,7 +29,7 @@ export default defineConfig(({ command, mode }) => {
       },
     },
     server: {
-      port: 3002,
+      port: 4000,
       host: true,
     },
     define: {

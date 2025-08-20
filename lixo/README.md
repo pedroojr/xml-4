@@ -6,7 +6,7 @@ Sistema completo para importação e gerenciamento de produtos via XML de NF-e, 
 
 ### Frontend (React + TypeScript)
 - ✅ **Upload de XML** de NF-e
-- ✅ **Consulta SEFAZ** direta
+- ✅ **Upload de XML** direto
 - ✅ **Upload de PDF** com extração de dados
 - ✅ **Visualização de produtos** com filtros avançados
 - ✅ **Análise de preços** e markup
