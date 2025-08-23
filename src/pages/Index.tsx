@@ -9,8 +9,8 @@ import FileUpload from "@/components/FileUpload";
 
 import FileUploadPDF from "@/components/FileUploadPDF";
 import ProductPreview from "@/components/product-preview/ProductPreview";
-import { useNFEStorage } from "@/hooks/useNFEStorage";
-import { Product, NFE } from "@/types/nfe";
+import { useNFEStorage, NFE } from "@/hooks/useNFEStorage";
+import { Product } from "@/types/nfe";
 import { RoundingType } from "@/components/product-preview/productCalculations";
 import { parseNFeXML } from "@/utils/nfeParser";
 
@@ -21,28 +21,116 @@ const Index = () => {
   const [currentTab, setCurrentTab] = useState("upload");
   const [xmlContentForDataSystem, setXmlContentForDataSystem] = useState<string | null>(null);
   const [pdfItems, setPdfItems] = useState<any[]>([]);
-  const [hiddenItems, setHiddenItems] = useState<Set<number>>(new Set());
-  const [xapuriMarkup, setXapuriMarkup] = useState(() => {
-    const saved = localStorage.getItem('xapuriMarkup');
-    return saved ? parseInt(saved) : 160;
-  });
-  const [epitaMarkup, setEpitaMarkup] = useState(() => {
-    const saved = localStorage.getItem('epitaMarkup');
-    return saved ? parseInt(saved) : 130;
-  });
-  const [impostoEntrada, setImpostoEntrada] = useState(() => {
-    const saved = localStorage.getItem('impostoEntrada');
-    return saved ? parseInt(saved) : 12;
-  });
-  const [roundingType, setRoundingType] = useState<RoundingType>(() => {
-    const saved = localStorage.getItem('roundingType');
-    return (saved as RoundingType) || 'none';
-  });
   const [invoiceNumber, setInvoiceNumber] = useState<string>("");
   const [brandName, setBrandName] = useState<string>("");
   const [isEditingBrand, setIsEditingBrand] = useState(false);
 
-  const { savedNFEs, saveNFE, removeNFE } = useNFEStorage();
+  const { savedNFEs, saveNFE, removeNFE, updateHiddenItems, updateShowHidden, updateNFE, loadNFEs } = useNFEStorage();
+
+  // Estado centralizado no servidor - SEM estado local
+  const currentNFE = currentNFeId ? savedNFEs.find(nfe => nfe.id === currentNFeId) : null;
+  
+  // DEBUG: Log para identificar divergências
+  useEffect(() => {
+    if (currentNFeId && currentNFE) {
+      console.log('🔍 DEBUG - NFE Carregada:', {
+        id: currentNFE.id,
+        hiddenItems: currentNFE.hiddenItems,
+        showHidden: currentNFE.showHidden,
+        produtosCount: currentNFE.produtos?.length,
+        xapuriMarkup: currentNFE.xapuriMarkup,
+        epitaMarkup: currentNFE.epitaMarkup,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      console.log('🔍 DEBUG - NFE NÃO encontrada:', {
+        currentNFeId,
+        savedNFEsCount: savedNFEs.length,
+        savedNFEs: savedNFEs.map(n => ({ id: n.id, numero: n.numero, xapuriMarkup: n.xapuriMarkup })),
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [currentNFeId, currentNFE, savedNFEs]);
+
+  // Valores vindos APENAS do servidor
+  const xapuriMarkup = currentNFE?.xapuriMarkup || 160;
+  const epitaMarkup = currentNFE?.epitaMarkup || 130;
+  const impostoEntrada = currentNFE?.impostoEntrada || 12;
+  const roundingType = (currentNFE?.roundingType as RoundingType) || 'none';
+  const hiddenItems = new Set(currentNFE?.hiddenItems || []);
+  const showHidden = currentNFE?.showHidden || false;
+
+  // DEBUG: Log para valores derivados
+  useEffect(() => {
+    if (currentNFeId) {
+      console.log('🔍 DEBUG - Valores Derivados:', {
+        xapuriMarkup,
+        epitaMarkup,
+        impostoEntrada,
+        roundingType,
+        hiddenItems: Array.from(hiddenItems),
+        showHidden,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [currentNFeId, xapuriMarkup, epitaMarkup, impostoEntrada, roundingType, hiddenItems, showHidden]);
+
+  // DEBUG: Log para savedNFEs
+  useEffect(() => {
+    console.log('🔍 DEBUG - savedNFEs atualizado:', {
+      count: savedNFEs.length,
+      nfes: savedNFEs.map(n => ({ id: n.id, numero: n.numero, xapuriMarkup: n.xapuriMarkup, hiddenItems: n.hiddenItems, showHidden: n.showHidden })),
+      timestamp: new Date().toISOString()
+    });
+  }, [savedNFEs]);
+
+  // Sincronização automática quando currentNFeId muda
+  useEffect(() => {
+    if (currentNFeId && currentNFE) {
+      console.log('🔍 DEBUG - Carregando produtos da NFE:', {
+        nfeId: currentNFE.id,
+        produtosCount: currentNFE.produtos?.length,
+        produtos: currentNFE.produtos,
+        hiddenItems: currentNFE.hiddenItems,
+        showHidden: currentNFE.showHidden
+      });
+      
+      // Normalizar produtos para garantir compatibilidade
+      const normalizedProducts = currentNFE.produtos?.map(p => ({
+        ...p,
+        codigo: p.codigo ?? p.code ?? '',
+        descricao: p.descricao ?? p.description ?? p.name ?? '',
+        cor: p.cor ?? '',
+        totalPrice: p.totalPrice ?? p.valorTotal ?? 0
+      })) || [];
+      
+      console.log('🔍 DEBUG - Produtos normalizados:', {
+        count: normalizedProducts.length,
+        produtos: normalizedProducts
+      });
+      
+      setProducts(normalizedProducts);
+      setInvoiceNumber(currentNFE.numero);
+      setBrandName(currentNFE.fornecedor);
+    } else {
+      console.log('🔍 DEBUG - NFE não encontrada ou sem ID:', {
+        currentNFeId,
+        currentNFE: currentNFE ? { id: currentNFE.id, produtosCount: currentNFE.produtos?.length } : null
+      });
+    }
+  }, [currentNFeId, currentNFE]);
+
+  // Sincronização forçada a cada mudança
+  useEffect(() => {
+    if (currentNFeId) {
+      // Recarregar dados do servidor a cada mudança
+      const syncInterval = setInterval(() => {
+        loadNFEs();
+      }, 1000); // Sincronizar a cada 1 segundo
+
+      return () => clearInterval(syncInterval);
+    }
+  }, [currentNFeId, loadNFEs]);
 
   const extractNFeInfo = (xmlDoc: Document) => {
     const nfeNode = xmlDoc.querySelector('NFe');
@@ -74,7 +162,6 @@ const Index = () => {
     if (currentNFeId) {
       removeNFE(currentNFeId);
       setProducts([]);
-      setHiddenItems(new Set());
       setCurrentNFeId(null);
       setInvoiceNumber("");
       setBrandName("");
@@ -97,7 +184,6 @@ const Index = () => {
 
       const extractedProducts = parseNFeXML(text);
       setProducts(extractedProducts);
-      setHiddenItems(new Set());
       
       const nfeId = `nfe_${Date.now()}`;
       setCurrentNFeId(nfeId);
@@ -105,7 +191,7 @@ const Index = () => {
       setBrandName(nfeInfo.emitNome);
       setXmlContentForDataSystem(text);
       
-      // Salvar NFE
+      // Salvar NFE com valores padrão
       const nfe = {
         id: nfeId,
         data: nfeInfo.dataEmissao,
@@ -115,7 +201,12 @@ const Index = () => {
         valor: extractedProducts.reduce((sum, p) => sum + p.totalPrice, 0),
         itens: extractedProducts.length,
         produtos: extractedProducts,
-        impostoEntrada: impostoEntrada
+        impostoEntrada: 12,
+        xapuriMarkup: 160,
+        epitaMarkup: 130,
+        roundingType: 'none',
+        hiddenItems: [],
+        showHidden: false
       };
       
       saveNFE(nfe);
@@ -128,8 +219,6 @@ const Index = () => {
     }
   };
 
-
-
   const extractInvoiceNumber = (xmlDoc: Document): string => {
     const ideNode = xmlDoc.querySelector('ide');
     if (!ideNode) return '';
@@ -139,39 +228,81 @@ const Index = () => {
   };
 
   const handleLoadNFe = (nfe: NFE) => {
-    setProducts(nfe.produtos);
-    setHiddenItems(new Set());
+    console.log('🔍 DEBUG - Carregando NFE:', {
+      nfeId: nfe.id,
+      produtosCount: nfe.produtos?.length,
+      produtos: nfe.produtos,
+      hiddenItems: nfe.hiddenItems,
+      showHidden: nfe.showHidden
+    });
+    
     setCurrentNFeId(nfe.id);
-    setInvoiceNumber(nfe.numero);
-    setBrandName(nfe.fornecedor);
-    setIsEditingBrand(false);
-    setXmlContentForDataSystem(null);
-    setCurrentTab("upload");
+    // Os produtos e outros dados serão carregados via useEffect
   };
 
-  const handleXapuriMarkupChange = (value: number) => {
-    setXapuriMarkup(value);
-    localStorage.setItem('xapuriMarkup', value.toString());
+  // Funções que SALVAM DIRETAMENTE NO SERVIDOR e FORÇAM SINCRONIZAÇÃO
+  const handleXapuriMarkupChange = async (value: number) => {
+    if (currentNFeId) {
+      await updateNFE(currentNFeId, { xapuriMarkup: value });
+      // Forçar sincronização imediata
+      await loadNFEs();
+    }
   };
 
-  const handleEpitaMarkupChange = (value: number) => {
-    setEpitaMarkup(value);
-    localStorage.setItem('epitaMarkup', value.toString());
+  const handleEpitaMarkupChange = async (value: number) => {
+    if (currentNFeId) {
+      await updateNFE(currentNFeId, { epitaMarkup: value });
+      // Forçar sincronização imediata
+      await loadNFEs();
+    }
   };
 
-  const handleImpostoEntradaChange = (value: number) => {
-    setImpostoEntrada(value);
-    localStorage.setItem('impostoEntrada', value.toString());
+  const handleImpostoEntradaChange = async (value: number) => {
+    if (currentNFeId) {
+      await updateNFE(currentNFeId, { impostoEntrada: value });
+      // Forçar sincronização imediata
+      await loadNFEs();
+    }
   };
 
-  const handleRoundingTypeChange = (value: RoundingType) => {
-    setRoundingType(value);
-    localStorage.setItem('roundingType', value);
+  const handleRoundingTypeChange = async (value: RoundingType) => {
+    if (currentNFeId) {
+      await updateNFE(currentNFeId, { roundingType: value });
+      // Forçar sincronização imediata
+      await loadNFEs();
+    }
   };
 
   const handleBrandNameChange = (newName: string) => {
     setBrandName(newName);
     setIsEditingBrand(false);
+  };
+
+  // Função robusta para ocultar/exibir itens
+  const handleToggleVisibility = async (index: number) => {
+    if (!currentNFeId) return;
+    
+    const newHiddenItems = new Set(hiddenItems);
+    if (newHiddenItems.has(index)) {
+      newHiddenItems.delete(index);
+    } else {
+      newHiddenItems.add(index);
+    }
+    
+    // Salvar IMEDIATAMENTE no servidor
+    await updateHiddenItems(currentNFeId, Array.from(newHiddenItems));
+    // Forçar sincronização imediata
+    await loadNFEs();
+  };
+
+  // Função robusta para switch "Mostrar apenas ocultados"
+  const handleShowHiddenChange = async (value: boolean) => {
+    if (!currentNFeId) return;
+    
+    // Salvar IMEDIATAMENTE no servidor
+    await updateShowHidden(currentNFeId, value);
+    // Forçar sincronização imediata
+    await loadNFEs();
   };
 
   return (
@@ -226,17 +357,15 @@ const Index = () => {
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
                 <div className="w-full">
                   <Tabs defaultValue="upload" value={currentTab} onValueChange={setCurrentTab} className="w-full">
-                                      <TabsList className="grid w-full grid-cols-2 mb-6">
-                    <TabsTrigger value="upload">Upload de XML</TabsTrigger>
-                    <TabsTrigger value="pdf">Upload de PDF</TabsTrigger>
-                  </TabsList>
+                    <TabsList className="grid w-full grid-cols-2 mb-6">
+                      <TabsTrigger value="upload">Upload de XML</TabsTrigger>
+                      <TabsTrigger value="pdf">Upload de PDF</TabsTrigger>
+                    </TabsList>
                     
                     <TabsContent value="upload">
                       <FileUpload onFileSelect={handleFileSelect} />
                     </TabsContent>
                     
-
-
                     <TabsContent value="pdf">
                       <FileUploadPDF onItemsExtracted={setPdfItems} />
                       {pdfItems.length > 0 && (
@@ -349,18 +478,11 @@ const Index = () => {
             <ProductPreview
               products={products}
               hiddenItems={hiddenItems}
-              onToggleVisibility={(index) => {
-                const newHiddenItems = new Set(hiddenItems);
-                if (newHiddenItems.has(index)) {
-                  newHiddenItems.delete(index);
-                } else {
-                  newHiddenItems.add(index);
-                }
-                setHiddenItems(newHiddenItems);
-              }}
+              showHidden={showHidden}
+              onToggleVisibility={handleToggleVisibility}
+              onShowHiddenChange={handleShowHiddenChange}
               onNewFile={() => {
                 setProducts([]);
-                setHiddenItems(new Set());
                 setCurrentNFeId(null);
                 setInvoiceNumber("");
                 setBrandName("");
@@ -371,8 +493,10 @@ const Index = () => {
               xapuriMarkup={xapuriMarkup}
               epitaMarkup={epitaMarkup}
               roundingType={roundingType}
+              impostoEntrada={impostoEntrada}
               onXapuriMarkupChange={handleXapuriMarkupChange}
               onEpitaMarkupChange={handleEpitaMarkupChange}
+              onImpostoEntradaChange={handleImpostoEntradaChange}
               onRoundingTypeChange={handleRoundingTypeChange}
             />
           </div>
