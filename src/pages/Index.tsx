@@ -28,11 +28,13 @@ const Index = () => {
   const { savedNFEs, saveNFE, removeNFE, updateHiddenItems, updateShowHidden, updateNFE, loadNFEs } = useNFEStorage();
 
   // Estado centralizado no servidor - SEM estado local
-  const currentNFE = currentNFeId && savedNFEs.length > 0 ? savedNFEs.find(nfe => nfe?.id === currentNFeId) : null;
+  const currentNFE = currentNFeId && savedNFEs && savedNFEs.length > 0 
+    ? savedNFEs.find(nfe => nfe && nfe.id && nfe.id === currentNFeId) 
+    : null;
   
   // DEBUG: Log para identificar divergências
   useEffect(() => {
-    if (currentNFeId && currentNFE) {
+    if (currentNFeId && currentNFE && currentNFE.id) {
       console.log('🔍 DEBUG - NFE Carregada:', {
         id: currentNFE.id,
         hiddenItems: currentNFE.hiddenItems,
@@ -45,8 +47,8 @@ const Index = () => {
     } else {
       console.log('🔍 DEBUG - NFE NÃO encontrada:', {
         currentNFeId,
-        savedNFEsCount: savedNFEs.length,
-        savedNFEs: savedNFEs.map(n => n && n.id ? { id: n.id, numero: n.numero, xapuriMarkup: n.xapuriMarkup } : 'INVALID_NFE').filter(n => n !== 'INVALID_NFE'),
+        savedNFEsCount: savedNFEs?.length || 0,
+        savedNFEs: savedNFEs?.map(n => n && n.id ? { id: n.id, numero: n.numero, xapuriMarkup: n.xapuriMarkup } : 'INVALID_NFE').filter(n => n !== 'INVALID_NFE') || [],
         timestamp: new Date().toISOString()
       });
     }
@@ -62,7 +64,7 @@ const Index = () => {
 
   // DEBUG: Log para valores derivados
   useEffect(() => {
-    if (currentNFeId) {
+    if (currentNFeId && currentNFE && currentNFE.id) {
       console.log('🔍 DEBUG - Valores Derivados:', {
         xapuriMarkup,
         epitaMarkup,
@@ -73,15 +75,19 @@ const Index = () => {
         timestamp: new Date().toISOString()
       });
     }
-  }, [currentNFeId, xapuriMarkup, epitaMarkup, impostoEntrada, roundingType, hiddenItems, showHidden]);
+  }, [currentNFeId, currentNFE, xapuriMarkup, epitaMarkup, impostoEntrada, roundingType, hiddenItems, showHidden]);
 
   // DEBUG: Log para savedNFEs
   useEffect(() => {
-    console.log('🔍 DEBUG - savedNFEs atualizado:', {
-      count: savedNFEs.length,
-      nfes: savedNFEs.map(n => n && n.id ? { id: n.id, numero: n.numero, xapuriMarkup: n.xapuriMarkup, hiddenItems: n.hiddenItems, showHidden: n.showHidden } : 'INVALID_NFE').filter(n => n !== 'INVALID_NFE'),
-      timestamp: new Date().toISOString()
-    });
+    if (savedNFEs && Array.isArray(savedNFEs)) {
+      console.log('🔍 DEBUG - savedNFEs atualizado:', {
+        count: savedNFEs.length,
+        nfes: savedNFEs.map(n => n && n.id ? { id: n.id, numero: n.numero, xapuriMarkup: n.xapuriMarkup, hiddenItems: n.hiddenItems, showHidden: n.showHidden } : 'INVALID_NFE').filter(n => n !== 'INVALID_NFE'),
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      console.warn('⚠️ savedNFEs não é um array válido:', savedNFEs);
+    }
   }, [savedNFEs]);
 
   // Sincronização automática quando currentNFeId muda
@@ -215,21 +221,75 @@ const Index = () => {
       });
       
       // Salvar NFE
-      await saveNFE(nfe);
+      const result = await saveNFE(nfe);
+      console.log('🔍 DEBUG - NFE salva com resultado:', result);
       
-      // Definir como NFE atual e carregar produtos
-      setCurrentNFeId(nfeId);
-      setInvoiceNumber(nfeInfo.numero);
-      setBrandName(nfeInfo.emitNome);
-      setXmlContentForDataSystem(text);
-      
-      // Carregar produtos imediatamente
-      setProducts(extractedProducts);
-      
-      console.log('🔍 DEBUG - NFE salva e produtos carregados:', {
-        nfeId,
-        produtosCount: extractedProducts.length
-      });
+      // Fazer GET específico da NFE recém-criada para garantir sincronização
+      if (result && result.id) {
+        try {
+          await loadNFEs(); // Recarregar lista completa
+          console.log('🔍 DEBUG - Lista de NFEs recarregada após salvar');
+          
+          // Aguardar um pouco para garantir que os dados foram sincronizados
+          setTimeout(async () => {
+            // Buscar NFE específica para confirmar que foi salva
+            const savedNFE = savedNFEs.find(n => n && n.id === result.id);
+            if (savedNFE && savedNFE.produtos && savedNFE.produtos.length > 0) {
+              console.log('🔍 DEBUG - NFE encontrada após salvar:', {
+                id: savedNFE.id,
+                produtosCount: savedNFE.produtos.length
+              });
+              
+              // Definir como NFE atual
+              setCurrentNFeId(result.id);
+              setInvoiceNumber(nfeInfo.numero);
+              setBrandName(nfeInfo.emitNome);
+              setXmlContentForDataSystem(text);
+              
+              // Carregar produtos da NFE salva
+              const normalizedProducts = savedNFE.produtos.map(p => ({
+                ...p,
+                codigo: p.codigo ?? p.code ?? '',
+                descricao: p.descricao ?? p.description ?? p.name ?? '',
+                cor: p.cor ?? '',
+                totalPrice: p.totalPrice ?? p.valorTotal ?? 0
+              }));
+              
+              setProducts(normalizedProducts);
+              
+              console.log('🔍 DEBUG - Produtos carregados da NFE salva:', {
+                nfeId: result.id,
+                produtosCount: normalizedProducts.length
+              });
+            } else {
+              console.warn('⚠️ NFE não encontrada ou sem produtos após salvar:', result.id);
+              // Fallback: usar produtos extraídos diretamente
+              setCurrentNFeId(result.id);
+              setInvoiceNumber(nfeInfo.numero);
+              setBrandName(nfeInfo.emitNome);
+              setXmlContentForDataSystem(text);
+              setProducts(extractedProducts);
+            }
+          }, 500); // Aguardar 500ms para sincronização
+          
+        } catch (error) {
+          console.error('❌ Erro ao recarregar NFEs após salvar:', error);
+          // Fallback: usar produtos extraídos diretamente
+          setCurrentNFeId(result.id);
+          setInvoiceNumber(nfeInfo.numero);
+          setBrandName(nfeInfo.emitNome);
+          setXmlContentForDataSystem(text);
+          setProducts(extractedProducts);
+        }
+      } else {
+        console.error('❌ NFE salva mas sem ID retornado');
+        // Fallback: usar produtos extraídos diretamente
+        setCurrentNFeId(nfeId);
+        setInvoiceNumber(nfeInfo.numero);
+        setBrandName(nfeInfo.emitNome);
+        setXmlContentForDataSystem(text);
+        setProducts(extractedProducts);
+      }
       
       setCurrentTab("upload");
     } catch (error) {
@@ -462,7 +522,7 @@ const Index = () => {
           </div>
         )}
 
-        {products.length > 0 && (
+        {products && products.length > 0 && (
           <div className="w-full animate-fade-up">
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-2">
