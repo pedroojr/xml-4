@@ -28,7 +28,7 @@ const Index = () => {
   const { savedNFEs, saveNFE, removeNFE, updateHiddenItems, updateShowHidden, updateNFE, loadNFEs } = useNFEStorage();
 
   // Estado centralizado no servidor - SEM estado local
-  const currentNFE = currentNFeId ? savedNFEs.find(nfe => nfe.id === currentNFeId) : null;
+  const currentNFE = currentNFeId && savedNFEs.length > 0 ? savedNFEs.find(nfe => nfe?.id === currentNFeId) : null;
   
   // DEBUG: Log para identificar divergências
   useEffect(() => {
@@ -46,7 +46,7 @@ const Index = () => {
       console.log('🔍 DEBUG - NFE NÃO encontrada:', {
         currentNFeId,
         savedNFEsCount: savedNFEs.length,
-        savedNFEs: savedNFEs.map(n => ({ id: n.id, numero: n.numero, xapuriMarkup: n.xapuriMarkup })),
+        savedNFEs: savedNFEs.map(n => n && n.id ? { id: n.id, numero: n.numero, xapuriMarkup: n.xapuriMarkup } : 'INVALID_NFE').filter(n => n !== 'INVALID_NFE'),
         timestamp: new Date().toISOString()
       });
     }
@@ -79,7 +79,7 @@ const Index = () => {
   useEffect(() => {
     console.log('🔍 DEBUG - savedNFEs atualizado:', {
       count: savedNFEs.length,
-      nfes: savedNFEs.map(n => ({ id: n.id, numero: n.numero, xapuriMarkup: n.xapuriMarkup, hiddenItems: n.hiddenItems, showHidden: n.showHidden })),
+      nfes: savedNFEs.map(n => n && n.id ? { id: n.id, numero: n.numero, xapuriMarkup: n.xapuriMarkup, hiddenItems: n.hiddenItems, showHidden: n.showHidden } : 'INVALID_NFE').filter(n => n !== 'INVALID_NFE'),
       timestamp: new Date().toISOString()
     });
   }, [savedNFEs]);
