@@ -183,13 +183,12 @@ const Index = () => {
       }
 
       const extractedProducts = parseNFeXML(text);
-      setProducts(extractedProducts);
+      console.log('🔍 DEBUG - Produtos extraídos do XML:', {
+        count: extractedProducts.length,
+        produtos: extractedProducts
+      });
       
       const nfeId = `nfe_${Date.now()}`;
-      setCurrentNFeId(nfeId);
-      setInvoiceNumber(nfeInfo.numero);
-      setBrandName(nfeInfo.emitNome);
-      setXmlContentForDataSystem(text);
       
       // Salvar NFE com valores padrão
       const nfe = {
@@ -209,7 +208,29 @@ const Index = () => {
         showHidden: false
       };
       
-      saveNFE(nfe);
+      console.log('🔍 DEBUG - Salvando NFE:', {
+        nfeId: nfe.id,
+        produtosCount: nfe.produtos.length,
+        produtos: nfe.produtos
+      });
+      
+      // Salvar NFE
+      await saveNFE(nfe);
+      
+      // Definir como NFE atual e carregar produtos
+      setCurrentNFeId(nfeId);
+      setInvoiceNumber(nfeInfo.numero);
+      setBrandName(nfeInfo.emitNome);
+      setXmlContentForDataSystem(text);
+      
+      // Carregar produtos imediatamente
+      setProducts(extractedProducts);
+      
+      console.log('🔍 DEBUG - NFE salva e produtos carregados:', {
+        nfeId,
+        produtosCount: extractedProducts.length
+      });
+      
       setCurrentTab("upload");
     } catch (error) {
       console.error('Erro ao processar arquivo:', error);
@@ -228,7 +249,7 @@ const Index = () => {
   };
 
   const handleLoadNFe = (nfe: NFE) => {
-    console.log('🔍 DEBUG - Carregando NFE:', {
+    console.log('🔍 DEBUG - Carregando NFE existente:', {
       nfeId: nfe.id,
       produtosCount: nfe.produtos?.length,
       produtos: nfe.produtos,
@@ -236,8 +257,37 @@ const Index = () => {
       showHidden: nfe.showHidden
     });
     
+    // Definir como NFE atual
     setCurrentNFeId(nfe.id);
-    // Os produtos e outros dados serão carregados via useEffect
+    
+    // Carregar produtos IMEDIATAMENTE se existirem
+    if (nfe.produtos && nfe.produtos.length > 0) {
+      console.log('🔍 DEBUG - Carregando produtos da NFE existente:', {
+        count: nfe.produtos.length,
+        produtos: nfe.produtos
+      });
+      
+      // Normalizar produtos para garantir compatibilidade
+      const normalizedProducts = nfe.produtos.map(p => ({
+        ...p,
+        codigo: p.codigo ?? p.code ?? '',
+        descricao: p.descricao ?? p.description ?? p.name ?? '',
+        cor: p.cor ?? '',
+        totalPrice: p.totalPrice ?? p.valorTotal ?? 0
+      }));
+      
+      setProducts(normalizedProducts);
+      setInvoiceNumber(nfe.numero);
+      setBrandName(nfe.fornecedor);
+      
+      console.log('🔍 DEBUG - Produtos carregados da NFE existente:', {
+        count: normalizedProducts.length,
+        produtos: normalizedProducts
+      });
+    } else {
+      console.warn('⚠️ NFE sem produtos:', nfe.id);
+      setProducts([]);
+    }
   };
 
   // Funções que SALVAM DIRETAMENTE NO SERVIDOR e FORÇAM SINCRONIZAÇÃO
@@ -308,7 +358,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
       <div className="w-full px-4 py-8">
-        {products.length === 0 && (
+        {(!products || products.length === 0) && (
           <div className="w-full flex gap-8">
             {/* Sidebar com notas importadas */}
             {savedNFEs.length > 0 && (
