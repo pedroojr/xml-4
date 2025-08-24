@@ -2,6 +2,21 @@ import { useState, useEffect, useCallback } from 'react';
 import { nfeAPI, NFE } from '@/services/api';
 import { toast } from 'sonner';
 
+const normalizeProdutos = (produtos: unknown): any[] => {
+  if (Array.isArray(produtos)) return produtos;
+  if (typeof produtos === 'string') {
+    try {
+      const parsed = JSON.parse(produtos);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      // Se falhar o parse, retorna array vazio
+      return [];
+    }
+  }
+  // Se produtos for undefined, null, ou qualquer outro tipo, retorna array vazio
+  return [];
+};
+
 export const useNFEAPI = () => {
   const [nfes, setNfes] = useState<NFE[]>([]);
   const [loading, setLoading] = useState(false);
@@ -13,7 +28,22 @@ export const useNFEAPI = () => {
     setError(null);
     try {
       const data = await nfeAPI.getAll();
-      setNfes(data);
+      const normalized = (data || []).map((nfe: any) => {
+        const normalizedProdutos = normalizeProdutos(nfe?.produtos);
+        console.log('🔍 DEBUG - Normalizando NFE:', {
+          id: nfe.id,
+          numero: nfe.numero,
+          produtosOriginal: nfe?.produtos,
+          produtosTipo: typeof nfe?.produtos,
+          produtosNormalizado: normalizedProdutos,
+          produtosLength: normalizedProdutos.length
+        });
+        return {
+          ...nfe,
+          produtos: normalizedProdutos,
+        };
+      });
+      setNfes(normalized);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar NFEs';
       setError(errorMessage);
@@ -85,8 +115,8 @@ export const useNFEAPI = () => {
     setLoading(true);
     setError(null);
     try {
-      const nfe = await nfeAPI.getById(id);
-      return nfe;
+      const nfe: any = await nfeAPI.getById(id);
+      return { ...nfe, produtos: normalizeProdutos(nfe?.produtos) } as NFE;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar NFE';
       setError(errorMessage);

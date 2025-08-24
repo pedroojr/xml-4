@@ -27,7 +27,20 @@ const Index = () => {
   const [brandName, setBrandName] = useState<string>("");
   const [isEditingBrand, setIsEditingBrand] = useState(false);
 
-  const { savedNFEs, saveNFE, removeNFE, updateHiddenItems, updateShowHidden, updateNFE, loadNFEs } = useNFEStorage();
+  const { savedNFEs, saveNFE, removeNFE, updateHiddenItems, updateShowHidden, updateNFE, loadNFEs, loadNFEById } = useNFEStorage();
+  // Normalizador defensivo: aceita array, string JSON ou indefinido
+  const normalizeProdutosFromAny = (produtos: unknown): any[] => {
+    if (Array.isArray(produtos)) return produtos;
+    if (typeof produtos === 'string') {
+      try {
+        const parsed = JSON.parse(produtos);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
 
   // Estado centralizado no servidor - SEM estado local
   const currentNFE = currentNFeId ? savedNFEs.find(nfe => nfe.id === currentNFeId) : null;
@@ -155,7 +168,7 @@ const Index = () => {
       }
 
       // Normalizar produtos para garantir compatibilidade
-      const normalizedProducts: Product[] = currentNFE.produtos.map((p, index) => {
+      const normalizedProducts: Product[] = normalizeProdutosFromAny(currentNFE.produtos).map((p, index) => {
         // DEBUG: Log de cada produto sendo normalizado
         console.log('🔍 DEBUG - Normalizando produto:', {
           original: p,
@@ -212,34 +225,29 @@ const Index = () => {
         primeiroNormalizado: normalizedProducts[0],
         timestamp: new Date().toISOString()
       });
-      
-      setProducts(normalizedProducts);
+
+      // Evitar "abre e fecha": só aplicar se houver produtos.
+      // Quando o backend retorna apenas um resumo (produtos vazio), mantemos o estado atual.
+      if (normalizedProducts.length > 0) {
+        setProducts(normalizedProducts);
+      } else {
+        console.log('🔍 DEBUG - Mantendo produtos atuais (backend retornou lista vazia para este snapshot).');
+      }
       setInvoiceNumber(currentNFE.numero);
       setBrandName(currentNFE.fornecedor);
     }
   }, [currentNFeId, currentNFE]);
 
-  // Sincronização forçada a cada mudança (menos agressiva)
+  // Sincronização forçada mais segura: pausa quando uma NFE está aberta
   useEffect(() => {
-    if (currentNFeId) {
-      // Recarregar dados do servidor a cada 5 segundos (em vez de 1s)
+    if (!currentNFeId) {
       const syncInterval = setInterval(() => {
-        // Só sincronizar se não houver mudanças pendentes
-        if (Object.keys(pendingChanges).length === 0) {
-          // LOG DE PROVA: Polling preservado
-          console.log('🔍 PROVA - Polling preservado: hiddenItems =', currentNFE?.hiddenItems || [], {
-            nfeId: currentNFeId,
-            timestamp: new Date().toISOString()
-          });
-          loadNFEs();
-        } else {
-          console.log('🔍 DEBUG - Pulando sincronização devido a mudanças pendentes:', pendingChanges);
-        }
-      }, 5000); // 5 segundos em vez de 1 segundo
-
+        console.log('🔍 PROVA - Polling preservado (sem NFE aberta)');
+        loadNFEs();
+      }, 10000);
       return () => clearInterval(syncInterval);
     }
-  }, [currentNFeId, loadNFEs, pendingChanges, currentNFE?.hiddenItems]);
+  }, [currentNFeId, loadNFEs]);
 
   const extractNFeInfo = (xmlDoc: Document) => {
     const nfeNode = xmlDoc.querySelector('NFe');
@@ -338,26 +346,32 @@ const Index = () => {
     return numero;
   };
 
-  const handleLoadNFe = (nfe: NFE) => {
+  const handleLoadNFe = async (nfe: NFE) => {
     // Limpar mudanças pendentes ao carregar nova NFE
     setPendingChanges({});
+    // Busca defensiva da NFE por ID para garantir dados mais recentes e normalizados
+    let nfeFull: NFE = nfe;
+    try {
+      const fetched = await loadNFEById(nfe.id);
+      if (fetched) nfeFull = fetched;
+    } catch {}
     
     // RESTAURAR ITENS OCULTOS DA NFE CARREGADA
-    if (nfe.hiddenItems && Array.isArray(nfe.hiddenItems)) {
-      const serverHiddenItems = new Set(nfe.hiddenItems);
+    if (nfeFull.hiddenItems && Array.isArray(nfeFull.hiddenItems)) {
+      const serverHiddenItems = new Set(nfeFull.hiddenItems);
       console.log('🔍 DEBUG - Restaurando itens ocultos ao carregar NFE:', {
-        nfeId: nfe.id,
+        nfeId: nfeFull.id,
         serverHiddenItems: Array.from(serverHiddenItems),
         timestamp: new Date().toISOString()
       });
       setHiddenItems(serverHiddenItems);
     } else {
       // Se não há itens ocultos no servidor, limpar estado local
-      setHiddenItems(new Set());
+    setHiddenItems(new Set());
     }
     
     // Normaliza campos vindos do servidor para o shape usado na UI
-    const normalized = (nfe.produtos || []).map((p: NFE['produtos'][0], index) => ({
+    const normalized = normalizeProdutosFromAny(nfeFull.produtos).map((p: NFE['produtos'][0], index) => ({
       codigo: p.codigo ?? '',
       descricao: p.descricao ?? '',
       cor: 'Cor não cadastrada',
@@ -397,9 +411,9 @@ const Index = () => {
       custoExtra: p.custoExtra ?? 0,
     }));
     setProducts(normalized);
-    setCurrentNFeId(nfe.id);
-    setInvoiceNumber(nfe.numero);
-    setBrandName(nfe.fornecedor);
+    setCurrentNFeId(nfeFull.id);
+    setInvoiceNumber(nfeFull.numero);
+    setBrandName(nfeFull.fornecedor);
     setIsEditingBrand(false);
     setXmlContentForDataSystem(null);
     setCurrentTab("upload");
@@ -527,21 +541,21 @@ const Index = () => {
                     {Array.isArray(savedNFEs) ? (
                       savedNFEs.length > 0 ? (
                         savedNFEs.map((nfe) => (
-                          <button
-                            key={nfe.id}
-                            onClick={() => handleLoadNFe(nfe)}
-                            className="w-full text-left p-3 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-colors group"
-                          >
-                            <div className="font-medium text-slate-900 group-hover:text-blue-700 truncate">
-                              {nfe.fornecedor}
-                            </div>
-                            <div className="text-sm text-slate-600 flex items-center justify-between">
-                              <span>NF-e {nfe.numero}</span>
-                              <span className="text-xs bg-slate-100 px-2 py-1 rounded">
-                                {nfe.itens} itens
-                              </span>
-                            </div>
-                          </button>
+                      <button
+                        key={nfe.id}
+                        onClick={() => handleLoadNFe(nfe)}
+                        className="w-full text-left p-3 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-colors group"
+                      >
+                        <div className="font-medium text-slate-900 group-hover:text-blue-700 truncate">
+                          {nfe.fornecedor}
+                        </div>
+                        <div className="text-sm text-slate-600 flex items-center justify-between">
+                          <span>NF-e {nfe.numero}</span>
+                          <span className="text-xs bg-slate-100 px-2 py-1 rounded">
+                            {nfe.itens} itens
+                          </span>
+                        </div>
+                      </button>
                         ))
                       ) : (
                         <div className="text-center py-4 text-slate-500">
@@ -704,7 +718,7 @@ const Index = () => {
                   const next = new Set(prev);
                   if (next.has(id)) {
                     next.delete(id);
-                  } else {
+                } else {
                     next.add(id);
                   }
                   nextArray = Array.from(next);

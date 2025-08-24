@@ -18,10 +18,36 @@ export interface NFE {
   epitaMarkup?: number;
   roundingType?: string;
   valorFrete?: number;
+  hiddenItems?: string[];
+  showHidden?: boolean;
 }
 
 export const useNFEStorage = () => {
-  const { nfes: savedNFEs, loading, error, loadNFEs, saveNFE: apiSaveNFE, updateNFE, deleteNFE: apiDeleteNFE } = useNFEAPI();
+  const { nfes: savedNFEs, loading, error, loadNFEs, saveNFE: apiSaveNFE, updateNFE, deleteNFE: apiDeleteNFE, loadNFEById } = useNFEAPI();
+
+  // Sincronização em tempo real entre abas (via storage) e mesma aba (CustomEvent)
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'nfes_updated' || e.key === 'nfe_updated') {
+        loadNFEs();
+      }
+    };
+    const onCustom = () => loadNFEs();
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('nfes_updated', onCustom as EventListener);
+    window.addEventListener('nfe_updated', onCustom as EventListener);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('nfes_updated', onCustom as EventListener);
+      window.removeEventListener('nfe_updated', onCustom as EventListener);
+    };
+  }, [loadNFEs]);
+
+  const notify = (type: 'nfes_updated' | 'nfe_updated') => {
+    window.dispatchEvent(new CustomEvent(type));
+    localStorage.setItem(type, String(Date.now()));
+    localStorage.removeItem(type);
+  };
 
   const checkDuplicateNFE = (chaveNFE: string | undefined): boolean => {
     if (!chaveNFE) return false;
@@ -41,6 +67,7 @@ export const useNFEStorage = () => {
 
       // Salva via API
       await apiSaveNFE(nfe);
+      notify('nfes_updated');
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -52,6 +79,7 @@ export const useNFEStorage = () => {
   const removeNFE = async (id: string) => {
     try {
       await apiDeleteNFE(id);
+      notify('nfes_updated');
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -65,6 +93,7 @@ export const useNFEStorage = () => {
       const nfe = savedNFEs.find(n => n.id === id);
       if (nfe) {
         await updateNFE(id, { isFavorite: !nfe.isFavorite });
+        notify('nfe_updated');
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -77,6 +106,7 @@ export const useNFEStorage = () => {
   const updateNFEImpostoEntrada = async (id: string, impostoEntrada: number) => {
     try {
       await updateNFE(id, { impostoEntrada });
+      notify('nfe_updated');
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -95,6 +125,7 @@ export const useNFEStorage = () => {
             : produto
         );
         await updateNFE(nfeId, { produtos: updatedProdutos });
+        notify('nfe_updated');
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -114,12 +145,37 @@ export const useNFEStorage = () => {
             : produto
         );
         await updateNFE(nfeId, { produtos: updatedProdutos });
+        notify('nfe_updated');
       }
     } catch (error) {
       if (error instanceof Error) {
         throw error;
       }
       throw new Error('Erro ao atualizar frete proporcional do produto');
+    }
+  };
+
+  const updateHiddenItems = async (nfeId: string, hiddenItems: string[]) => {
+    try {
+      await updateNFE(nfeId, { hiddenItems });
+      notify('nfe_updated');
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Erro ao atualizar itens ocultos');
+    }
+  };
+
+  const updateShowHidden = async (nfeId: string, showHidden: boolean) => {
+    try {
+      await updateNFE(nfeId, { showHidden });
+      notify('nfe_updated');
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Erro ao atualizar preferencia de ocultos');
     }
   };
 
@@ -132,8 +188,13 @@ export const useNFEStorage = () => {
     removeNFE,
     toggleFavorite,
     updateNFEImpostoEntrada,
+    // expor updateNFE genérico para permitir atualizar markups e outros campos
+    updateNFE,
     updateProdutoCustoExtra,
     updateProdutoFreteProporcional,
+    updateHiddenItems,
+    updateShowHidden,
     loadNFEs,
+    loadNFEById,
   };
 }; 
