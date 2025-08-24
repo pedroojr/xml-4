@@ -106,6 +106,12 @@ const initDatabase = () => {
       descricao_complementar TEXT,
       custoExtra REAL DEFAULT 0,
       freteProporcional REAL DEFAULT 0,
+      -- colunas de resolução de cor
+      color_code_detected TEXT,
+      color_name_resolved TEXT,
+      brand_color_id INTEGER,
+      resolved_via TEXT,
+      needs_color_mapping INTEGER DEFAULT 0,
       FOREIGN KEY (nfeId) REFERENCES nfes(id) ON DELETE CASCADE
     )
   `);
@@ -117,7 +123,112 @@ const initDatabase = () => {
     CREATE INDEX IF NOT EXISTS idx_produtos_nfeId ON produtos(nfeId);
     CREATE INDEX IF NOT EXISTS idx_produtos_codigo ON produtos(codigo);
   `);
+
+  // Tabelas de cores por marca
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS brand_colors (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      brand TEXT NOT NULL,
+      code TEXT NOT NULL,
+      name TEXT NOT NULL,
+      UNIQUE(brand, code)
+    );
+    CREATE TABLE IF NOT EXISTS brand_color_aliases (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      brand TEXT NOT NULL,
+      alias TEXT NOT NULL,
+      color_name TEXT NOT NULL,
+      UNIQUE(brand, alias)
+    );
+    CREATE TABLE IF NOT EXISTS brand_color_rules (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      brand TEXT NOT NULL,
+      ean TEXT,
+      referencia TEXT,
+      modelo TEXT,
+      color_name TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS brand_defaults (
+      brand TEXT PRIMARY KEY,
+      default_color TEXT
+    );
+  `);
 };
+// Utilidades de detecção e resolução de cor
+const regexColorCode = /\b([0-9A-Za-z]{3,5})\b/g;
+
+const detectBrand = (produto, fornecedor) => {
+  const pBrand = (produto.brand || '').toString().trim();
+  if (pBrand) return pBrand;
+  return (fornecedor || '').toString().trim();
+};
+
+const detectColorCode = (produto) => {
+  const text = [produto.descricao, produto.descricao_complementar]
+    .filter(Boolean)
+    .join(' ');
+  let match;
+  const candidates = [];
+  while ((match = regexColorCode.exec(text)) !== null) {
+    candidates.push(match[1]);
+  }
+  // Priorizar códigos com 4 dígitos/letras
+  const preferred = candidates.find(c => c.length === 4) || candidates[0];
+  return preferred || null;
+};
+
+// Prepared statements para resolução
+const psColorByCode = db.prepare('SELECT id, name FROM brand_colors WHERE brand = ? AND code = ?');
+const psAlias = db.prepare('SELECT color_name FROM brand_color_aliases WHERE brand = ? AND alias = ?');
+const psRule = db.prepare(`
+  SELECT color_name FROM brand_color_rules 
+  WHERE brand = ? AND (
+    (ean IS NOT NULL AND ean = ?) OR
+    (referencia IS NOT NULL AND referencia = ?) OR
+    (modelo IS NOT NULL AND modelo = ?)
+  ) ORDER BY id DESC LIMIT 1`);
+const psDefault = db.prepare('SELECT default_color FROM brand_defaults WHERE brand = ?');
+
+const resolveColor = (brand, produto) => {
+  let resolved_via = null;
+  let brand_color_id = null;
+  let color_name_resolved = null;
+  const code = detectColorCode(produto);
+
+  if (code) {
+    const byCode = psColorByCode.get(brand, code) || psColorByCode.get('GLOBAL', code);
+    if (byCode) {
+      brand_color_id = byCode.id;
+      color_name_resolved = byCode.name;
+      resolved_via = 'brand_colors';
+      return { code, color_name_resolved, brand_color_id, resolved_via, needs_color_mapping: 0 };
+    }
+    const byAlias = psAlias.get(brand, code) || psAlias.get('GLOBAL', code);
+    if (byAlias) {
+      color_name_resolved = byAlias.color_name;
+      resolved_via = 'brand_color_aliases';
+      return { code, color_name_resolved, brand_color_id, resolved_via, needs_color_mapping: 0 };
+    }
+  }
+
+  const rule = psRule.get(brand, produto.ean || null, produto.reference || null, produto.codigo || null)
+    || psRule.get('GLOBAL', produto.ean || null, produto.reference || null, produto.codigo || null);
+  if (rule) {
+    color_name_resolved = rule.color_name;
+    resolved_via = 'brand_color_rules';
+    return { code, color_name_resolved, brand_color_id, resolved_via, needs_color_mapping: 0 };
+  }
+
+  const def = psDefault.get(brand) || psDefault.get('GLOBAL');
+  if (def && def.default_color) {
+    color_name_resolved = def.default_color;
+    resolved_via = 'brand_defaults';
+    return { code, color_name_resolved, brand_color_id, resolved_via, needs_color_mapping: 0 };
+  }
+
+  return { code, color_name_resolved: 'Cor não cadastrada', brand_color_id: null, resolved_via: 'unresolved', needs_color_mapping: 1 };
+};
+
 
 initDatabase();
 
@@ -194,8 +305,9 @@ app.post('/api/nfes', (req, res) => {
         nfeId, codigo, descricao, ncm, cfop, unidade, quantidade,
         valorUnitario, valorTotal, baseCalculoICMS, valorICMS, aliquotaICMS,
         baseCalculoIPI, valorIPI, aliquotaIPI, ean, reference, brand,
-        imageUrl, descricao_complementar, custoExtra, freteProporcional
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        imageUrl, descricao_complementar, custoExtra, freteProporcional,
+        color_code_detected, color_name_resolved, brand_color_id, resolved_via, needs_color_mapping
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
     const deleteProdutos = db.prepare('DELETE FROM produtos WHERE nfeId = ?');
@@ -214,14 +326,17 @@ app.post('/api/nfes', (req, res) => {
       // Inserir novos produtos
       if (produtos && Array.isArray(produtos)) {
         produtos.forEach(produto => {
+          const brand = detectBrand(produto, fornecedor);
+          const { code, color_name_resolved, brand_color_id, resolved_via, needs_color_mapping } = resolveColor(brand, produto);
           insertProduto.run(
             id, produto.codigo, produto.descricao, produto.ncm, produto.cfop,
             produto.unidade, produto.quantidade, produto.valorUnitario,
             produto.valorTotal, produto.baseCalculoICMS, produto.valorICMS,
             produto.aliquotaICMS, produto.baseCalculoIPI, produto.valorIPI,
-            produto.aliquotaIPI, produto.ean, produto.reference, produto.brand,
+            produto.aliquotaIPI, produto.ean, produto.reference, brand,
             produto.imageUrl, produto.descricao_complementar,
-            produto.custoExtra || 0, produto.freteProporcional || 0
+            produto.custoExtra || 0, produto.freteProporcional || 0,
+            code || null, color_name_resolved, brand_color_id, resolved_via, needs_color_mapping
           );
         });
       }
