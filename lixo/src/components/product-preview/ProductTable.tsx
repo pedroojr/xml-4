@@ -397,8 +397,16 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     }));
   };
 
-  let filteredProducts = products.filter(product => {
-    const isItemHidden = hiddenItems.has(products.indexOf(product));
+  // Gerar ID estável compatível com ProductPreview
+  const getId = (p: Product, index: number): string => {
+    if (p.ean && p.ean.length > 0) return String(p.ean);
+    if (p.code && p.code.length > 0) return `cod:${p.code}:${index}`;
+    if (p.reference) return `ref:${p.reference}:${index}`;
+    return `idx:${index}`;
+  };
+
+  let filteredProducts = products.filter((product, idx) => {
+    const isItemHidden = hiddenItems.has(idx);
 
     // Se mostrar apenas ocultados, filtra só os ocultos
     if (showHidden) {
@@ -438,6 +446,16 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     });
 
     return passesColumnFilters;
+  });
+
+  // LOG DE PROVA: Aplicado filtro de ocultos
+  const hiddenCount = products.filter((_, idx) => hiddenItems.has(idx)).length;
+  const removedCount = products.length - filteredProducts.length;
+  console.log('🔍 PROVA - Aplicado filtro de ocultos: removidos', removedCount, 'de', products.length, 'itens', {
+    hiddenCount,
+    showHidden,
+    filteredCount: filteredProducts.length,
+    timestamp: new Date().toISOString()
   });
 
   // Se houver busca e NÃO estiver mostrando apenas ocultos, ordenar para ocultos ficarem no final
@@ -646,7 +664,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 
               return (
                 <TableRow 
-                  key={`${product.code}-${productIndex}`}
+                  key={getId(product, productIndex)}
                   className={cn(
                     "h-10 hover:bg-slate-50/80 transition-colors",
                     isHidden && "opacity-60"
@@ -710,6 +728,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                       value = roundPrice(calculateSalePrice({ ...product, netPrice: custoLiquidoComFrete }, epitaMarkup), roundingType) + custoExtra;
                     }
                     if (column.id === 'size') value = tamanho;
+                    if (column.id === 'cor') value = product.cor || 'Cor não cadastrada';
                     if (column.id === 'netPrice') {
                       // Custo Líquido = custo unitário + frete proporcional
                       const custoLiquido = calculateCustoLiquido(product, impostoEntrada);
@@ -782,6 +801,8 @@ const getMinWidth = (columnId: string): number => {
       return 100; // Marca
     case 'size':
       return 80; // Tamanho
+    case 'cor':
+      return 100; // Cor
     case 'image':
       return 50; // Coluna de imagem
     default:
