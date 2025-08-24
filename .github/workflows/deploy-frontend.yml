@@ -1,0 +1,63 @@
+name: Deploy Frontend to VPS via SFTP
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-frontend
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Ensure VITE_API_URL secret is set
+        run: |
+          if [ -z "${VITE_API_URL}" ]; then
+            echo "VITE_API_URL secret is not set" >&2
+            exit 1
+          fi
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: lixo/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: lixo
+
+      - name: Build (production)
+        run: npm run build:prod
+        working-directory: lixo
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+
+      - name: Deploy via SFTP
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+        with:
+          server: ${{ secrets.SFTP_HOST }}
+          port: ${{ secrets.SFTP_PORT }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          local_path: "lixo/dist/*"
+          remote_path: "/var/www/html"
+          delete_remote_files: true
+          sftpArgs: "-o ConnectTimeout=30"
+
+
