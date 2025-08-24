@@ -1,0 +1,86 @@
+name: Provision API Domain (Nginx + SSL)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check required secrets
+        run: |
+          for v in SSH_HOST SSH_PORT SSH_USERNAME CERTBOT_EMAIL API_DOMAIN; do
+            if [ -z "${!v}" ]; then echo "Missing secret: $v" >&2; exit 1; fi
+          done
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
+          API_DOMAIN: ${{ secrets.API_DOMAIN }}
+
+      - name: Provision Nginx + SSL and proxy to backend
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            API_DOMAIN="${API_DOMAIN}"
+            API_PORT="${API_PORT:-3001}"
+            ALLOWED1="https://xml.lojasrealce.shop"
+            ALLOWED2="https://www.xml.lojasrealce.shop"
+
+            sudo apt-get update -y
+            sudo apt-get install -y nginx certbot python3-certbot-nginx
+
+            # Nginx server block
+            CONF="/etc/nginx/sites-available/${API_DOMAIN}"
+            sudo bash -lc "cat > '$CONF' <<'NGINX'
+            server {
+              listen 80;
+              server_name ${API_DOMAIN};
+
+              location / {
+                proxy_pass http://127.0.0.1:${API_PORT};
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection 'upgrade';
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+              }
+            }
+NGINX"
+
+            sudo ln -sf "$CONF" "/etc/nginx/sites-enabled/${API_DOMAIN}"
+            sudo nginx -t
+            sudo systemctl reload nginx
+
+            # Issue SSL certificate and enable HTTPS/redirect
+            sudo certbot --nginx -d "$API_DOMAIN" -m "$CERTBOT_EMAIL" --agree-tos --non-interactive --redirect || true
+            sudo systemctl reload nginx || true
+
+            # Ensure backend CORS allows site origins
+            ENV_FILE="/var/www/api/.env"
+            sudo touch "$ENV_FILE"
+            sudo bash -lc "grep -q '^ALLOWED_ORIGINS=' '$ENV_FILE' && sed -i 's#^ALLOWED_ORIGINS=.*#ALLOWED_ORIGINS=${ALLOWED1},${ALLOWED2}#' '$ENV_FILE' || echo ALLOWED_ORIGINS=${ALLOWED1},${ALLOWED2} >> '$ENV_FILE'"
+
+            # Restart backend if managed by PM2
+            if command -v pm2 >/dev/null 2>&1; then
+              pm2 restart xml-importer-api || true
+              pm2 save || true
+            fi
+
+            echo "Provision completed for ${API_DOMAIN} -> http://127.0.0.1:${API_PORT}"
+        env:
+          API_DOMAIN: ${{ secrets.API_DOMAIN }}
+          API_PORT: ${{ secrets.API_PORT }}
+          CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
+
+
