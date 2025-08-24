@@ -10,7 +10,8 @@ import FileUpload from "@/components/FileUpload";
 import FileUploadPDF from "@/components/FileUploadPDF";
 import ProductPreview from "@/components/product-preview/ProductPreview";
 import { useNFEStorage } from "@/hooks/useNFEStorage";
-import { Product, NFE } from "@/types/nfe";
+import type { NFE } from "@/services/api";
+import { Product } from "@/types/nfe";
 import { RoundingType } from "@/components/product-preview/productCalculations";
 import { parseNFeXML } from "@/utils/nfeParser";
 
@@ -20,29 +21,225 @@ const Index = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentTab, setCurrentTab] = useState("upload");
   const [xmlContentForDataSystem, setXmlContentForDataSystem] = useState<string | null>(null);
-  const [pdfItems, setPdfItems] = useState<any[]>([]);
-  const [hiddenItems, setHiddenItems] = useState<Set<number>>(new Set());
-  const [xapuriMarkup, setXapuriMarkup] = useState(() => {
-    const saved = localStorage.getItem('xapuriMarkup');
-    return saved ? parseInt(saved) : 160;
-  });
-  const [epitaMarkup, setEpitaMarkup] = useState(() => {
-    const saved = localStorage.getItem('epitaMarkup');
-    return saved ? parseInt(saved) : 130;
-  });
-  const [impostoEntrada, setImpostoEntrada] = useState(() => {
-    const saved = localStorage.getItem('impostoEntrada');
-    return saved ? parseInt(saved) : 12;
-  });
-  const [roundingType, setRoundingType] = useState<RoundingType>(() => {
-    const saved = localStorage.getItem('roundingType');
-    return (saved as RoundingType) || 'none';
-  });
+  const [pdfItems, setPdfItems] = useState<{ item: string; descricao: string; quantidade: number; totalBruto: number; totalLiquido: number }[]>([]);
+  // Removed local states for hiddenItems, showHidden, markups, roundingType, impostoEntrada
   const [invoiceNumber, setInvoiceNumber] = useState<string>("");
   const [brandName, setBrandName] = useState<string>("");
   const [isEditingBrand, setIsEditingBrand] = useState(false);
 
-  const { savedNFEs, saveNFE, removeNFE } = useNFEStorage();
+  const { savedNFEs, saveNFE, removeNFE, updateHiddenItems, updateShowHidden, updateNFE, loadNFEs } = useNFEStorage();
+
+  // Estado centralizado no servidor - SEM estado local
+  const currentNFE = currentNFeId ? savedNFEs.find(nfe => nfe.id === currentNFeId) : null;
+  
+  // Estado de ocultos persistente no localStorage (à prova de reset)
+  const storageKey = currentNFeId ? `hidden-items:${currentNFeId}` : '';
+  const [hiddenItems, setHiddenItems] = useState<Set<string>>(() => {
+    if (!storageKey) return new Set();
+    try {
+      return new Set(JSON.parse(localStorage.getItem(storageKey) || '[]'));
+    } catch {
+      return new Set();
+    }
+  });
+
+  // Persistir mudanças no localStorage
+  useEffect(() => {
+    if (storageKey && hiddenItems.size > 0) {
+      localStorage.setItem(storageKey, JSON.stringify([...hiddenItems]));
+    } else if (storageKey) {
+      localStorage.removeItem(storageKey);
+    }
+  }, [hiddenItems, storageKey]);
+
+  // Função para gerar ID estável do produto (mesma regra do ProductPreview)
+  const getProductId = (p: Product, index: number) => {
+    if (p.ean && p.ean.length > 0) return String(p.ean);
+    if (p.code && p.code.length > 0) return `cod:${p.code}:${index}`;
+    if (p.reference) return `ref:${p.reference}:${index}`;
+    return `idx:${index}`;
+  };
+
+  // Função para alternar visibilidade (à prova de reset)
+  const toggleHidden = (product: Product, index: number) => {
+    const id = getProductId(product, index);
+    setHiddenItems(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  // Estado local para mudanças pendentes (não salvas no servidor)
+  const [pendingChanges, setPendingChanges] = useState<{
+    showHidden?: boolean;
+    xapuriMarkup?: number;
+    epitaMarkup?: number;
+    impostoEntrada?: number;
+    roundingType?: RoundingType;
+  }>({});
+  
+  // LOG DE PROVA: Carregado hiddenItems do servidor
+  useEffect(() => {
+    if (currentNFeId && currentNFE) {
+      console.log('🔍 PROVA - Carregado hiddenItems do servidor:', {
+        nfeId: currentNFE.id,
+        hiddenItems: currentNFE.hiddenItems || [],
+        showHidden: currentNFE.showHidden,
+        produtosCount: currentNFE.produtos?.length,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [currentNFeId, currentNFE]);
+  
+  // Valores vindos APENAS do servidor, mas com mudanças pendentes aplicadas
+  const xapuriMarkup = pendingChanges.xapuriMarkup ?? currentNFE?.xapuriMarkup ?? 160;
+  const epitaMarkup = pendingChanges.epitaMarkup ?? currentNFE?.epitaMarkup ?? 130;
+  const impostoEntrada = pendingChanges.impostoEntrada ?? currentNFE?.impostoEntrada ?? 12;
+  const roundingType = (pendingChanges.roundingType ?? currentNFE?.roundingType ?? 'none') as RoundingType;
+  const showHidden = pendingChanges.showHidden ?? currentNFE?.showHidden ?? false;
+  
+  // DEBUG: Log para valores derivados
+  useEffect(() => {
+    if (currentNFeId) {
+      console.log('🔍 DEBUG - Valores Derivados:', {
+        xapuriMarkup,
+        epitaMarkup,
+        impostoEntrada,
+        roundingType,
+        hiddenItems: Array.from(hiddenItems),
+        showHidden,
+        pendingChanges,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [currentNFeId, xapuriMarkup, epitaMarkup, impostoEntrada, roundingType, hiddenItems, showHidden, pendingChanges]);
+  
+  // DEBUG: Log para savedNFEs
+  useEffect(() => {
+    console.log('🔍 DEBUG - savedNFEs atualizado:', {
+      count: savedNFEs.length,
+      nfes: savedNFEs.map(n => ({ id: n.id, numero: n.numero, xapuriMarkup: n.xapuriMarkup, hiddenItems: n.hiddenItems, showHidden: n.showHidden })),
+      timestamp: new Date().toISOString()
+    });
+  }, [savedNFEs]);
+
+  // Sincronização automática quando currentNFeId muda
+  useEffect(() => {
+    if (currentNFeId && currentNFE) {
+      // DEBUG: Log dos dados brutos do servidor
+      console.log('🔍 DEBUG - Dados brutos do servidor:', {
+        nfeId: currentNFE.id,
+        produtosCount: currentNFE.produtos?.length,
+        primeiroProduto: currentNFE.produtos?.[0],
+        todosProdutos: currentNFE.produtos,
+        hiddenItemsFromServer: currentNFE.hiddenItems,
+        timestamp: new Date().toISOString()
+      });
+
+      // Aplicar fonte da verdade para itens ocultos: servidor, com fallback localStorage
+      const serverIds = new Set<string>(Array.isArray(currentNFE.hiddenItems) ? currentNFE.hiddenItems : []);
+      const localIdsArray: string[] = (() => {
+        if (!storageKey) return [] as string[];
+        try { return JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch { return []; }
+      })();
+      const localIds = new Set<string>(localIdsArray);
+      const finalIds = serverIds.size > 0 ? serverIds : localIds;
+      setHiddenItems(finalIds);
+      if (storageKey) {
+        try { localStorage.setItem(storageKey, JSON.stringify(Array.from(finalIds))); } catch {}
+      }
+
+      // Normalizar produtos para garantir compatibilidade
+      const normalizedProducts: Product[] = currentNFE.produtos.map((p, index) => {
+        // DEBUG: Log de cada produto sendo normalizado
+        console.log('🔍 DEBUG - Normalizando produto:', {
+          original: p,
+          codigo: p.codigo,
+          quantidade: p.quantidade,
+          valorUnitario: p.valorUnitario,
+          valorTotal: p.valorTotal
+        });
+
+        return {
+          codigo: p.codigo ?? '',
+          descricao: p.descricao ?? '',
+          cor: 'Cor não cadastrada', // Valor padrão para cor
+          ncm: p.ncm ?? '',
+          cfop: p.cfop ?? '',
+          unidade: p.unidade ?? '',
+          quantidade: p.quantidade ?? 0,
+          valorUnitario: p.valorUnitario ?? 0,
+          valorTotal: p.valorTotal ?? 0,
+          baseCalculoICMS: p.baseCalculoICMS ?? 0,
+          valorICMS: p.valorICMS ?? 0,
+          aliquotaICMS: p.aliquotaICMS ?? 0,
+          baseCalculoIPI: p.baseCalculoIPI ?? 0,
+          valorIPI: p.valorIPI ?? 0,
+          aliquotaIPI: p.aliquotaIPI ?? 0,
+          xapuriPrice: 0,
+          epitaPrice: 0,
+          code: p.codigo ?? '',
+          name: p.descricao ?? '',
+          ean: p.ean ?? '',
+          reference: p.reference ?? '',
+          brand: p.brand ?? '',
+          totalPrice: p.valorTotal ?? 0,
+          netPrice: p.valorUnitario ?? 0,
+          discount: 0,
+          quantity: p.quantidade ?? 0,
+          imageUrl: p.imageUrl ?? '',
+          tags: [],
+          salePrice: 0,
+          uom: p.unidade ?? '',
+          color: 'Cor não cadastrada',
+          size: undefined,
+          fornecedor: undefined,
+          descricao_complementar: p.descricao_complementar ?? '',
+          unitPrice: p.valorUnitario ?? 0,
+          freteProporcional: p.freteProporcional ?? 0,
+          custoExtra: p.custoExtra ?? 0,
+        };
+      });
+
+      // DEBUG: Log dos produtos normalizados
+      console.log('🔍 DEBUG - Produtos normalizados:', {
+        count: normalizedProducts.length,
+        primeiroNormalizado: normalizedProducts[0],
+        timestamp: new Date().toISOString()
+      });
+      
+      setProducts(normalizedProducts);
+      setInvoiceNumber(currentNFE.numero);
+      setBrandName(currentNFE.fornecedor);
+    }
+  }, [currentNFeId, currentNFE]);
+
+  // Sincronização forçada a cada mudança (menos agressiva)
+  useEffect(() => {
+    if (currentNFeId) {
+      // Recarregar dados do servidor a cada 5 segundos (em vez de 1s)
+      const syncInterval = setInterval(() => {
+        // Só sincronizar se não houver mudanças pendentes
+        if (Object.keys(pendingChanges).length === 0) {
+          // LOG DE PROVA: Polling preservado
+          console.log('🔍 PROVA - Polling preservado: hiddenItems =', currentNFE?.hiddenItems || [], {
+            nfeId: currentNFeId,
+            timestamp: new Date().toISOString()
+          });
+          loadNFEs();
+        } else {
+          console.log('🔍 DEBUG - Pulando sincronização devido a mudanças pendentes:', pendingChanges);
+        }
+      }, 5000); // 5 segundos em vez de 1 segundo
+
+      return () => clearInterval(syncInterval);
+    }
+  }, [currentNFeId, loadNFEs, pendingChanges, currentNFE?.hiddenItems]);
 
   const extractNFeInfo = (xmlDoc: Document) => {
     const nfeNode = xmlDoc.querySelector('NFe');
@@ -74,7 +271,6 @@ const Index = () => {
     if (currentNFeId) {
       removeNFE(currentNFeId);
       setProducts([]);
-      setHiddenItems(new Set());
       setCurrentNFeId(null);
       setInvoiceNumber("");
       setBrandName("");
@@ -97,7 +293,6 @@ const Index = () => {
 
       const extractedProducts = parseNFeXML(text);
       setProducts(extractedProducts);
-      setHiddenItems(new Set());
       
       const nfeId = `nfe_${Date.now()}`;
       setCurrentNFeId(nfeId);
@@ -112,10 +307,15 @@ const Index = () => {
         numero: nfeInfo.numero,
         chaveNFE: nfeInfo.chaveNFE,
         fornecedor: nfeInfo.emitNome,
-        valor: extractedProducts.reduce((sum, p) => sum + p.totalPrice, 0),
+        valor: extractedProducts.reduce((sum, p) => sum + p.valorTotal, 0),
         itens: extractedProducts.length,
         produtos: extractedProducts,
-        impostoEntrada: impostoEntrada
+        impostoEntrada: impostoEntrada,
+        xapuriMarkup: xapuriMarkup,
+        epitaMarkup: epitaMarkup,
+        roundingType: roundingType,
+        hiddenItems: Array.from(hiddenItems), // Salvar itens ocultos atuais
+        showHidden: showHidden
       };
       
       saveNFE(nfe);
@@ -139,8 +339,64 @@ const Index = () => {
   };
 
   const handleLoadNFe = (nfe: NFE) => {
-    setProducts(nfe.produtos);
-    setHiddenItems(new Set());
+    // Limpar mudanças pendentes ao carregar nova NFE
+    setPendingChanges({});
+    
+    // RESTAURAR ITENS OCULTOS DA NFE CARREGADA
+    if (nfe.hiddenItems && Array.isArray(nfe.hiddenItems)) {
+      const serverHiddenItems = new Set(nfe.hiddenItems);
+      console.log('🔍 DEBUG - Restaurando itens ocultos ao carregar NFE:', {
+        nfeId: nfe.id,
+        serverHiddenItems: Array.from(serverHiddenItems),
+        timestamp: new Date().toISOString()
+      });
+      setHiddenItems(serverHiddenItems);
+    } else {
+      // Se não há itens ocultos no servidor, limpar estado local
+      setHiddenItems(new Set());
+    }
+    
+    // Normaliza campos vindos do servidor para o shape usado na UI
+    const normalized = (nfe.produtos || []).map((p: NFE['produtos'][0], index) => ({
+      codigo: p.codigo ?? '',
+      descricao: p.descricao ?? '',
+      cor: 'Cor não cadastrada',
+      ncm: p.ncm ?? '',
+      cfop: p.cfop ?? '',
+      unidade: p.unidade ?? '',
+      quantidade: p.quantidade ?? 0,
+      valorUnitario: p.valorUnitario ?? 0,
+      valorTotal: p.valorTotal ?? 0,
+      baseCalculoICMS: p.baseCalculoICMS ?? 0,
+      valorICMS: p.valorICMS ?? 0,
+      aliquotaICMS: p.aliquotaICMS ?? 0,
+      baseCalculoIPI: p.baseCalculoIPI ?? 0,
+      valorIPI: p.valorIPI ?? 0,
+      aliquotaIPI: p.aliquotaIPI ?? 0,
+      xapuriPrice: 0,
+      epitaPrice: 0,
+      code: p.codigo ?? '',
+      name: p.descricao ?? '',
+      ean: p.ean ?? '',
+      reference: p.reference ?? '',
+      brand: p.brand ?? '',
+      totalPrice: p.valorTotal ?? 0,
+      netPrice: p.valorUnitario ?? 0,
+      discount: 0,
+      quantity: p.quantidade ?? 0,
+      imageUrl: p.imageUrl ?? '',
+      tags: [],
+      salePrice: 0,
+      uom: p.unidade ?? '',
+      color: 'Cor não cadastrada',
+      size: undefined,
+      fornecedor: undefined,
+      descricao_complementar: p.descricao_complementar ?? '',
+      unitPrice: p.valorUnitario ?? 0,
+      freteProporcional: p.freteProporcional ?? 0,
+      custoExtra: p.custoExtra ?? 0,
+    }));
+    setProducts(normalized);
     setCurrentNFeId(nfe.id);
     setInvoiceNumber(nfe.numero);
     setBrandName(nfe.fornecedor);
@@ -149,30 +405,110 @@ const Index = () => {
     setCurrentTab("upload");
   };
 
-  const handleXapuriMarkupChange = (value: number) => {
-    setXapuriMarkup(value);
-    localStorage.setItem('xapuriMarkup', value.toString());
+  const handleXapuriMarkupChange = async (value: number) => {
+    if (currentNFeId) {
+      // Aplicar mudança localmente primeiro
+      setPendingChanges(prev => ({ ...prev, xapuriMarkup: value }));
+      
+      // Salvar no servidor
+      await updateNFE(currentNFeId, { xapuriMarkup: value });
+      
+      // Limpar mudança pendente após confirmação
+      setPendingChanges(prev => {
+        const { xapuriMarkup, ...rest } = prev;
+        return rest;
+      });
+    }
   };
 
-  const handleEpitaMarkupChange = (value: number) => {
-    setEpitaMarkup(value);
-    localStorage.setItem('epitaMarkup', value.toString());
+  const handleEpitaMarkupChange = async (value: number) => {
+    if (currentNFeId) {
+      // Aplicar mudança localmente primeiro
+      setPendingChanges(prev => ({ ...prev, epitaMarkup: value }));
+      
+      // Salvar no servidor
+      await updateNFE(currentNFeId, { epitaMarkup: value });
+      
+      // Limpar mudança pendente após confirmação
+      setPendingChanges(prev => {
+        const { epitaMarkup, ...rest } = prev;
+        return rest;
+      });
+    }
   };
 
-  const handleImpostoEntradaChange = (value: number) => {
-    setImpostoEntrada(value);
-    localStorage.setItem('impostoEntrada', value.toString());
+  const handleImpostoEntradaChange = async (value: number) => {
+    if (currentNFeId) {
+      // Aplicar mudança localmente primeiro
+      setPendingChanges(prev => ({ ...prev, impostoEntrada: value }));
+      
+      // Salvar no servidor
+      await updateNFE(currentNFeId, { impostoEntrada: value });
+      
+      // Limpar mudança pendente após confirmação
+      setPendingChanges(prev => {
+        const { impostoEntrada, ...rest } = prev;
+        return rest;
+      });
+    }
   };
 
-  const handleRoundingTypeChange = (value: RoundingType) => {
-    setRoundingType(value);
-    localStorage.setItem('roundingType', value);
+  const handleRoundingTypeChange = async (value: RoundingType) => {
+    if (currentNFeId) {
+      // Aplicar mudança localmente primeiro
+      setPendingChanges(prev => ({ ...prev, roundingType: value }));
+      
+      // Salvar no servidor
+      await updateNFE(currentNFeId, { roundingType: value });
+      
+      // Limpar mudança pendente após confirmação
+      setPendingChanges(prev => {
+        const { roundingType, ...rest } = prev;
+        return rest;
+      });
+    }
   };
 
   const handleBrandNameChange = (newName: string) => {
     setBrandName(newName);
     setIsEditingBrand(false);
   };
+
+  // Auto-save quando o usuário sair da página
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (currentNFeId && products.length > 0) {
+        // Salvar automaticamente antes de sair
+        const nfe: Partial<NFE> = {
+          id: currentNFeId,
+          data: new Date().toISOString().split('T')[0],
+          numero: invoiceNumber,
+          fornecedor: brandName,
+          valor: products.reduce((sum, p) => sum + p.valorTotal, 0),
+          itens: products.length,
+          produtos: products,
+          impostoEntrada: impostoEntrada,
+          xapuriMarkup: xapuriMarkup,
+          epitaMarkup: epitaMarkup,
+          roundingType: roundingType,
+          hiddenItems: Array.from(hiddenItems),
+          showHidden: showHidden
+        };
+        
+        // Atualizar no servidor
+        updateNFE(currentNFeId, nfe);
+        // Aviso padrão do navegador
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [currentNFeId, products, invoiceNumber, brandName, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, hiddenItems, showHidden, updateNFE]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
@@ -360,19 +696,33 @@ const Index = () => {
 
             <ProductPreview
               products={products}
-              hiddenItems={hiddenItems}
-              onToggleVisibility={(index) => {
-                const newHiddenItems = new Set(hiddenItems);
-                if (newHiddenItems.has(index)) {
-                  newHiddenItems.delete(index);
-                } else {
-                  newHiddenItems.add(index);
+              hiddenItemIds={hiddenItems}
+              onToggleVisibilityById={(id) => {
+                // Calcula o PRÓXIMO conjunto uma única vez e usa tanto local quanto servidor
+                let nextArray: string[] = [];
+                setHiddenItems(prev => {
+                  const next = new Set(prev);
+                  if (next.has(id)) {
+                    next.delete(id);
+                  } else {
+                    next.add(id);
+                  }
+                  nextArray = Array.from(next);
+                  // Persistência local imediata para resistir a refresh
+                  if (storageKey) {
+                    try { localStorage.setItem(storageKey, JSON.stringify(nextArray)); } catch {}
+                  }
+                  return next;
+                });
+                
+                if (currentNFeId) {
+                  updateHiddenItems(currentNFeId, nextArray);
+                  // Refrescar lista do servidor para refletir o novo estado
+                  loadNFEs();
                 }
-                setHiddenItems(newHiddenItems);
               }}
               onNewFile={() => {
                 setProducts([]);
-                setHiddenItems(new Set());
                 setCurrentNFeId(null);
                 setInvoiceNumber("");
                 setBrandName("");
@@ -382,9 +732,11 @@ const Index = () => {
               }}
               xapuriMarkup={xapuriMarkup}
               epitaMarkup={epitaMarkup}
+              impostoEntrada={impostoEntrada}
               roundingType={roundingType}
               onXapuriMarkupChange={handleXapuriMarkupChange}
               onEpitaMarkupChange={handleEpitaMarkupChange}
+              onImpostoEntradaChange={handleImpostoEntradaChange}
               onRoundingTypeChange={handleRoundingTypeChange}
             />
           </div>

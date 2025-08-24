@@ -33,7 +33,11 @@ const upload = multer({
 });
 
 // Inicializar banco de dados
-const db = new Database(path.join(__dirname, 'database.sqlite'), { verbose: console.log });
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'database.sqlite');
+if (process.env.DEBUG_DB === 'true') {
+  console.log('DB_OPEN', DB_PATH);
+}
+const db = new Database(DB_PATH, { verbose: process.env.DEBUG_DB === 'true' ? console.log : undefined });
 
 // Criar tabelas se não existirem
 const initDatabase = () => {
@@ -52,11 +56,25 @@ const initDatabase = () => {
       epitaMarkup REAL DEFAULT 130,
       roundingType TEXT DEFAULT 'none',
       valorFrete REAL DEFAULT 0,
+      hiddenItems TEXT DEFAULT '[]',
+      showHidden BOOLEAN DEFAULT 0,
       isFavorite BOOLEAN DEFAULT 0,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  
+  // Adicionar colunas se não existirem (para bancos existentes)
+  try {
+    db.exec(`ALTER TABLE nfes ADD COLUMN hiddenItems TEXT DEFAULT '[]'`);
+  } catch (e) {
+    // Coluna já existe
+  }
+  try {
+    db.exec(`ALTER TABLE nfes ADD COLUMN showHidden BOOLEAN DEFAULT 0`);
+  } catch (e) {
+    // Coluna já existe
+  }
 
   // Tabela de produtos
   db.exec(`
@@ -99,6 +117,16 @@ const initDatabase = () => {
 
 initDatabase();
 
+// Logar colunas reais da tabela nfes em runtime para auditoria
+if (process.env.DEBUG_DB === 'true') {
+  try {
+    const cols = db.prepare('PRAGMA table_info(nfes)').all();
+    console.log('NFES_COLUMNS', cols);
+  } catch (e) {
+    console.error('NFES_COLUMNS_ERROR', e?.message || e);
+  }
+}
+
 // Rotas da API
 
 // GET - Listar todas as NFEs
@@ -114,7 +142,23 @@ app.get('/api/nfes', (req, res) => {
       GROUP BY n.id
       ORDER BY n.createdAt DESC
     `);
-    const nfes = stmt.all();
+    const rows = stmt.all();
+
+    // Normalizar campos derivados
+    const nfes = rows.map((row) => {
+      let hiddenItems = [];
+      try {
+        hiddenItems = row.hiddenItems ? JSON.parse(row.hiddenItems) : [];
+      } catch (e) {
+        hiddenItems = [];
+      }
+      return {
+        ...row,
+        hiddenItems,
+        showHidden: Boolean(row.showHidden)
+      };
+    });
+
     res.json(nfes);
   } catch (error) {
     console.error('Erro ao buscar NFEs:', error);
@@ -139,8 +183,18 @@ app.get('/api/nfes/:id', (req, res) => {
     const produtosStmt = db.prepare('SELECT * FROM produtos WHERE nfeId = ?');
     const produtos = produtosStmt.all(id);
     
+    // Parse do hiddenItems de JSON string para array
+    let hiddenItems = [];
+    try {
+      hiddenItems = nfe.hiddenItems ? JSON.parse(nfe.hiddenItems) : [];
+    } catch (e) {
+      hiddenItems = [];
+    }
+    
     res.json({
       ...nfe,
+      hiddenItems,
+      showHidden: Boolean(nfe.showHidden),
       produtos
     });
   } catch (error) {
@@ -152,13 +206,14 @@ app.get('/api/nfes/:id', (req, res) => {
 // POST - Criar nova NFE
 app.post('/api/nfes', (req, res) => {
   try {
-    const { id, data, numero, chaveNFE, fornecedor, valor, itens, produtos, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete } = req.body;
+    const { id, data, numero, chaveNFE, fornecedor, valor, itens, produtos, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete, hiddenItems, showHidden } = req.body;
     
     const insertNFE = db.prepare(`
       INSERT OR REPLACE INTO nfes (
         id, data, numero, chaveNFE, fornecedor, valor, itens, 
-        impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete,
+        hiddenItems, showHidden
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
     const insertProduto = db.prepare(`
@@ -177,7 +232,8 @@ app.post('/api/nfes', (req, res) => {
       insertNFE.run(
         id, data, numero, chaveNFE, fornecedor, valor, itens,
         impostoEntrada || 12, xapuriMarkup || 160, epitaMarkup || 130,
-        roundingType || 'none', valorFrete || 0
+        roundingType || 'none', valorFrete || 0,
+        JSON.stringify(hiddenItems || []), showHidden || 0
       );
       
       // Remover produtos antigos
@@ -210,19 +266,38 @@ app.post('/api/nfes', (req, res) => {
 app.put('/api/nfes/:id', (req, res) => {
   try {
     const { id } = req.params;
-    const { fornecedor, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete } = req.body;
+    const { fornecedor, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete, hiddenItems, showHidden } = req.body;
     
+    // Buscar estado atual para preservar hiddenItems/showHidden em updates parciais
+    const current = db.prepare('SELECT hiddenItems, showHidden FROM nfes WHERE id = ?').get(id);
+    const currentHidden = (() => { try { return current?.hiddenItems ? JSON.parse(current.hiddenItems) : []; } catch { return []; } })();
+    const nextHidden = hiddenItems !== undefined ? hiddenItems : currentHidden;
+    const nextShowHidden = showHidden !== undefined ? (showHidden ? 1 : 0) : (current?.showHidden ?? 0);
+
     const updateStmt = db.prepare(`
       UPDATE nfes SET 
-        fornecedor = ?, impostoEntrada = ?, xapuriMarkup = ?, 
-        epitaMarkup = ?, roundingType = ?, valorFrete = ?, 
+        fornecedor = COALESCE(?, fornecedor),
+        impostoEntrada = COALESCE(?, impostoEntrada),
+        xapuriMarkup = COALESCE(?, xapuriMarkup), 
+        epitaMarkup = COALESCE(?, epitaMarkup),
+        roundingType = COALESCE(?, roundingType),
+        valorFrete = COALESCE(?, valorFrete),
+        hiddenItems = COALESCE(?, hiddenItems),
+        showHidden = COALESCE(?, showHidden),
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
     
     const result = updateStmt.run(
-      fornecedor, impostoEntrada, xapuriMarkup, epitaMarkup, 
-      roundingType, valorFrete, id
+      fornecedor ?? null,
+      impostoEntrada ?? null,
+      xapuriMarkup ?? null,
+      epitaMarkup ?? null,
+      roundingType ?? null,
+      valorFrete ?? null,
+      JSON.stringify(nextHidden),
+      nextShowHidden,
+      id
     );
     
     if (result.changes === 0) {
@@ -284,6 +359,18 @@ app.get('/api/status', (req, res) => {
     database: 'connected'
   });
 });
+
+// Endpoint de diagnóstico: expõe DB_OPEN e colunas de nfes
+if (process.env.DEBUG_DB === 'true') {
+  app.get('/api/_debug/db', (req, res) => {
+    try {
+      const cols = db.prepare('PRAGMA table_info(nfes)').all();
+      res.json({ DB_OPEN: DB_PATH, NFES_COLUMNS: cols });
+    } catch (e) {
+      res.status(500).json({ DB_OPEN: DB_PATH, error: e?.message || String(e) });
+    }
+  });
+}
 
 // Middleware de tratamento de erros
 app.use((err, req, res, next) => {
