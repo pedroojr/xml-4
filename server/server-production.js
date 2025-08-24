@@ -429,6 +429,150 @@ app.get('/api/status', (req, res) => {
   });
 });
 
+// --- CRUD: Brands helper ---
+app.get('/api/brands', (req, res) => {
+  try {
+    const rows = db.prepare(`
+      SELECT DISTINCT brand FROM (
+        SELECT brand FROM brand_colors
+        UNION ALL SELECT brand FROM brand_color_aliases
+        UNION ALL SELECT brand FROM brand_color_rules
+        UNION ALL SELECT brand FROM brand_defaults
+      ) WHERE brand IS NOT NULL AND TRIM(brand) <> '' ORDER BY brand
+    `).all();
+    res.json(rows.map(r => r.brand));
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Erro ao listar marcas' });
+  }
+});
+
+// --- CRUD: brand_colors ---
+app.get('/api/brands/:brand/colors', (req, res) => {
+  try {
+    const { brand } = req.params;
+    const rows = db.prepare('SELECT id, code, name FROM brand_colors WHERE brand = ? ORDER BY code').all(brand);
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: 'Erro ao listar cores' }); }
+});
+
+app.post('/api/brands/:brand/colors', (req, res) => {
+  try {
+    const { brand } = req.params;
+    const { code, name } = req.body;
+    if (!code || !name) return res.status(400).json({ error: 'code e name são obrigatórios' });
+    db.prepare('INSERT OR IGNORE INTO brand_colors(brand, code, name) VALUES (?, ?, ?)').run(brand, code, name);
+    res.json({ message: 'Cor criada' });
+  } catch (e) { res.status(500).json({ error: 'Erro ao criar cor' }); }
+});
+
+app.put('/api/brands/:brand/colors/:code', (req, res) => {
+  try {
+    const { brand, code } = req.params;
+    const { name, newCode } = req.body;
+    const stmt = db.prepare('UPDATE brand_colors SET name = COALESCE(?, name), code = COALESCE(?, code) WHERE brand = ? AND code = ?');
+    const r = stmt.run(name ?? null, newCode ?? null, brand, code);
+    if (!r.changes) return res.status(404).json({ error: 'Cor não encontrada' });
+    res.json({ message: 'Cor atualizada' });
+  } catch (e) { res.status(500).json({ error: 'Erro ao atualizar cor' }); }
+});
+
+app.delete('/api/brands/:brand/colors/:code', (req, res) => {
+  try {
+    const { brand, code } = req.params;
+    const r = db.prepare('DELETE FROM brand_colors WHERE brand = ? AND code = ?').run(brand, code);
+    if (!r.changes) return res.status(404).json({ error: 'Cor não encontrada' });
+    res.json({ message: 'Cor removida' });
+  } catch (e) { res.status(500).json({ error: 'Erro ao remover cor' }); }
+});
+
+// --- CRUD: aliases ---
+app.get('/api/brands/:brand/aliases', (req, res) => {
+  try {
+    const { brand } = req.params;
+    const rows = db.prepare('SELECT id, alias, color_name FROM brand_color_aliases WHERE brand = ? ORDER BY alias').all(brand);
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: 'Erro ao listar aliases' }); }
+});
+
+app.post('/api/brands/:brand/aliases', (req, res) => {
+  try {
+    const { brand } = req.params;
+    const { alias, color_name } = req.body;
+    if (!alias || !color_name) return res.status(400).json({ error: 'alias e color_name são obrigatórios' });
+    db.prepare('INSERT OR IGNORE INTO brand_color_aliases(brand, alias, color_name) VALUES (?, ?, ?)').run(brand, alias, color_name);
+    res.json({ message: 'Alias criado' });
+  } catch (e) { res.status(500).json({ error: 'Erro ao criar alias' }); }
+});
+
+app.put('/api/brands/:brand/aliases/:alias', (req, res) => {
+  try {
+    const { brand, alias } = req.params;
+    const { color_name, newAlias } = req.body;
+    const r = db.prepare('UPDATE brand_color_aliases SET color_name = COALESCE(?, color_name), alias = COALESCE(?, alias) WHERE brand = ? AND alias = ?')
+      .run(color_name ?? null, newAlias ?? null, brand, alias);
+    if (!r.changes) return res.status(404).json({ error: 'Alias não encontrado' });
+    res.json({ message: 'Alias atualizado' });
+  } catch (e) { res.status(500).json({ error: 'Erro ao atualizar alias' }); }
+});
+
+app.delete('/api/brands/:brand/aliases/:alias', (req, res) => {
+  try {
+    const { brand, alias } = req.params;
+    const r = db.prepare('DELETE FROM brand_color_aliases WHERE brand = ? AND alias = ?').run(brand, alias);
+    if (!r.changes) return res.status(404).json({ error: 'Alias não encontrado' });
+    res.json({ message: 'Alias removido' });
+  } catch (e) { res.status(500).json({ error: 'Erro ao remover alias' }); }
+});
+
+// --- CRUD: rules ---
+app.get('/api/brands/:brand/rules', (req, res) => {
+  try {
+    const { brand } = req.params;
+    const rows = db.prepare('SELECT id, ean, referencia, modelo, color_name FROM brand_color_rules WHERE brand = ? ORDER BY id DESC').all(brand);
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: 'Erro ao listar regras' }); }
+});
+
+app.post('/api/brands/:brand/rules', (req, res) => {
+  try {
+    const { brand } = req.params;
+    const { ean, referencia, modelo, color_name } = req.body;
+    if (!color_name) return res.status(400).json({ error: 'color_name é obrigatório' });
+    db.prepare('INSERT INTO brand_color_rules(brand, ean, referencia, modelo, color_name) VALUES (?, ?, ?, ?, ?)')
+      .run(brand, ean || null, referencia || null, modelo || null, color_name);
+    res.json({ message: 'Regra criada' });
+  } catch (e) { res.status(500).json({ error: 'Erro ao criar regra' }); }
+});
+
+app.delete('/api/brands/:brand/rules/:id', (req, res) => {
+  try {
+    const { brand, id } = req.params;
+    const r = db.prepare('DELETE FROM brand_color_rules WHERE brand = ? AND id = ?').run(brand, id);
+    if (!r.changes) return res.status(404).json({ error: 'Regra não encontrada' });
+    res.json({ message: 'Regra removida' });
+  } catch (e) { res.status(500).json({ error: 'Erro ao remover regra' }); }
+});
+
+// --- CRUD: defaults ---
+app.get('/api/brands/:brand/default', (req, res) => {
+  try {
+    const { brand } = req.params;
+    const row = db.prepare('SELECT default_color FROM brand_defaults WHERE brand = ?').get(brand);
+    res.json({ brand, default_color: row?.default_color || null });
+  } catch (e) { res.status(500).json({ error: 'Erro ao obter default' }); }
+});
+
+app.put('/api/brands/:brand/default', (req, res) => {
+  try {
+    const { brand } = req.params;
+    const { default_color } = req.body;
+    db.prepare('INSERT INTO brand_defaults(brand, default_color) VALUES(?, ?) ON CONFLICT(brand) DO UPDATE SET default_color = excluded.default_color')
+      .run(brand, default_color || null);
+    res.json({ message: 'Default atualizado' });
+  } catch (e) { res.status(500).json({ error: 'Erro ao atualizar default' }); }
+});
+
 // Middleware de tratamento de erros
 app.use((err, req, res, next) => {
   console.error(err.stack);
