@@ -1,0 +1,82 @@
+name: Provision Frontend Domain (Nginx + SSL + Caching)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check required secrets
+        run: |
+          for v in SSH_HOST SSH_PORT SSH_USERNAME CERTBOT_EMAIL FRONT_DOMAIN; do
+            if [ -z "${!v}" ]; then echo "Missing secret: $v" >&2; exit 1; fi
+          done
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
+          FRONT_DOMAIN: ${{ secrets.FRONT_DOMAIN }}
+
+      - name: Configure Nginx for frontend and issue SSL
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            FRONT_DOMAIN="${FRONT_DOMAIN}"
+            FRONT_ALT="${FRONT_ALT:-www.${FRONT_DOMAIN}}"
+            WEBROOT="/var/www/html"
+
+            sudo apt-get update -y
+            sudo apt-get install -y nginx certbot python3-certbot-nginx
+
+            # Nginx server block
+            CONF="/etc/nginx/sites-available/${FRONT_DOMAIN}"
+            sudo bash -lc "cat > '$CONF' <<'NGINX'
+            server {
+              listen 80;
+              server_name ${FRONT_DOMAIN} ${FRONT_ALT};
+
+              root /var/www/html;
+              index index.html;
+
+              # Não cachear o index
+              location = /index.html {
+                add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate" always;
+              }
+
+              # Cache longo para assets versionados
+              location /assets/ {
+                add_header Cache-Control "public, max-age=31536000, immutable" always;
+              }
+
+              # SPA fallback
+              location / {
+                try_files $uri /index.html;
+              }
+            }
+NGINX"
+
+            sudo ln -sf "$CONF" "/etc/nginx/sites-enabled/${FRONT_DOMAIN}"
+            sudo nginx -t
+            sudo systemctl reload nginx
+
+            # Emitir/renovar SSL e forçar redirect HTTPS
+            sudo certbot --nginx -d "$FRONT_DOMAIN" -d "$FRONT_ALT" -m "$CERTBOT_EMAIL" --agree-tos --non-interactive --redirect || true
+            sudo systemctl reload nginx || true
+
+            # Forçar timestamp do index para evitar cache
+            if [ -f "$WEBROOT/index.html" ]; then sudo touch "$WEBROOT/index.html"; fi
+
+            echo "Frontend provisioned for ${FRONT_DOMAIN} (alt: ${FRONT_ALT})"
+        env:
+          FRONT_DOMAIN: ${{ secrets.FRONT_DOMAIN }}
+          FRONT_ALT: ${{ secrets.FRONT_ALT }}
+          CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
