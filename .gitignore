@@ -43,6 +43,6 @@ pids/
 # Temporary files
 tmp/
 temp/
-lixo-backup-*/
+frontend-backup-*/
 backup-antes-simplificacao/
 

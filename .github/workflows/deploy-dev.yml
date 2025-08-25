@@ -18,14 +18,14 @@ jobs:
       with:
         node-version: '18'
         cache: 'npm'
-        cache-dependency-path: lixo/package-lock.json
+        cache-dependency-path: frontend/package-lock.json
         
     - name: Install dependencies
-      working-directory: ./lixo
+      working-directory: ./frontend
       run: npm ci
       
     - name: Build frontend for development
-      working-directory: ./lixo
+      working-directory: ./frontend
       run: npm run build:dev
       env:
         VITE_API_URL: https://dev-api.xml.lojasrealce.shop
@@ -37,7 +37,7 @@ jobs:
         username: ${{ secrets.SFTP_USERNAME }}
         password: ${{ secrets.SFTP_PASSWORD }}
         port: ${{ secrets.SFTP_PORT }}
-        source: "lixo/dist/*"
+        source: "frontend/dist/*"
         target: "/var/www/dev"
         strip_components: 2
         
