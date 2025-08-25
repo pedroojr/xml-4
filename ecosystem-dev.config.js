@@ -1,7 +1,7 @@
 module.exports = {
   apps: [{
     name: 'xml-importer-api-dev',
-    script: 'server/server-production.js',
+    script: 'server/server.js',
     cwd: '/root/xml-4-dev',
     env: {
       NODE_ENV: 'development',

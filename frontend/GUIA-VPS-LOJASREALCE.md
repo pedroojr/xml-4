@@ -88,7 +88,7 @@ DB_PATH=/var/www/api/database.sqlite
 npm install -g pm2
 
 # Iniciar aplicação
-pm2 start server-production.js --name "xml-importer-api"
+pm2 start server.js --name "xml-importer-api"
 
 # Configurar para iniciar com o sistema
 pm2 startup

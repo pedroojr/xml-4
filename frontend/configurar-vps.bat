@@ -53,7 +53,7 @@ echo 7. Instalar PM2:
 echo npm install -g pm2
 echo.
 echo 8. Iniciar aplicacao:
-echo pm2 start server-production.js --name "xml-importer-api"
+echo pm2 start server.js --name "xml-importer-api"
 echo.
 echo 9. Configurar para iniciar com o sistema:
 echo pm2 startup

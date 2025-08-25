@@ -19,7 +19,7 @@ const app = express();
 const PORT = config.port;
 
 // Middleware
-app.use(helmet());
+app.use(helmet(config.helmet));
 const limiter = rateLimit({
   windowMs: config.rateLimit.windowMs,
   max: config.rateLimit.max,
@@ -33,8 +33,8 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: config.bodyLimit }));
+app.use(express.urlencoded({ extended: true, limit: config.bodyLimit }));
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(authMiddleware);
 

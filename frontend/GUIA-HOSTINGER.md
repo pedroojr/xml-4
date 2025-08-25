@@ -61,7 +61,7 @@ Este guia te ajudará a configurar o XML Importer no Hostinger e continuar atual
    npm install -g pm2
    
    # Iniciar aplicação
-   pm2 start server-production.js --name "xml-importer-api"
+   pm2 start server.js --name "xml-importer-api"
    
    # Configurar para iniciar com o sistema
    pm2 startup
@@ -201,7 +201,7 @@ public_html/
 ### **VPS (Backend):**
 ```
 /var/www/api/
-├── server-production.js
+├── server.js
 ├── package.json
 ├── database.sqlite
 └── .env
@@ -224,7 +224,7 @@ app.use(cors({
 
 ### **3. Headers de Segurança:**
 ```javascript
-// Já configurado no server-production.js
+// Já configurado no server.js
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
