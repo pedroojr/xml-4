@@ -16,32 +16,36 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware de segurança para produção
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https:"],
-      scriptSrc: ["'self'"],
-              connectSrc: ["'self'"],
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        scriptSrc: ["'self'"],
+        connectSrc: ["'self'"],
+      },
     },
-  },
-  crossOriginEmbedderPolicy: false,
-}));
+    crossOriginEmbedderPolicy: false,
+  }),
+);
 
 // CORS configurado para produção
-app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || [
-    'https://xml.lojasrealce.shop',
-    'https://www.xml.lojasrealce.shop',
-    'https://dev.xml.lojasrealce.shop',
-    'http://localhost:5173'
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(
+  cors({
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || [
+      'https://xml.lojasrealce.shop',
+      'https://www.xml.lojasrealce.shop',
+      'https://dev.xml.lojasrealce.shop',
+      'http://localhost:5173',
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  }),
+);
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -50,8 +54,8 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB
-  }
+    fileSize: 10 * 1024 * 1024, // 10MB
+  },
 });
 
 // Inicializar banco de dados
@@ -86,12 +90,12 @@ const initDatabase = () => {
   // Adicionar colunas se não existirem (para bancos existentes)
   try {
     db.exec(`ALTER TABLE nfes ADD COLUMN hiddenItems TEXT DEFAULT '[]'`);
-  } catch (e) {
+  } catch {
     // coluna já existe
   }
   try {
     db.exec(`ALTER TABLE nfes ADD COLUMN showHidden BOOLEAN DEFAULT 0`);
-  } catch (e) {
+  } catch {
     // coluna já existe
   }
 
@@ -138,7 +142,9 @@ initDatabase();
 
 // Middleware de logging para produção
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - ${req.ip}`);
+  console.log(
+    `${new Date().toISOString()} - ${req.method} ${req.path} - ${req.ip}`,
+  );
   next();
 });
 
@@ -162,7 +168,7 @@ app.get('/api/nfes', (req, res) => {
       let hiddenItems = [];
       try {
         hiddenItems = row.hiddenItems ? JSON.parse(row.hiddenItems) : [];
-      } catch (e) {
+      } catch {
         hiddenItems = [];
       }
       return { ...row, hiddenItems, showHidden: Boolean(row.showHidden) };
@@ -184,8 +190,17 @@ app.get('/api/nfes/:id', (req, res) => {
     const produtosStmt = db.prepare('SELECT * FROM produtos WHERE nfeId = ?');
     const produtos = produtosStmt.all(id);
     let hiddenItems = [];
-    try { hiddenItems = nfe.hiddenItems ? JSON.parse(nfe.hiddenItems) : []; } catch { hiddenItems = []; }
-    res.json({ ...nfe, hiddenItems, showHidden: Boolean(nfe.showHidden), produtos });
+    try {
+      hiddenItems = nfe.hiddenItems ? JSON.parse(nfe.hiddenItems) : [];
+    } catch {
+      hiddenItems = [];
+    }
+    res.json({
+      ...nfe,
+      hiddenItems,
+      showHidden: Boolean(nfe.showHidden),
+      produtos,
+    });
   } catch (error) {
     console.error('Erro ao buscar NFE:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -195,8 +210,24 @@ app.get('/api/nfes/:id', (req, res) => {
 // POST - Criar nova NFE
 app.post('/api/nfes', (req, res) => {
   try {
-    const { id, data, numero, chaveNFE, fornecedor, valor, itens, produtos, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete, hiddenItems, showHidden } = req.body;
-    
+    const {
+      id,
+      data,
+      numero,
+      chaveNFE,
+      fornecedor,
+      valor,
+      itens,
+      produtos,
+      impostoEntrada,
+      xapuriMarkup,
+      epitaMarkup,
+      roundingType,
+      valorFrete,
+      hiddenItems,
+      showHidden,
+    } = req.body;
+
     const insertNFE = db.prepare(`
       INSERT OR REPLACE INTO nfes (
         id, data, numero, chaveNFE, fornecedor, valor, itens, 
@@ -204,7 +235,7 @@ app.post('/api/nfes', (req, res) => {
         hiddenItems, showHidden
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    
+
     const insertProduto = db.prepare(`
       INSERT INTO produtos (
         nfeId, codigo, descricao, ncm, cfop, unidade, quantidade,
@@ -213,37 +244,62 @@ app.post('/api/nfes', (req, res) => {
         imageUrl, descricao_complementar, custoExtra, freteProporcional
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    
+
     const deleteProdutos = db.prepare('DELETE FROM produtos WHERE nfeId = ?');
-    
+
     db.transaction(() => {
       // Inserir/atualizar NFE
       insertNFE.run(
-        id, data, numero, chaveNFE, fornecedor, valor, itens,
-        impostoEntrada || 12, xapuriMarkup || 160, epitaMarkup || 130,
-        roundingType || 'none', valorFrete || 0,
-        JSON.stringify(hiddenItems || []), showHidden ? 1 : 0
+        id,
+        data,
+        numero,
+        chaveNFE,
+        fornecedor,
+        valor,
+        itens,
+        impostoEntrada || 12,
+        xapuriMarkup || 160,
+        epitaMarkup || 130,
+        roundingType || 'none',
+        valorFrete || 0,
+        JSON.stringify(hiddenItems || []),
+        showHidden ? 1 : 0,
       );
-      
+
       // Remover produtos antigos
       deleteProdutos.run(id);
-      
+
       // Inserir novos produtos
       if (produtos && Array.isArray(produtos)) {
-        produtos.forEach(produto => {
+        produtos.forEach((produto) => {
           insertProduto.run(
-            id, produto.codigo, produto.descricao, produto.ncm, produto.cfop,
-            produto.unidade, produto.quantidade, produto.valorUnitario,
-            produto.valorTotal, produto.baseCalculoICMS, produto.valorICMS,
-            produto.aliquotaICMS, produto.baseCalculoIPI, produto.valorIPI,
-            produto.aliquotaIPI, produto.ean, produto.reference, produto.brand,
-            produto.imageUrl, produto.descricao_complementar,
-            produto.custoExtra || 0, produto.freteProporcional || 0
+            id,
+            produto.codigo,
+            produto.descricao,
+            produto.ncm,
+            produto.cfop,
+            produto.unidade,
+            produto.quantidade,
+            produto.valorUnitario,
+            produto.valorTotal,
+            produto.baseCalculoICMS,
+            produto.valorICMS,
+            produto.aliquotaICMS,
+            produto.baseCalculoIPI,
+            produto.valorIPI,
+            produto.aliquotaIPI,
+            produto.ean,
+            produto.reference,
+            produto.brand,
+            produto.imageUrl,
+            produto.descricao_complementar,
+            produto.custoExtra || 0,
+            produto.freteProporcional || 0,
           );
         });
       }
     })();
-    
+
     res.json({ message: 'NFE salva com sucesso', id });
   } catch (error) {
     console.error('Erro ao salvar NFE:', error);
@@ -255,8 +311,15 @@ app.post('/api/nfes', (req, res) => {
 app.put('/api/nfes/:id', (req, res) => {
   try {
     const { id } = req.params;
-    const { fornecedor, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete } = req.body;
-    
+    const {
+      fornecedor,
+      impostoEntrada,
+      xapuriMarkup,
+      epitaMarkup,
+      roundingType,
+      valorFrete,
+    } = req.body;
+
     const updateStmt = db.prepare(`
       UPDATE nfes SET 
         fornecedor = ?, impostoEntrada = ?, xapuriMarkup = ?, 
@@ -264,16 +327,21 @@ app.put('/api/nfes/:id', (req, res) => {
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
-    
+
     const result = updateStmt.run(
-      fornecedor, impostoEntrada, xapuriMarkup, epitaMarkup, 
-      roundingType, valorFrete, id
+      fornecedor,
+      impostoEntrada,
+      xapuriMarkup,
+      epitaMarkup,
+      roundingType,
+      valorFrete,
+      id,
     );
-    
+
     if (result.changes === 0) {
       return res.status(404).json({ error: 'NFE não encontrada' });
     }
-    
+
     res.json({ message: 'NFE atualizada com sucesso' });
   } catch (error) {
     console.error('Erro ao atualizar NFE:', error);
@@ -285,14 +353,14 @@ app.put('/api/nfes/:id', (req, res) => {
 app.delete('/api/nfes/:id', (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const deleteStmt = db.prepare('DELETE FROM nfes WHERE id = ?');
     const result = deleteStmt.run(id);
-    
+
     if (result.changes === 0) {
       return res.status(404).json({ error: 'NFE não encontrada' });
     }
-    
+
     res.json({ message: 'NFE excluída com sucesso' });
   } catch (error) {
     console.error('Erro ao excluir NFE:', error);
@@ -306,14 +374,14 @@ app.post('/api/upload-xml', upload.single('xml'), (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: 'Nenhum arquivo enviado' });
     }
-    
+
     const xmlContent = req.file.buffer.toString('utf-8');
-    
+
     // Aqui você pode adicionar a lógica de parsing do XML
     // Por enquanto, apenas retornamos o conteúdo
-    res.json({ 
+    res.json({
       message: 'Arquivo recebido com sucesso',
-      content: xmlContent.substring(0, 500) + '...' // Primeiros 500 caracteres
+      content: xmlContent.substring(0, 500) + '...', // Primeiros 500 caracteres
     });
   } catch (error) {
     console.error('Erro no upload:', error);
@@ -323,16 +391,16 @@ app.post('/api/upload-xml', upload.single('xml'), (req, res) => {
 
 // GET - Status do servidor
 app.get('/api/status', (req, res) => {
-  res.json({ 
+  res.json({
     status: 'online',
     timestamp: new Date().toISOString(),
     database: 'connected',
-    environment: 'production'
+    environment: 'production',
   });
 });
 
 // Middleware de tratamento de erros
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Algo deu errado!' });
 });

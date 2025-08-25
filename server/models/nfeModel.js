@@ -17,13 +17,13 @@ export const getAllNfes = () => {
     let hiddenItems = [];
     try {
       hiddenItems = row.hiddenItems ? JSON.parse(row.hiddenItems) : [];
-    } catch (e) {
+    } catch {
       hiddenItems = [];
     }
     return {
       ...row,
       hiddenItems,
-      showHidden: Boolean(row.showHidden)
+      showHidden: Boolean(row.showHidden),
     };
   });
 };
@@ -41,7 +41,7 @@ export const getNfeById = (id) => {
   let hiddenItems = [];
   try {
     hiddenItems = nfe.hiddenItems ? JSON.parse(nfe.hiddenItems) : [];
-  } catch (e) {
+  } catch {
     hiddenItems = [];
   }
 
@@ -49,11 +49,27 @@ export const getNfeById = (id) => {
     ...nfe,
     hiddenItems,
     showHidden: Boolean(nfe.showHidden),
-    produtos
+    produtos,
   };
 };
 
-export const saveNfe = ({ id, data, numero, chaveNFE, fornecedor, valor, itens, produtos, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete, hiddenItems, showHidden }) => {
+export const saveNfe = ({
+  id,
+  data,
+  numero,
+  chaveNFE,
+  fornecedor,
+  valor,
+  itens,
+  produtos,
+  impostoEntrada,
+  xapuriMarkup,
+  epitaMarkup,
+  roundingType,
+  valorFrete,
+  hiddenItems,
+  showHidden,
+}) => {
   const insertNFE = db.prepare(`
     INSERT OR REPLACE INTO nfes (
       id, data, numero, chaveNFE, fornecedor, valor, itens,
@@ -75,24 +91,49 @@ export const saveNfe = ({ id, data, numero, chaveNFE, fornecedor, valor, itens, 
 
   db.transaction(() => {
     insertNFE.run(
-      id, data, numero, chaveNFE, fornecedor, valor, itens,
-      impostoEntrada || 12, xapuriMarkup || 160, epitaMarkup || 130,
-      roundingType || 'none', valorFrete || 0,
-      JSON.stringify(hiddenItems || []), showHidden || 0
+      id,
+      data,
+      numero,
+      chaveNFE,
+      fornecedor,
+      valor,
+      itens,
+      impostoEntrada || 12,
+      xapuriMarkup || 160,
+      epitaMarkup || 130,
+      roundingType || 'none',
+      valorFrete || 0,
+      JSON.stringify(hiddenItems || []),
+      showHidden || 0,
     );
 
     deleteProdutos.run(id);
 
     if (produtos && Array.isArray(produtos)) {
-      produtos.forEach(produto => {
+      produtos.forEach((produto) => {
         insertProduto.run(
-          id, produto.codigo, produto.descricao, produto.ncm, produto.cfop,
-          produto.unidade, produto.quantidade, produto.valorUnitario,
-          produto.valorTotal, produto.baseCalculoICMS, produto.valorICMS,
-          produto.aliquotaICMS, produto.baseCalculoIPI, produto.valorIPI,
-          produto.aliquotaIPI, produto.ean, produto.reference, produto.brand,
-          produto.imageUrl, produto.descricao_complementar,
-          produto.custoExtra || 0, produto.freteProporcional || 0
+          id,
+          produto.codigo,
+          produto.descricao,
+          produto.ncm,
+          produto.cfop,
+          produto.unidade,
+          produto.quantidade,
+          produto.valorUnitario,
+          produto.valorTotal,
+          produto.baseCalculoICMS,
+          produto.valorICMS,
+          produto.aliquotaICMS,
+          produto.baseCalculoIPI,
+          produto.valorIPI,
+          produto.aliquotaIPI,
+          produto.ean,
+          produto.reference,
+          produto.brand,
+          produto.imageUrl,
+          produto.descricao_complementar,
+          produto.custoExtra || 0,
+          produto.freteProporcional || 0,
         );
       });
     }
@@ -101,11 +142,36 @@ export const saveNfe = ({ id, data, numero, chaveNFE, fornecedor, valor, itens, 
   return id;
 };
 
-export const updateNfe = (id, { fornecedor, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete, hiddenItems, showHidden }) => {
-  const current = db.prepare('SELECT hiddenItems, showHidden FROM nfes WHERE id = ?').get(id);
-  const currentHidden = (() => { try { return current?.hiddenItems ? JSON.parse(current.hiddenItems) : []; } catch { return []; } })();
+export const updateNfe = (
+  id,
+  {
+    fornecedor,
+    impostoEntrada,
+    xapuriMarkup,
+    epitaMarkup,
+    roundingType,
+    valorFrete,
+    hiddenItems,
+    showHidden,
+  },
+) => {
+  const current = db
+    .prepare('SELECT hiddenItems, showHidden FROM nfes WHERE id = ?')
+    .get(id);
+  const currentHidden = (() => {
+    try {
+      return current?.hiddenItems ? JSON.parse(current.hiddenItems) : [];
+    } catch {
+      return [];
+    }
+  })();
   const nextHidden = hiddenItems !== undefined ? hiddenItems : currentHidden;
-  const nextShowHidden = showHidden !== undefined ? (showHidden ? 1 : 0) : (current?.showHidden ?? 0);
+  const nextShowHidden =
+    showHidden !== undefined
+      ? showHidden
+        ? 1
+        : 0
+      : (current?.showHidden ?? 0);
 
   const updateStmt = db.prepare(`
     UPDATE nfes SET
@@ -130,7 +196,7 @@ export const updateNfe = (id, { fornecedor, impostoEntrada, xapuriMarkup, epitaM
     valorFrete ?? null,
     JSON.stringify(nextHidden),
     nextShowHidden,
-    id
+    id,
   );
 
   return result.changes;

@@ -16,16 +16,19 @@ import logger from './utils/logger.js';
 
 dotenv.config();
 
-
 const app = express();
 const PORT = process.env.PORT || 4005;
 
 // Middleware
 app.use(helmet());
-app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:4000'],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || [
+      'http://localhost:4000',
+    ],
+    credentials: true,
+  }),
+);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -40,7 +43,7 @@ if (process.env.DEBUG_DB === 'true') {
 }
 
 // Middleware de tratamento de erros
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
   logger.error(err.stack);
   res.status(500).json({ error: 'Algo deu errado!' });
 });
