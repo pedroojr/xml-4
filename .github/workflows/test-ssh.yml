@@ -1,0 +1,35 @@
+name: Test SSH Connection
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test SSH connection
+        run: |
+          echo "🔍 Testing SSH connection..."
+          echo "Host: ${{ secrets.SFTP_HOST }}"
+          echo "Port: ${{ secrets.SFTP_PORT }}"
+          echo "User: ${{ secrets.SFTP_USERNAME }}"
+          echo "Password: [HIDDEN]"
+          
+          # Testar conexão SSH simples
+          timeout 30s ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -p ${{ secrets.SFTP_PORT }} ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }} "echo 'SSH connection successful!'" || echo "SSH connection failed"
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_PORT: ${{ secrets.SFTP_PORT }}
+          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
+          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+
+      - name: Test SFTP connection
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          port: ${{ secrets.SFTP_PORT }}
+          source: "README.md"
+          target: "/tmp/test-ssh.txt"
+          strip_components: 0
