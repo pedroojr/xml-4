@@ -1,7 +1,8 @@
+import { Request, Response } from 'express';
 import logger from '../utils/logger.js';
 import nfeQueue from '../queues/nfeQueue.js';
 
-export const uploadXml = async (req, res) => {
+export const uploadXml = async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Nenhum arquivo enviado' });
@@ -12,9 +13,8 @@ export const uploadXml = async (req, res) => {
     res
       .status(202)
       .json({ message: 'NFE enfileirada com sucesso', jobId: job.id });
-  } catch (error) {
+  } catch (error: any) {
     logger.error(`Erro no upload: ${error}`);
     res.status(500).json({ error: error.message || 'Erro interno do servidor' });
   }
 };
-
