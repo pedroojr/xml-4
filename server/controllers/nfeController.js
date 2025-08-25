@@ -1,11 +1,12 @@
 import { getAllNfes, getNfeById, saveNfe, updateNfe, deleteNfe } from '../models/nfeModel.js';
+import logger from '../utils/logger.js';
 
 export const listNfes = (req, res) => {
   try {
     const nfes = getAllNfes();
     res.json(nfes);
   } catch (error) {
-    console.error('Erro ao buscar NFEs:', error);
+    logger.error(`Erro ao buscar NFEs: ${error}`);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 };
@@ -18,7 +19,7 @@ export const getNfe = (req, res) => {
     }
     res.json(nfe);
   } catch (error) {
-    console.error('Erro ao buscar NFE:', error);
+    logger.error(`Erro ao buscar NFE: ${error}`);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 };
@@ -28,7 +29,7 @@ export const createNfe = (req, res) => {
     const id = saveNfe(req.body);
     res.json({ message: 'NFE salva com sucesso', id });
   } catch (error) {
-    console.error('Erro ao salvar NFE:', error);
+    logger.error(`Erro ao salvar NFE: ${error}`);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 };
@@ -41,7 +42,7 @@ export const updateNfeController = (req, res) => {
     }
     res.json({ message: 'NFE atualizada com sucesso' });
   } catch (error) {
-    console.error('Erro ao atualizar NFE:', error);
+    logger.error(`Erro ao atualizar NFE: ${error}`);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 };
@@ -54,7 +55,8 @@ export const deleteNfeController = (req, res) => {
     }
     res.json({ message: 'NFE excluída com sucesso' });
   } catch (error) {
-    console.error('Erro ao excluir NFE:', error);
+    logger.error(`Erro ao excluir NFE: ${error}`);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 };
+
