@@ -74,11 +74,25 @@ const initDatabase = () => {
       epitaMarkup REAL DEFAULT 130,
       roundingType TEXT DEFAULT 'none',
       valorFrete REAL DEFAULT 0,
+      hiddenItems TEXT DEFAULT '[]',
+      showHidden BOOLEAN DEFAULT 0,
       isFavorite BOOLEAN DEFAULT 0,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Adicionar colunas se não existirem (para bancos existentes)
+  try {
+    db.exec(`ALTER TABLE nfes ADD COLUMN hiddenItems TEXT DEFAULT '[]'`);
+  } catch (e) {
+    // coluna já existe
+  }
+  try {
+    db.exec(`ALTER TABLE nfes ADD COLUMN showHidden BOOLEAN DEFAULT 0`);
+  } catch (e) {
+    // coluna já existe
+  }
 
   // Tabela de produtos
   db.exec(`
@@ -142,7 +156,16 @@ app.get('/api/nfes', (req, res) => {
       GROUP BY n.id
       ORDER BY n.createdAt DESC
     `);
-    const nfes = stmt.all();
+    const rows = stmt.all();
+    const nfes = rows.map((row) => {
+      let hiddenItems = [];
+      try {
+        hiddenItems = row.hiddenItems ? JSON.parse(row.hiddenItems) : [];
+      } catch (e) {
+        hiddenItems = [];
+      }
+      return { ...row, hiddenItems, showHidden: Boolean(row.showHidden) };
+    });
     res.json(nfes);
   } catch (error) {
     console.error('Erro ao buscar NFEs:', error);
@@ -154,23 +177,14 @@ app.get('/api/nfes', (req, res) => {
 app.get('/api/nfes/:id', (req, res) => {
   try {
     const { id } = req.params;
-    
-    // Buscar NFE
     const nfeStmt = db.prepare('SELECT * FROM nfes WHERE id = ?');
     const nfe = nfeStmt.get(id);
-    
-    if (!nfe) {
-      return res.status(404).json({ error: 'NFE não encontrada' });
-    }
-    
-    // Buscar produtos da NFE
+    if (!nfe) return res.status(404).json({ error: 'NFE não encontrada' });
     const produtosStmt = db.prepare('SELECT * FROM produtos WHERE nfeId = ?');
     const produtos = produtosStmt.all(id);
-    
-    res.json({
-      ...nfe,
-      produtos
-    });
+    let hiddenItems = [];
+    try { hiddenItems = nfe.hiddenItems ? JSON.parse(nfe.hiddenItems) : []; } catch { hiddenItems = []; }
+    res.json({ ...nfe, hiddenItems, showHidden: Boolean(nfe.showHidden), produtos });
   } catch (error) {
     console.error('Erro ao buscar NFE:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -180,13 +194,14 @@ app.get('/api/nfes/:id', (req, res) => {
 // POST - Criar nova NFE
 app.post('/api/nfes', (req, res) => {
   try {
-    const { id, data, numero, chaveNFE, fornecedor, valor, itens, produtos, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete } = req.body;
+    const { id, data, numero, chaveNFE, fornecedor, valor, itens, produtos, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete, hiddenItems, showHidden } = req.body;
     
     const insertNFE = db.prepare(`
       INSERT OR REPLACE INTO nfes (
         id, data, numero, chaveNFE, fornecedor, valor, itens, 
-        impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete,
+        hiddenItems, showHidden
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
     const insertProduto = db.prepare(`
@@ -205,7 +220,8 @@ app.post('/api/nfes', (req, res) => {
       insertNFE.run(
         id, data, numero, chaveNFE, fornecedor, valor, itens,
         impostoEntrada || 12, xapuriMarkup || 160, epitaMarkup || 130,
-        roundingType || 'none', valorFrete || 0
+        roundingType || 'none', valorFrete || 0,
+        JSON.stringify(hiddenItems || []), showHidden ? 1 : 0
       );
       
       // Remover produtos antigos

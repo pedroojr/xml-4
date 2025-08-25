@@ -38,6 +38,8 @@ interface ProductTableProps {
   visibleColumns: Set<string>;
   columns: Column[];
   hiddenItems: Set<number>;
+  showHidden?: boolean;
+  onShowHiddenChange?: (value: boolean) => void;
   handleToggleVisibility: (index: number) => void;
   handleImageSearch: (index: number, product: Product) => void;
   xapuriMarkup: number;
@@ -261,6 +263,8 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   visibleColumns,
   columns,
   hiddenItems,
+  showHidden: propShowHidden,
+  onShowHiddenChange,
   handleToggleVisibility,
   handleImageSearch,
   xapuriMarkup,
@@ -273,10 +277,14 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   onRoundingTypeChange,
 }) => {
   const { updateProdutoCustoExtra } = useNFEStorage();
-  const [showHidden, setShowHidden] = useState(() => {
+  
+  // Usar prop se fornecida, senão usar localStorage local
+  const [localShowHidden, setLocalShowHidden] = useState(() => {
     const saved = localStorage.getItem('showHidden');
     return saved ? JSON.parse(saved) : false;
   });
+  
+  const showHidden = propShowHidden !== undefined ? propShowHidden : localShowHidden;
   const [filters, setFilters] = useState<ProductFilters>({
     searchTerm: '',
     showOnlyWithImages: false
@@ -307,8 +315,10 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   });
 
   useEffect(() => {
-    localStorage.setItem('showHidden', JSON.stringify(showHidden));
-  }, [showHidden]);
+    if (propShowHidden === undefined) {
+      localStorage.setItem('showHidden', JSON.stringify(localShowHidden));
+    }
+  }, [localShowHidden, propShowHidden]);
 
   // Effect to persist column order
   useEffect(() => {
@@ -452,12 +462,13 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     : filteredProducts;
 
   // Calcular a média de desconto em percentual
+  // Observação: usar o conjunto atualmente exibido (após filtros/ocultos)
   const calculateAverageDiscountPercent = () => {
-    if (products.length === 0) return 0;
-    
-    const totalOriginalPrice = products.reduce((acc, p) => acc + p.totalPrice, 0);
-    const totalDiscount = products.reduce((acc, p) => acc + p.discount, 0);
-    
+    if (sortedFilteredProducts.length === 0) return 0;
+
+    const totalOriginalPrice = sortedFilteredProducts.reduce((acc, p) => acc + p.totalPrice, 0);
+    const totalDiscount = sortedFilteredProducts.reduce((acc, p) => acc + p.discount, 0);
+
     return totalOriginalPrice > 0 ? (totalDiscount / totalOriginalPrice) * 100 : 0;
   };
 
@@ -534,7 +545,13 @@ export const ProductTable: React.FC<ProductTableProps> = ({
             <Switch
               id="show-hidden"
               checked={showHidden}
-              onCheckedChange={setShowHidden}
+              onCheckedChange={(value) => {
+                if (onShowHiddenChange) {
+                  onShowHiddenChange(value);
+                } else {
+                  setLocalShowHidden(value);
+                }
+              }}
             />
             <Label htmlFor="show-hidden" className="text-sm font-medium">
               Mostrar apenas ocultados
