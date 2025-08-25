@@ -33,8 +33,9 @@ app.use(helmet({
 // CORS configurado para produção
 app.use(cors({
   origin: process.env.ALLOWED_ORIGINS?.split(',') || [
-    'https://seu-dominio.com',
-    'https://www.seu-dominio.com',
+    'https://xml.lojasrealce.shop',
+    'https://www.xml.lojasrealce.shop',
+    'https://dev.xml.lojasrealce.shop',
     'http://localhost:5173'
   ],
   credentials: true,

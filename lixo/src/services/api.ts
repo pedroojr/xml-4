@@ -4,10 +4,10 @@ import axios from 'axios';
 const getApiBaseUrl = () => {
   // Se estiver em produção (Hostinger), usar API externa
   if (import.meta.env.PROD) {
-    return import.meta.env.VITE_API_URL || 'https://seu-dominio.com/api';
+    return import.meta.env.VITE_API_URL || 'https://api.xml.lojasrealce.shop/api';
   }
   // Se estiver em desenvolvimento, usar local
-  return import.meta.env.VITE_API_URL || 'http://localhost:4005/api';
+  return import.meta.env.VITE_API_URL || 'https://dev-api.xml.lojasrealce.shop/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
