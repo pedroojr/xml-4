@@ -11,7 +11,8 @@
     "build:prod": "vite build --mode production",
     "preview": "vite preview",
     "deploy:staging": "npm run build:dev && echo 'Build de desenvolvimento criado em dist/'",
-    "deploy:production": "npm run build:prod && echo 'Build de produção criado em dist/'"
+    "deploy:production": "npm run build:prod && echo 'Build de produção criado em dist/'",
+    "test": "vitest run"
   },
   "dependencies": {
     "@ant-design/icons": "^6.0.0",
@@ -92,6 +93,10 @@
     "terser": "^5.43.1",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
-    "vite": "^5.4.1"
+    "vite": "^5.4.1",
+    "vitest": "^2.1.1",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/jest-dom": "^6.5.0",
+    "jsdom": "^24.0.0"
   }
 }
