@@ -70,13 +70,26 @@ jobs:
           cache-dependency-path: package-lock.json
       - name: Install dependencies
         run: npm ci
+      - name: Install backend dependencies
+        working-directory: server
+        run: npm ci
+      - name: Start backend server
+        working-directory: server
+        env:
+          PORT: 3001
+          API_KEY: changeme
+          DB_PATH: ./database.sqlite
+        run: |
+          npm run migrate
+          npm start &
+          until curl -s http://localhost:3001/ > /dev/null; do sleep 1; done
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
       - name: Run e2e tests
-        run: npm run test:e2e
         env:
-          TEST_BASE_URL: ${{ secrets.TEST_BASE_URL }}
-          TEST_API_KEY: ${{ secrets.TEST_API_KEY }}
+          TEST_BASE_URL: http://localhost:3001
+          TEST_API_KEY: changeme
+        run: npm run test:e2e
 
   deploy:
     needs:

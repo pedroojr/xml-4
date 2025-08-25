@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test';
 
-const baseURL = process.env.TEST_BASE_URL || 'http://localhost:3001';
+const baseURL = process.env.TEST_BASE_URL;
+if (!baseURL) {
+  throw new Error('TEST_BASE_URL is required');
+}
 const apiKey = process.env.TEST_API_KEY;
 
 const sampleXml = `<?xml version="1.0" encoding="UTF-8"?>
