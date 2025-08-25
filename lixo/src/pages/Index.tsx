@@ -155,7 +155,7 @@ const Index = () => {
       }
 
       // Normalizar produtos para garantir compatibilidade
-      const normalizedProducts: Product[] = currentNFE.produtos.map((p, index) => {
+      const normalizedProducts: Product[] = (currentNFE.produtos || []).map((p, index) => {
         // DEBUG: Log de cada produto sendo normalizado
         console.log('🔍 DEBUG - Normalizando produto:', {
           original: p,
