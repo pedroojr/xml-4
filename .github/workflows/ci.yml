@@ -73,7 +73,8 @@ jobs:
       - name: Install backend dependencies
         working-directory: server
         run: npm ci
-      - uses: microsoft/playwright-github-action@v1
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
       - name: Run e2e tests
         env:
           PORT: 3001
