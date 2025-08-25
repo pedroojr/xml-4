@@ -1,7 +1,7 @@
 import express from 'express';
 import request from 'supertest';
 import { authMiddleware } from '../middleware/auth.js';
-import statusRoutes from './statusRoutes.js';
+import statusRoutes from '../routes/statusRoutes.js';
 import config from '../config/index.js';
 
 config.apiKey = 'testkey';

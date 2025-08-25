@@ -13,7 +13,7 @@ await jest.unstable_mockModule('../models/nfeModel.js', () => ({
 }));
 
 const { getAllNfes, getNfeById } = await import('../models/nfeModel.js');
-const nfeRoutes = (await import('./nfeRoutes.js')).default;
+const nfeRoutes = (await import('../routes/nfeRoutes.js')).default;
 
 const app = express();
 app.use(express.json());

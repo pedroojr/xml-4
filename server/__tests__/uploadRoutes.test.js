@@ -1,7 +1,7 @@
 import express from 'express';
 import request from 'supertest';
 import { authMiddleware } from '../middleware/auth.js';
-import uploadRoutes from './uploadRoutes.js';
+import uploadRoutes from '../routes/uploadRoutes.js';
 import config from '../config/index.js';
 
 config.apiKey = 'testkey';
