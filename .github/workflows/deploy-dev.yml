@@ -20,10 +20,12 @@ jobs:
         cache: 'npm'
         
     - name: Install dependencies
+      working-directory: ./lixo
       run: npm ci
       
-    - name: Build frontend
-      run: npm run build
+    - name: Build frontend for development
+      working-directory: ./lixo
+      run: npm run build:dev
       env:
         VITE_API_URL: https://dev-api.xml.lojasrealce.shop
         
@@ -34,9 +36,9 @@ jobs:
         username: ${{ secrets.SFTP_USERNAME }}
         password: ${{ secrets.SFTP_PASSWORD }}
         port: ${{ secrets.SFTP_PORT }}
-        source: "dist/*"
+        source: "lixo/dist/*"
         target: "/var/www/dev"
-        strip_components: 1
+        strip_components: 2
         
     - name: Deploy status
       run: |
