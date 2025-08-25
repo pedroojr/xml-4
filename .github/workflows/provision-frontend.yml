@@ -97,7 +97,7 @@ jobs:
           echo "🌐 Test: https://${FRONT_DOMAIN}/"
           EOF
 
-      - name: Upload and execute provision script
+      - name: Upload provision script
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SFTP_HOST }}
@@ -111,19 +111,8 @@ jobs:
       - name: Execute provision script
         run: |
           echo "Executing provision script on server..."
-          # Usar expect para automatizar a execução SSH
-          expect << 'EOF'
-          spawn ssh -o StrictHostKeyChecking=no -p ${{ secrets.SFTP_PORT }} ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}
-          expect "password:"
-          send "${{ secrets.SFTP_PASSWORD }}\r"
-          expect "$ "
-          send "chmod +x /tmp/provision-frontend.sh\r"
-          expect "$ "
-          send "/tmp/provision-frontend.sh\r"
-          expect "$ "
-          send "exit\r"
-          expect eof
-          EOF
+          # Usar sshpass para executar comandos SSH
+          echo "${{ secrets.SFTP_PASSWORD }}" | sshpass ssh -o StrictHostKeyChecking=no -p ${{ secrets.SFTP_PORT }} ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }} "chmod +x /tmp/provision-frontend.sh && /tmp/provision-frontend.sh"
         env:
           SFTP_HOST: ${{ secrets.SFTP_HOST }}
           SFTP_PORT: ${{ secrets.SFTP_PORT }}
