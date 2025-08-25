@@ -33,7 +33,7 @@
 ### **Estrutura do Projeto**
 ```
 xml-4/
-├── lixo/                    # Frontend React
+├── frontend/                    # Frontend React
 │   ├── src/                # Código fonte
 │   ├── dist/               # Build de produção
 │   └── package.json        # Dependências frontend
@@ -354,7 +354,7 @@ git clone https://github.com/pedroojr/xml-4.git
 cd xml-4
 
 # Instalar dependências frontend
-cd lixo
+cd frontend
 npm install
 
 # Instalar dependências backend
@@ -364,7 +364,7 @@ npm install
 
 ### **Comandos de Desenvolvimento**
 ```bash
-# Frontend (desde lixo/)
+# Frontend (desde frontend/)
 npm run dev          # Servidor de desenvolvimento
 npm run build:dev    # Build para desenvolvimento
 npm run build:prod   # Build para produção
