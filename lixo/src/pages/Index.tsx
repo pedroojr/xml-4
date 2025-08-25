@@ -319,7 +319,7 @@ const Index = () => {
       };
       
       saveNFE(nfe);
-      setCurrentTab("upload");
+      // Não mudar a aba - deixar os produtos visíveis
     } catch (error) {
       console.error('Erro ao processar arquivo:', error);
       alert('Erro ao processar arquivo XML. Verifique se é uma NF-e válida.');
