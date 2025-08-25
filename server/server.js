@@ -47,7 +47,8 @@ if (config.debugDb) {
 }
 
 // Middleware de tratamento de erros
-app.use((err, req, res) => {
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
   logger.error(err.stack);
   res.status(500).json({ error: 'Algo deu errado!' });
 });
