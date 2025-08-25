@@ -34,6 +34,11 @@ export default defineConfig(({ command, mode }) => {
     },
     define: {
       __APP_ENV__: JSON.stringify(env.VITE_ENV || mode),
+    },
+    test: {
+      globals: true,
+      environment: 'jsdom',
+      setupFiles: './vitest.setup.ts'
     }
   }
 })
