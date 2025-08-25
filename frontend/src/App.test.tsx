@@ -11,4 +11,3 @@ test('renders navbar brand', () => {
   render(<App />);
   expect(screen.getByText(/NFE Import/i)).toBeInTheDocument();
 });
-
