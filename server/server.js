@@ -9,6 +9,7 @@ import statusRoutes from './routes/statusRoutes.js';
 import debugRoutes from './routes/debugRoutes.js';
 import db, { DB_PATH } from './models/database.js';
 import { authMiddleware } from './middleware/auth.js';
+import logger from './utils/logger.js';
 
 dotenv.config();
 
@@ -36,21 +37,21 @@ if (process.env.DEBUG_DB === 'true') {
 
 // Middleware de tratamento de erros
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  logger.error(err.stack);
   res.status(500).json({ error: 'Algo deu errado!' });
 });
 
 // Iniciar servidor
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`);
-  console.log(`📊 Banco de dados: ${DB_PATH}`);
-  console.log(`🌐 Acesse: http://localhost:${PORT}`);
-  console.log(`📋 API Status: http://localhost:${PORT}/api/status`);
+  logger.info(`🚀 Servidor rodando na porta ${PORT}`);
+  logger.info(`📊 Banco de dados: ${DB_PATH}`);
+  logger.info(`🌐 Acesse: http://localhost:${PORT}`);
+  logger.info(`📋 API Status: http://localhost:${PORT}/api/status`);
 });
 
 // Graceful shutdown
 process.on('SIGINT', () => {
-  console.log('\n🛑 Encerrando servidor...');
+  logger.info('\n🛑 Encerrando servidor...');
   db.close();
   process.exit(0);
 });

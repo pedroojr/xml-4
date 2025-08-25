@@ -137,6 +137,19 @@ http://[SEU_IP]:3001/api/status
 - `npm start` - Iniciar servidor em produção
 - `npm run dev` - Iniciar servidor em desenvolvimento com nodemon
 
+## 📜 Logs
+
+Os logs do servidor são gerenciados pela biblioteca **Winston** e exibidos no console com timestamp e nível de severidade.
+
+- O nível padrão é `info`.
+- Ajuste o nível definindo a variável de ambiente `LOG_LEVEL` (`error`, `info`, `debug`).
+
+```bash
+LOG_LEVEL=debug npm run dev
+```
+
+Mensagens com nível `error` indicam falhas, enquanto `info` traz informações operacionais gerais.
+
 ## 🐛 Troubleshooting
 
 ### Erro de CORS
@@ -156,4 +169,4 @@ http://[SEU_IP]:3001/api/status
 Para problemas ou dúvidas, verifique:
 1. Logs do console do servidor
 2. Status da API: `http://localhost:3001/api/status`
-3. Configurações no arquivo `.env` 
+3. Configurações no arquivo `.env`
