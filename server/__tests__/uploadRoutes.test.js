@@ -4,11 +4,11 @@ import { jest } from '@jest/globals';
 import { authMiddleware } from '../middleware/auth.js';
 import config from '../config/index.js';
 
-await jest.unstable_mockModule('../models/nfeModel.js', () => ({
-  saveNfe: jest.fn(),
+await jest.unstable_mockModule('../queues/nfeQueue.js', () => ({
+  default: { add: jest.fn().mockResolvedValue({ id: 'job123' }) },
 }));
 
-const { saveNfe } = await import('../models/nfeModel.js');
+const { default: nfeQueue } = await import('../queues/nfeQueue.js');
 const uploadRoutes = (await import('../routes/uploadRoutes.js')).default;
 
 config.apiKey = 'testkey';
@@ -18,9 +18,7 @@ app.use(authMiddleware);
 app.use('/api', uploadRoutes);
 
 describe('POST /api/upload-xml', () => {
-  it('should upload XML file successfully', async () => {
-    saveNfe.mockReturnValue('123');
-
+  it('should enqueue XML file successfully', async () => {
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
     <NFe>
       <infNFe Id="NFe123">
@@ -55,16 +53,19 @@ describe('POST /api/upload-xml', () => {
       .post('/api/upload-xml')
       .set('x-api-key', 'testkey')
       .attach('xml', Buffer.from(xml), 'file.xml');
-    expect(res.status).toBe(200);
-    expect(res.body.message).toBe('NFE salva com sucesso');
-    expect(res.body.id).toBe('123');
+    expect(res.status).toBe(202);
+    expect(res.body.message).toBe('NFE enfileirada com sucesso');
+    expect(res.body.jobId).toBe('job123');
+    expect(nfeQueue.add).toHaveBeenCalledTimes(1);
   });
 
   it('should return 400 when no file is provided', async () => {
+    nfeQueue.add.mockClear();
     const res = await request(app)
       .post('/api/upload-xml')
       .set('x-api-key', 'testkey');
     expect(res.status).toBe(400);
     expect(Array.isArray(res.body.errors)).toBe(true);
+    expect(nfeQueue.add).not.toHaveBeenCalled();
   });
 });

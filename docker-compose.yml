@@ -9,10 +9,14 @@ services:
       - API_KEY=changeme
       - ALLOWED_ORIGINS=http://localhost:5173
       - DB_PATH=/data/database.sqlite
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     volumes:
       - sqlite_data:/data
     ports:
       - "3001:3001"
+    depends_on:
+      - redis
 
   frontend:
     build:
@@ -27,6 +31,11 @@ services:
       - "5173:5173"
     depends_on:
       - backend
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
 
 volumes:
   sqlite_data:
