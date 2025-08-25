@@ -95,6 +95,9 @@ jobs:
           
           echo "🎉 Frontend provisioned for ${FRONT_DOMAIN} (alt: ${FRONT_ALT})"
           echo "🌐 Test: https://${FRONT_DOMAIN}/"
+          
+          # Marcar como concluído
+          echo "$(date): Frontend provision completed successfully" >> /tmp/provision-frontend.log
           EOF
 
       - name: Upload provision script
@@ -108,13 +111,27 @@ jobs:
           target: "/tmp/provision-frontend.sh"
           strip_components: 0
 
-      - name: Execute provision script
+      - name: Create execution trigger
         run: |
-          echo "Executing provision script on server..."
-          # Usar sshpass para executar comandos SSH
-          echo "${{ secrets.SFTP_PASSWORD }}" | sshpass ssh -o StrictHostKeyChecking=no -p ${{ secrets.SFTP_PORT }} ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }} "chmod +x /tmp/provision-frontend.sh && /tmp/provision-frontend.sh"
-        env:
-          SFTP_HOST: ${{ secrets.SFTP_HOST }}
-          SFTP_PORT: ${{ secrets.SFTP_PORT }}
-          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
-          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+          echo "Creating execution trigger..."
+          # Criar um arquivo que o servidor pode monitorar
+          echo "$(date): Frontend provision requested" > provision-trigger.txt
+
+      - name: Upload execution trigger
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          port: ${{ secrets.SFTP_PORT }}
+          source: "provision-trigger.txt"
+          target: "/tmp/provision-trigger.txt"
+          strip_components: 0
+
+      - name: Provision status
+        run: |
+          echo "✅ Provision script uploaded successfully!"
+          echo "📋 Next steps:"
+          echo "1. SSH to server: ssh root@82.29.58.242"
+          echo "2. Execute: chmod +x /tmp/provision-frontend.sh && /tmp/provision-frontend.sh"
+          echo "3. Or monitor: tail -f /tmp/provision-frontend.log"
