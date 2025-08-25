@@ -2,6 +2,7 @@ import express from 'express';
 import request from 'supertest';
 import { jest } from '@jest/globals';
 import { authMiddleware } from '../middleware/auth.js';
+import config from '../config/index.js';
 
 await jest.unstable_mockModule('../models/nfeModel.js', () => ({
   getAllNfes: jest.fn(),
@@ -19,7 +20,7 @@ app.use(express.json());
 app.use(authMiddleware);
 app.use('/api/nfes', nfeRoutes);
 
-process.env.API_KEY = 'testkey';
+config.apiKey = 'testkey';
 
 describe('GET /api/nfes', () => {
   it('should return list of NFEs', async () => {

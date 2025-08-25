@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import dotenv from 'dotenv';
 
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './docs/swagger.js';
@@ -13,19 +12,16 @@ import debugRoutes from './routes/debugRoutes.js';
 import db, { DB_PATH } from './models/database.js';
 import { authMiddleware } from './middleware/auth.js';
 import logger from './utils/logger.js';
-
-dotenv.config();
+import config from './config/index.js';
 
 const app = express();
-const PORT = process.env.PORT || 4005;
+const PORT = config.port;
 
 // Middleware
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || [
-      'http://localhost:4000',
-    ],
+    origin: config.allowedOrigins,
     credentials: true,
   }),
 );
@@ -38,7 +34,7 @@ app.use(authMiddleware);
 app.use('/api/nfes', nfeRoutes);
 app.use('/api', uploadRoutes);
 app.use('/api', statusRoutes);
-if (process.env.DEBUG_DB === 'true') {
+if (config.debugDb) {
   app.use('/api', debugRoutes);
 }
 

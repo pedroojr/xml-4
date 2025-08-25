@@ -1,22 +1,7 @@
 import axios from 'axios';
 
-// Configuração para diferentes ambientes
-const getApiBaseUrl = () => {
-  // Verificar se está no domínio de desenvolvimento
-  if (window.location.hostname === 'dev.xml.lojasrealce.shop') {
-    return 'https://dev-api.xml.lojasrealce.shop/api';
-  }
-
-  // Se estiver em produção (Hostinger), usar API externa
-  if (import.meta.env.PROD) {
-    return import.meta.env.VITE_API_URL || 'https://api.xml.lojasrealce.shop/api';
-  }
-
-  // Se estiver em desenvolvimento local, usar local
-  return import.meta.env.VITE_API_URL || 'http://localhost:4005/api';
-};
-
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4005/api';
+const DEBUG = import.meta.env.VITE_DEBUG === 'true';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -29,22 +14,30 @@ const api = axios.create({
 // Interceptor para logs
 api.interceptors.request.use(
   (config) => {
-    console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+    if (DEBUG) {
+      console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+    }
     return config;
   },
   (error) => {
-    console.error('❌ API Request Error:', error);
+    if (DEBUG) {
+      console.error('❌ API Request Error:', error);
+    }
     return Promise.reject(error);
   }
 );
 
 api.interceptors.response.use(
   (response) => {
-    console.log(`✅ API Response: ${response.status} ${response.config.url}`);
+    if (DEBUG) {
+      console.log(`✅ API Response: ${response.status} ${response.config.url}`);
+    }
     return response;
   },
   (error) => {
-    console.error('❌ API Response Error:', error.response?.data || error.message);
+    if (DEBUG) {
+      console.error('❌ API Response Error:', error.response?.data || error.message);
+    }
     return Promise.reject(error);
   }
 );

@@ -1,19 +1,15 @@
 import Database from 'better-sqlite3';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import config from '../config/index.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-export const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'database.sqlite');
-if (process.env.DEBUG_DB === 'true') {
+export const DB_PATH = config.dbPath;
+if (config.debugDb) {
   console.log('DB_OPEN', DB_PATH);
 }
 
-const db = new Database(DB_PATH, { verbose: process.env.DEBUG_DB === 'true' ? console.log : undefined });
+const db = new Database(DB_PATH, { verbose: config.debugDb ? console.log : undefined });
 
 // Logar colunas reais da tabela nfes em runtime para auditoria
-if (process.env.DEBUG_DB === 'true') {
+if (config.debugDb) {
   try {
     const cols = db.prepare('PRAGMA table_info(nfes)').all();
     console.log('NFES_COLUMNS', cols);
