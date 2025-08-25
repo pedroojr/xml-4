@@ -5,7 +5,7 @@
 ### **📁 Arquivos Prontos:**
 - ✅ `dist/` - Build de produção otimizado
 - ✅ `.htaccess` - Configuração do servidor
-- ✅ `server-production.js` - Backend para produção
+- ✅ `server.js` - Backend para produção
 - ✅ `GUIA-HOSTINGER.md` - Guia completo
 - ✅ `deploy-to-hostinger.bat` - Script automatizado
 
@@ -97,7 +97,7 @@ deploy-to-hostinger.bat
 
 - **Guia Completo:** `GUIA-HOSTINGER.md`
 - **Script de Deploy:** `deploy-to-hostinger.bat`
-- **Backend de Produção:** `server-production.js`
+- **Backend de Produção:** `server.js`
 
 ---
 

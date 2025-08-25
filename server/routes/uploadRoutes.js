@@ -3,13 +3,14 @@ import multer from 'multer';
 import { check } from 'express-validator';
 import { validate } from '../middleware/validate.js';
 import { uploadXml } from '../controllers/uploadController.js';
+import config from '../config/index.js';
 
 const router = express.Router();
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024
+    fileSize: config.upload.maxFileSize
   }
 });
 

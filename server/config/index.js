@@ -24,6 +24,28 @@ const config = {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,
     max: parseInt(process.env.RATE_LIMIT_MAX, 10) || 100,
   },
+  helmet: {
+    contentSecurityPolicy:
+      process.env.ENABLE_CSP === 'true'
+        ? {
+            directives: {
+              defaultSrc: ["'self'"],
+              styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+              fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+              imgSrc: ["'self'", 'data:', 'https:'],
+              scriptSrc: ["'self'"],
+              connectSrc: ["'self'"],
+            },
+          }
+        : false,
+    crossOriginEmbedderPolicy:
+      process.env.CROSS_ORIGIN_EMBEDDER_POLICY === 'true',
+  },
+  bodyLimit: process.env.BODY_LIMIT || '50mb',
+  upload: {
+    maxFileSize:
+      (parseInt(process.env.UPLOAD_MAX_FILESIZE_MB, 10) || 10) * 1024 * 1024,
+  },
 };
 
 export default config;
