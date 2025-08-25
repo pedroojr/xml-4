@@ -73,23 +73,21 @@ jobs:
       - name: Install backend dependencies
         working-directory: server
         run: npm ci
-      - name: Start backend server
-        working-directory: server
+      - uses: microsoft/playwright-github-action@v1
+      - name: Run e2e tests
         env:
           PORT: 3001
           API_KEY: changeme
           DB_PATH: ${{ github.workspace }}/server/database.sqlite
-        run: |
-          npm run migrate
-          npm start &
-          until curl -s http://localhost:3001/ > /dev/null; do sleep 1; done
-      - name: Install Playwright browsers
-        run: npx playwright install
-      - name: Run e2e tests
-        env:
           TEST_BASE_URL: http://127.0.0.1:3001
           TEST_API_KEY: changeme
-        run: npm run test:e2e
+        run: |
+          cd server
+          npm run migrate
+          npm start &
+          until curl -s -H "x-api-key: ${API_KEY}" http://127.0.0.1:3001/api/status > /dev/null; do sleep 1; done
+          cd ..
+          npm run test:e2e
 
   deploy:
     needs:
