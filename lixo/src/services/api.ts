@@ -2,12 +2,18 @@ import axios from 'axios';
 
 // Configuração para diferentes ambientes
 const getApiBaseUrl = () => {
+  // Verificar se está no domínio de desenvolvimento
+  if (window.location.hostname === 'dev.xml.lojasrealce.shop') {
+    return 'https://dev-api.xml.lojasrealce.shop/api';
+  }
+  
   // Se estiver em produção (Hostinger), usar API externa
   if (import.meta.env.PROD) {
     return import.meta.env.VITE_API_URL || 'https://api.xml.lojasrealce.shop/api';
   }
-  // Se estiver em desenvolvimento, usar local
-  return import.meta.env.VITE_API_URL || 'https://dev-api.xml.lojasrealce.shop/api';
+  
+  // Se estiver em desenvolvimento local, usar local
+  return import.meta.env.VITE_API_URL || 'http://localhost:4005/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
