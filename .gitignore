@@ -46,3 +46,7 @@ temp/
 frontend-backup-*/
 backup-antes-simplificacao/
 lixo/
+
+# Playwright
+playwright-report/
+test-results/

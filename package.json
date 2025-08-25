@@ -1,0 +1,16 @@
+{
+  "name": "xml-4",
+  "version": "1.0.0",
+  "description": "E2E tests",
+  "main": "ecosystem-dev.config.js",
+  "scripts": {
+    "test:e2e": "playwright test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  }
+}
