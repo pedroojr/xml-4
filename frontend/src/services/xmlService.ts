@@ -3,7 +3,7 @@ import axios from 'axios';
 interface XMLProcessingResult {
   success: boolean;
   message: string;
-  data?: any;
+  data?: unknown;
   errors?: Array<{
     file: string;
     error: string;
@@ -224,4 +224,4 @@ export const xmlService = {
   clearCache(): void {
     processedFilesCache.clear();
   }
-}; 
+};

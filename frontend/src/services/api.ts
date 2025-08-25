@@ -6,12 +6,12 @@ const getApiBaseUrl = () => {
   if (window.location.hostname === 'dev.xml.lojasrealce.shop') {
     return 'https://dev-api.xml.lojasrealce.shop/api';
   }
-  
+
   // Se estiver em produção (Hostinger), usar API externa
   if (import.meta.env.PROD) {
     return import.meta.env.VITE_API_URL || 'https://api.xml.lojasrealce.shop/api';
   }
-  
+
   // Se estiver em desenvolvimento local, usar local
   return import.meta.env.VITE_API_URL || 'http://localhost:4005/api';
 };
@@ -133,7 +133,7 @@ export const uploadAPI = {
   uploadXML: async (file: File): Promise<{ message: string; content: string }> => {
     const formData = new FormData();
     formData.append('xml', file);
-    
+
     const response = await api.post('/upload-xml', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -152,4 +152,4 @@ export const statusAPI = {
   },
 };
 
-export default api; 
+export default api;
