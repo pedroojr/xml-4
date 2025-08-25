@@ -378,6 +378,14 @@ npm start            # Iniciar servidor
 npm run dev          # Modo desenvolvimento
 ```
 
+### **Testes**
+```bash
+cd server
+npm test
+```
+
+Os testes simulam autenticação utilizando o cabeçalho `x-api-key` para passar pelo `authMiddleware`.
+
 ### **Estrutura de Branches**
 ```bash
 main      # Produção (deploy automático)
