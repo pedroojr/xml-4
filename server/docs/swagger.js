@@ -6,7 +6,8 @@ const options = {
     info: {
       title: 'XML Importer API',
       version: '1.0.0',
-      description: 'Documentação da API do XML Importer',
+      description:
+        'Documentação da API do XML Importer. Acesso restrito às origens definidas e limitado por IP.',
     },
     servers: [
       {

@@ -58,7 +58,13 @@ ifconfig
 ALLOWED_ORIGINS=http://localhost:5173,http://192.168.1.100:5173,http://192.168.1.101:5173
 ```
 
-### 4. Acessar de outros PCs:
+### 4. Configurar Rate Limit (opcional):
+```env
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX=100
+```
+
+### 5. Acessar de outros PCs:
 ```
 http://[SEU_IP]:3001/api/status
 ```
@@ -126,11 +132,11 @@ http://[SEU_IP]:3001/api/status
 
 ## 🔒 Segurança
 
-- **CORS**: Configurado para permitir apenas origens específicas
+- **CORS**: Origens permitidas definidas via `ALLOWED_ORIGINS`
 - **Helmet**: Headers de segurança básicos
 - **Validação**: Validação de entrada nos endpoints
 - **Autenticação**: Proteção por chave de API via header `x-api-key`
-- **Rate Limiting**: Pode ser adicionado se necessário
+- **Rate Limiting**: Limita requisições por IP (`RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX`)
 
 ## 📝 Scripts Disponíveis
 

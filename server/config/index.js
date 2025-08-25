@@ -20,6 +20,10 @@ const config = {
   dbPath: path.resolve(rootDir, process.env.DB_PATH || 'server/database.sqlite'),
   debugDb: process.env.DEBUG_DB === 'true',
   logLevel: process.env.LOG_LEVEL || 'info',
+  rateLimit: {
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,
+    max: parseInt(process.env.RATE_LIMIT_MAX, 10) || 100,
+  },
 };
 
 export default config;
