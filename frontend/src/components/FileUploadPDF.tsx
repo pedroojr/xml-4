@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FileText } from 'lucide-react';
-import { Button } from "@/components/ui/button";
 import axios from 'axios';
+import { useMutation } from '@tanstack/react-query';
 
 interface FileUploadPDFProps {
   onItemsExtracted: (items: any[]) => void;
@@ -9,32 +9,36 @@ interface FileUploadPDFProps {
 
 const FileUploadPDF: React.FC<FileUploadPDFProps> = ({ onItemsExtracted }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('pedido', file);
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const res = await axios.post(`${apiUrl}/importar-pedido`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      if (data && data.itens) {
+        onItemsExtracted(data.itens);
+      } else {
+        setError('Nenhum item encontrado no PDF.');
+      }
+    },
+    onError: () => {
+      setError('Erro ao enviar o PDF.');
+    }
+  });
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type === 'application/pdf') {
       setSelectedFile(file);
       setError(null);
-      setIsUploading(true);
-      try {
-        const formData = new FormData();
-        formData.append('pedido', file);
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-        const res = await axios.post(`${apiUrl}/importar-pedido`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        if (res.data && res.data.itens) {
-          onItemsExtracted(res.data.itens);
-        } else {
-          setError('Nenhum item encontrado no PDF.');
-        }
-      } catch (err) {
-        setError('Erro ao enviar o PDF.');
-      } finally {
-        setIsUploading(false);
-      }
+      await uploadMutation.mutateAsync(file);
     }
   };
 
@@ -46,7 +50,7 @@ const FileUploadPDF: React.FC<FileUploadPDFProps> = ({ onItemsExtracted }) => {
         style={{ display: 'none' }}
         id="upload-pdf"
         onChange={handleFileChange}
-        disabled={isUploading}
+        disabled={uploadMutation.isPending}
       />
       <label htmlFor="upload-pdf" className="block cursor-pointer">
         <FileText className="h-12 w-12 text-gray-400 mx-auto" />
@@ -58,7 +62,7 @@ const FileUploadPDF: React.FC<FileUploadPDFProps> = ({ onItemsExtracted }) => {
           PDF selecionado: <b>{selectedFile.name}</b>
         </div>
       )}
-      {isUploading && <div className="mt-4 text-blue-600">Enviando PDF...</div>}
+      {uploadMutation.isPending && <div className="mt-4 text-blue-600">Enviando PDF...</div>}
       {error && <div className="mt-4 text-red-600">{error}</div>}
     </div>
   );
