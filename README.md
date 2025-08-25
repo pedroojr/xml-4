@@ -386,6 +386,15 @@ npm test
 
 Os testes simulam autenticação utilizando o cabeçalho `x-api-key` para passar pelo `authMiddleware`.
 
+### **Documentação da API**
+Com o servidor rodando, a documentação interativa pode ser acessada em:
+
+```
+http://localhost:4005/api/docs
+```
+
+Substitua `4005` pela porta configurada, se diferente.
+
 ### **Estrutura de Branches**
 ```bash
 main      # Produção (deploy automático)
