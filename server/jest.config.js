@@ -1,3 +1,4 @@
 export default {
-  testEnvironment: 'node'
+  testEnvironment: 'node',
+  testMatch: ['**/*.test.js'],
 };
