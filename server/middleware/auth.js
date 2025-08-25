@@ -1,5 +1,7 @@
+import config from '../config/index.js';
+
 export const authMiddleware = (req, res, next) => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = config.apiKey;
   if (!apiKey) {
     return next();
   }

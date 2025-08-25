@@ -2,18 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import Database from 'better-sqlite3';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import multer from 'multer';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import config from './config/index.js';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = config.port;
 
 // Middleware de segurança para produção
 app.use(
@@ -35,12 +28,7 @@ app.use(
 // CORS configurado para produção
 app.use(
   cors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || [
-      'https://xml.lojasrealce.shop',
-      'https://www.xml.lojasrealce.shop',
-      'https://dev.xml.lojasrealce.shop',
-      'http://localhost:5173',
-    ],
+    origin: config.allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -59,7 +47,7 @@ const upload = multer({
 });
 
 // Inicializar banco de dados
-const dbPath = process.env.DB_PATH || path.join(__dirname, 'database.sqlite');
+const dbPath = config.dbPath;
 const db = new Database(dbPath, { verbose: console.log });
 
 // Criar tabelas se não existirem

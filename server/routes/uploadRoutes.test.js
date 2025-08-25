@@ -2,8 +2,9 @@ import express from 'express';
 import request from 'supertest';
 import { authMiddleware } from '../middleware/auth.js';
 import uploadRoutes from './uploadRoutes.js';
+import config from '../config/index.js';
 
-process.env.API_KEY = 'testkey';
+config.apiKey = 'testkey';
 
 const app = express();
 app.use(authMiddleware);

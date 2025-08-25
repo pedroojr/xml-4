@@ -21,7 +21,8 @@ const FileUploadPDF: React.FC<FileUploadPDFProps> = ({ onItemsExtracted }) => {
       try {
         const formData = new FormData();
         formData.append('pedido', file);
-        const res = await axios.post('http://localhost:3001/api/importar-pedido', formData, {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+        const res = await axios.post(`${apiUrl}/importar-pedido`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         if (res.data && res.data.itens) {

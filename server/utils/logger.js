@@ -1,7 +1,8 @@
 import { createLogger, format, transports } from 'winston';
+import config from '../config/index.js';
 
 const logger = createLogger({
-  level: process.env.LOG_LEVEL || 'info',
+  level: config.logLevel,
   format: format.combine(
     format.timestamp(),
     format.printf(({ level, message, timestamp }) => {
