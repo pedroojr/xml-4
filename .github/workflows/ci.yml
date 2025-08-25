@@ -78,7 +78,7 @@ jobs:
         env:
           PORT: 3001
           API_KEY: changeme
-          DB_PATH: ./database.sqlite
+          DB_PATH: ${{ github.workspace }}/server/database.sqlite
         run: |
           npm run migrate
           npm start &
