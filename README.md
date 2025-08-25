@@ -16,6 +16,7 @@
 - [🤖 Prompt GPT para Deploy](#-prompt-gpt-para-deploy)
 - [📊 Fluxo CI/CD Visual](#-fluxo-cicd-visual)
 - [🛠️ Desenvolvimento Local](#️-desenvolvimento-local)
+- [🐳 Docker Compose](#-docker-compose)
 - [📞 Suporte](#-suporte)
 
 ---
@@ -402,6 +403,14 @@ develop   # Desenvolvimento (deploy automático)
 feature/* # Novas funcionalidades
 hotfix/*  # Correções urgentes
 ```
+
+## 🐳 **Docker Compose**
+
+```bash
+docker-compose up --build
+```
+
+Após subir, o frontend estará em http://localhost:5173 e a API em http://localhost:3001. Os dados do SQLite são persistidos no volume `sqlite_data`.
 
 ---
 
