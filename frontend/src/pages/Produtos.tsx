@@ -1,15 +1,22 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Search, Filter, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import {
+  Search,
+  Filter,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import { ProductTable } from '@/components/product-preview/ProductTable';
 import { getDefaultColumns } from '@/components/product-preview/types/column';
 import { useNFEStorage } from '@/hooks/useNFEStorage';
 import { useLocation } from 'react-router-dom';
-import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
+import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { useProductSettings } from '@/hooks/useProductSettings';
+import type { Product } from '@/types/nfe';
 
 const ITEMS_PER_PAGE = 50;
 
@@ -28,21 +35,21 @@ const Produtos = () => {
     updateRoundingType,
     updateImpostoEntrada,
     toggleShowOnlyWithImage,
-    toggleShowOnlyHidden
+    toggleShowOnlyHidden,
   } = useProductSettings({
-    visibleColumns: new Set(getDefaultColumns().map(col => col.id))
+    visibleColumns: new Set(getDefaultColumns().map((col) => col.id)),
   });
 
   // Extrair todos os produtos das NFEs (defensivo caso produtos não venha no GET /nfes)
   const allProducts = React.useMemo(() => {
-    return savedNFEs.reduce((acc: any[], nfe) => {
+    return savedNFEs.reduce((acc: Product[], nfe) => {
       const produtos = Array.isArray(nfe.produtos) ? nfe.produtos : [];
-      const nfeProdutos = produtos.map(produto => ({
+      const nfeProdutos = produtos.map((produto) => ({
         ...produto,
         nfeId: nfe.id,
         fornecedor: nfe.fornecedor,
         dataEmissao: nfe.data,
-        impostoEntrada: nfe.impostoEntrada
+        impostoEntrada: nfe.impostoEntrada,
       }));
       return [...acc, ...nfeProdutos];
     }, []);
@@ -50,22 +57,29 @@ const Produtos = () => {
 
   // Filtrar produtos baseado na busca e configurações
   const filteredProducts = React.useMemo(() => {
-    return allProducts.filter(product => {
+    return allProducts.filter((product) => {
       const searchLower = searchTerm.toLowerCase();
-      const matchesSearch = 
-        (product.codigo?.toString().toLowerCase().includes(searchLower) ||
+      const matchesSearch =
+        product.codigo?.toString().toLowerCase().includes(searchLower) ||
         product.descricao?.toLowerCase().includes(searchLower) ||
         product.ean?.toString().includes(searchLower) ||
         product.referencia?.toLowerCase().includes(searchLower) ||
         product.fornecedor?.toLowerCase().includes(searchLower) ||
-        product.descricao_complementar?.toLowerCase().includes(searchLower));
+        product.descricao_complementar?.toLowerCase().includes(searchLower);
 
       const matchesImageFilter = !settings.showOnlyWithImage || product.imagem;
-      const matchesHiddenFilter = !settings.showOnlyHidden || settings.hiddenItems.has(product.id);
+      const matchesHiddenFilter =
+        !settings.showOnlyHidden || settings.hiddenItems.has(product.id);
 
       return matchesSearch && matchesImageFilter && matchesHiddenFilter;
     });
-  }, [allProducts, searchTerm, settings.showOnlyWithImage, settings.showOnlyHidden, settings.hiddenItems]);
+  }, [
+    allProducts,
+    searchTerm,
+    settings.showOnlyWithImage,
+    settings.showOnlyHidden,
+    settings.hiddenItems,
+  ]);
 
   // Paginação
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
@@ -88,22 +102,30 @@ const Produtos = () => {
     console.log('Exportando produtos:', filteredProducts);
   };
 
-  const handleImageSearch = (index: number, product: any) => {
+  const handleImageSearch = (index: number, product: Product) => {
     console.log('Buscar imagem para o produto:', product);
   };
 
   // Estatísticas dos produtos
-  const totalQuantidade = filteredProducts.reduce((acc, prod) => acc + (prod.quantity || 0), 0);
+  const totalQuantidade = filteredProducts.reduce(
+    (acc, prod) => acc + (prod.quantity || 0),
+    0,
+  );
   const totalUnidades = filteredProducts.length;
-  const valorTotal = filteredProducts.reduce((acc, prod) => acc + (prod.valor || 0), 0);
-  const descontoMedio = filteredProducts.reduce((acc, prod) => acc + (prod.desconto || 0), 0) / filteredProducts.length || 0;
+  const valorTotal = filteredProducts.reduce(
+    (acc, prod) => acc + (prod.valor || 0),
+    0,
+  );
+  const descontoMedio =
+    filteredProducts.reduce((acc, prod) => acc + (prod.desconto || 0), 0) /
+      filteredProducts.length || 0;
 
   // Renderizar números de página
   const renderPageNumbers = () => {
     const pages = [];
     const maxVisiblePages = 5;
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
 
     if (endPage - startPage + 1 < maxVisiblePages) {
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
@@ -113,13 +135,13 @@ const Produtos = () => {
       pages.push(
         <Button
           key={i}
-          variant={currentPage === i ? "default" : "outline"}
+          variant={currentPage === i ? 'default' : 'outline'}
           size="sm"
           onClick={() => handlePageChange(i)}
           className="w-8 h-8 p-0"
         >
           {i}
-        </Button>
+        </Button>,
       );
     }
 
@@ -183,7 +205,9 @@ const Produtos = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold">{totalUnidades}</div>
-            <div className="text-sm text-muted-foreground">Quantidade de Unidades</div>
+            <div className="text-sm text-muted-foreground">
+              Quantidade de Unidades
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -200,7 +224,9 @@ const Produtos = () => {
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold">{descontoMedio.toFixed(1)}%</div>
+            <div className="text-2xl font-bold">
+              {descontoMedio.toFixed(1)}%
+            </div>
             <div className="text-sm text-muted-foreground">Desconto Médio</div>
           </CardContent>
         </Card>
@@ -259,4 +285,4 @@ const Produtos = () => {
   );
 };
 
-export default Produtos; 
+export default Produtos;

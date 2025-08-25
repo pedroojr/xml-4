@@ -20,6 +20,9 @@ jobs:
       - name: Install dependencies
         working-directory: ./${{ matrix.project }}
         run: npm ci
+      - name: Run lint
+        working-directory: ./${{ matrix.project }}
+        run: npm run lint
       - name: Run tests
         working-directory: ./${{ matrix.project }}
         run: npm test

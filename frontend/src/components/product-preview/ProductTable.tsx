@@ -1,17 +1,46 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, Image as ImageIcon, Copy, Check, ArrowLeftRight, Search, Filter } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import {
+  Eye,
+  EyeOff,
+  Image as ImageIcon,
+  Copy,
+  Check,
+  ArrowLeftRight,
+  Search,
+  Filter,
+} from 'lucide-react';
 import { Product } from '../../types/nfe';
 import { Column } from './types/column';
-import { calculateSalePrice, roundPrice, RoundingType, calculateCustoComDesconto, calculateCustoLiquido } from './productCalculations';
-import { toast } from "sonner";
-import { formatNumberForCopy, formatCurrency, formatNumber } from '../../utils/formatters';
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import { extrairTamanhoDaDescricao, extrairTamanhoDaReferencia } from '../../utils/sizeParser';
+import {
+  calculateSalePrice,
+  roundPrice,
+  RoundingType,
+  calculateCustoComDesconto,
+  calculateCustoLiquido,
+} from './productCalculations';
+import { toast } from 'sonner';
+import {
+  formatNumberForCopy,
+  formatCurrency,
+  formatNumber,
+} from '../../utils/formatters';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+import {
+  extrairTamanhoDaDescricao,
+  extrairTamanhoDaReferencia,
+} from '../../utils/sizeParser';
 import { ResizableBox } from 'react-resizable';
 import 'react-resizable/css/styles.css';
 import { ProductFilter, ProductFilters } from './ProductFilter';
@@ -22,15 +51,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
   TooltipProvider as Provider,
-} from "@/components/ui/tooltip";
+} from '@/components/ui/tooltip';
 import { Copiavel } from '@/components/ui/copiavel';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { useNFEStorage } from '@/hooks/useNFEStorage';
 
 interface ProductTableProps {
@@ -61,10 +90,12 @@ const CellContent: React.FC<{
 }> = ({ value, column }) => {
   const getFormatacao = () => {
     if (typeof value === 'number') {
-      if (column.id.toLowerCase().includes('price') || 
-          column.id.toLowerCase().includes('valor') || 
-          column.id === 'unitPrice' || 
-          column.id === 'netPrice') {
+      if (
+        column.id.toLowerCase().includes('price') ||
+        column.id.toLowerCase().includes('valor') ||
+        column.id === 'unitPrice' ||
+        column.id === 'netPrice'
+      ) {
         return 'moeda';
       }
       return 'numero';
@@ -77,8 +108,8 @@ const CellContent: React.FC<{
       valor={value}
       formatacao={getFormatacao()}
       className={cn(
-        "w-full flex items-center justify-center",
-        column.id === 'name' && "whitespace-normal text-center"
+        'w-full flex items-center justify-center',
+        column.id === 'name' && 'whitespace-normal text-center',
       )}
     />
   );
@@ -91,12 +122,13 @@ const ColumnFilterButton: React.FC<{
   onFilter: (values: Set<string>) => void;
 }> = ({ column, values, selectedValues, onFilter }) => {
   const [searchText, setSearchText] = useState('');
-  const [localSelected, setLocalSelected] = useState<Set<string>>(selectedValues);
+  const [localSelected, setLocalSelected] =
+    useState<Set<string>>(selectedValues);
   const [filteredValues, setFilteredValues] = useState<string[]>(values);
 
   useEffect(() => {
     const filtered = values.filter((value) =>
-      String(value).toLowerCase().includes(searchText.toLowerCase())
+      String(value).toLowerCase().includes(searchText.toLowerCase()),
     );
     setFilteredValues(filtered);
   }, [searchText, values]);
@@ -127,12 +159,14 @@ const ColumnFilterButton: React.FC<{
     <Popover>
       <PopoverTrigger asChild>
         <Button
-          variant={selectedValues.size < values.length ? "default" : "ghost"}
+          variant={selectedValues.size < values.length ? 'default' : 'ghost'}
           size="icon"
           className={cn(
-            "h-8 w-8 p-0",
-            selectedValues.size < values.length ? "opacity-100" : "opacity-0 group-hover:opacity-100",
-            "transition-opacity duration-200"
+            'h-8 w-8 p-0',
+            selectedValues.size < values.length
+              ? 'opacity-100'
+              : 'opacity-0 group-hover:opacity-100',
+            'transition-opacity duration-200',
           )}
         >
           <Filter className="h-4 w-4" />
@@ -147,7 +181,7 @@ const ColumnFilterButton: React.FC<{
               onChange={(e) => setSearchText(e.target.value)}
             />
           </div>
-          
+
           <div className="flex space-x-2">
             <Button
               variant="outline"
@@ -195,8 +229,21 @@ const ColumnFilterButton: React.FC<{
   );
 };
 
-const renderColumnHeader = (column: Column, products: Product[], visibleColumns: Set<string>, handleDragStart: (columnId: string) => void, handleDragOver: (columnId: string) => void, handleDragEnd: () => void, draggedColumn: string | null, dragOverColumn: string | null, columnFilters: Record<string, Set<string>>, handleFilter: (columnId: string, selectedValues: Set<string>) => void) => {
-  const uniqueValues = Array.from(new Set(products.map(p => String(p[column.id] || ''))));
+const renderColumnHeader = (
+  column: Column,
+  products: Product[],
+  visibleColumns: Set<string>,
+  handleDragStart: (columnId: string) => void,
+  handleDragOver: (columnId: string) => void,
+  handleDragEnd: () => void,
+  draggedColumn: string | null,
+  dragOverColumn: string | null,
+  columnFilters: Record<string, Set<string>>,
+  handleFilter: (columnId: string, selectedValues: Set<string>) => void,
+) => {
+  const uniqueValues = Array.from(
+    new Set(products.map((p) => String(p[column.id] || ''))),
+  );
   const selectedValues = columnFilters[column.id] || new Set(uniqueValues);
 
   return (
@@ -209,12 +256,13 @@ const renderColumnHeader = (column: Column, products: Product[], visibleColumns:
         onDragEnd={handleDragEnd}
         style={{
           opacity: draggedColumn === column.id ? 0.5 : 1,
-          background: dragOverColumn === column.id ? 'rgba(0,0,0,0.05)' : 'transparent'
+          background:
+            dragOverColumn === column.id ? 'rgba(0,0,0,0.05)' : 'transparent',
         }}
       >
         <span>{column.header}</span>
       </div>
-      
+
       <div className="flex items-center space-x-1">
         {column.id !== 'image' && (
           <ColumnFilterButton
@@ -224,28 +272,31 @@ const renderColumnHeader = (column: Column, products: Product[], visibleColumns:
             onFilter={(values) => handleFilter(column.id, values)}
           />
         )}
-        
+
         {column.id !== 'image' && (
           <div
             className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-slate-300/50"
             onMouseDown={(e) => {
               e.preventDefault();
               const startX = e.pageX;
-              const startWidth = columnWidths[column.id] || column.minWidth || getMinWidth(column.id);
-              
+              const startWidth =
+                columnWidths[column.id] ||
+                column.minWidth ||
+                getMinWidth(column.id);
+
               const handleMouseMove = (e: MouseEvent) => {
                 const width = Math.max(
                   getMinWidth(column.id),
-                  startWidth + (e.pageX - startX)
+                  startWidth + (e.pageX - startX),
                 );
                 handleColumnResize(column.id, width);
               };
-              
+
               const handleMouseUp = () => {
                 document.removeEventListener('mousemove', handleMouseMove);
                 document.removeEventListener('mouseup', handleMouseUp);
               };
-              
+
               document.addEventListener('mousemove', handleMouseMove);
               document.addEventListener('mouseup', handleMouseUp);
             }}
@@ -279,29 +330,41 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   });
   const [filters, setFilters] = useState<ProductFilters>({
     searchTerm: '',
-    showOnlyWithImages: false
+    showOnlyWithImages: false,
   });
   const [copiedField, setCopiedField] = useState<string>('');
-  const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => {
-    const saved = localStorage.getItem('columnWidths');
-    return saved ? JSON.parse(saved) : {};
-  });
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>(
+    () => {
+      const saved = localStorage.getItem('columnWidths');
+      return saved ? JSON.parse(saved) : {};
+    },
+  );
   const [sortedColumns, setSortedColumns] = useState<Column[]>(() => {
     const savedColumnOrder = localStorage.getItem('columnOrder');
     if (savedColumnOrder) {
       const orderMap = JSON.parse(savedColumnOrder) as Record<string, number>;
-      return [...columns].sort((a, b) => (orderMap[a.id] || a.order || 0) - (orderMap[b.id] || b.order || 0));
+      return [...columns].sort(
+        (a, b) =>
+          (orderMap[a.id] || a.order || 0) - (orderMap[b.id] || b.order || 0),
+      );
     }
     return [...columns].sort((a, b) => (a.order || 0) - (b.order || 0));
   });
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
-  const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
+  const [columnFilters, setColumnFilters] = useState<
+    Record<string, Set<string>>
+  >({});
   // Estado local para custo extra de cada produto
-  const [custoExtraMap, setCustoExtraMap] = useState<{ [codigo: string]: string }>(() => {
+  const [custoExtraMap, setCustoExtraMap] = useState<{
+    [codigo: string]: string;
+  }>(() => {
     const initial: { [codigo: string]: string } = {};
-    products.forEach(p => {
-      initial[p.codigo] = p.custoExtra !== undefined && p.custoExtra !== null ? String(p.custoExtra) : '';
+    products.forEach((p) => {
+      initial[p.codigo] =
+        p.custoExtra !== undefined && p.custoExtra !== null
+          ? String(p.custoExtra)
+          : '';
     });
     return initial;
   });
@@ -312,21 +375,31 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 
   // Effect to persist column order
   useEffect(() => {
-    const orderMap = sortedColumns.reduce((acc, col, index) => {
-      acc[col.id] = index;
-      return acc;
-    }, {} as Record<string, number>);
-    
+    const orderMap = sortedColumns.reduce(
+      (acc, col, index) => {
+        acc[col.id] = index;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
     localStorage.setItem('columnOrder', JSON.stringify(orderMap));
   }, [sortedColumns]);
 
-  const handleColumnResize = useCallback((columnId: string, width: number) => {
-    const newWidths = { ...columnWidths, [columnId]: width };
-    setColumnWidths(newWidths);
-    localStorage.setItem('columnWidths', JSON.stringify(newWidths));
-  }, [columnWidths]);
+  const handleColumnResize = useCallback(
+    (columnId: string, width: number) => {
+      const newWidths = { ...columnWidths, [columnId]: width };
+      setColumnWidths(newWidths);
+      localStorage.setItem('columnWidths', JSON.stringify(newWidths));
+    },
+    [columnWidths],
+  );
 
-  const handleCopyToClipboard = async (value: any, column: Column, field: string) => {
+  const handleCopyToClipboard = async (
+    value: any,
+    column: Column,
+    field: string,
+  ) => {
     try {
       const formattedValue = formatValueForCopy(value, column);
       await navigator.clipboard.writeText(formattedValue);
@@ -340,10 +413,12 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 
   const formatValueForCopy = (value: any, column: Column): string => {
     if (typeof value === 'number') {
-      if (column.id.toLowerCase().includes('price') || 
-          column.id.toLowerCase().includes('discount') || 
-          column.id === 'unitPrice' || 
-          column.id === 'netPrice') {
+      if (
+        column.id.toLowerCase().includes('price') ||
+        column.id.toLowerCase().includes('discount') ||
+        column.id === 'unitPrice' ||
+        column.id === 'netPrice'
+      ) {
         return formatNumberForCopy(value, 2);
       }
       if (column.id === 'quantity') {
@@ -365,35 +440,46 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 
   const handleDragEnd = () => {
     if (draggedColumn && dragOverColumn) {
-      const draggedIndex = sortedColumns.findIndex(col => col.id === draggedColumn);
-      const dropIndex = sortedColumns.findIndex(col => col.id === dragOverColumn);
-      
-      if (draggedIndex !== -1 && dropIndex !== -1 && draggedIndex !== dropIndex) {
+      const draggedIndex = sortedColumns.findIndex(
+        (col) => col.id === draggedColumn,
+      );
+      const dropIndex = sortedColumns.findIndex(
+        (col) => col.id === dragOverColumn,
+      );
+
+      if (
+        draggedIndex !== -1 &&
+        dropIndex !== -1 &&
+        draggedIndex !== dropIndex
+      ) {
         const newColumns = [...sortedColumns];
         const [draggedItem] = newColumns.splice(draggedIndex, 1);
         newColumns.splice(dropIndex, 0, draggedItem);
-        
+
         setSortedColumns(newColumns);
-        
+
         // Salvar a nova ordem no localStorage
-        const orderMap = newColumns.reduce((acc, col, index) => {
-          acc[col.id] = index;
-          return acc;
-        }, {} as Record<string, number>);
-        
+        const orderMap = newColumns.reduce(
+          (acc, col, index) => {
+            acc[col.id] = index;
+            return acc;
+          },
+          {} as Record<string, number>,
+        );
+
         localStorage.setItem('columnOrder', JSON.stringify(orderMap));
         toast.success(`Coluna "${draggedItem.header}" movida com sucesso`);
       }
     }
-    
+
     setDraggedColumn(null);
     setDragOverColumn(null);
   };
 
   const handleFilter = (columnId: string, selectedValues: Set<string>) => {
-    setColumnFilters(prev => ({
+    setColumnFilters((prev) => ({
       ...prev,
-      [columnId]: selectedValues
+      [columnId]: selectedValues,
     }));
   };
 
@@ -405,7 +491,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     return `idx:${index}`;
   };
 
-  let filteredProducts = products.filter((product, idx) => {
+  const filteredProducts = products.filter((product, idx) => {
     const isItemHidden = hiddenItems.has(idx);
 
     // Se mostrar apenas ocultados, filtra só os ocultos
@@ -418,9 +504,12 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 
     if (filters.searchTerm) {
       // Divide o termo de busca em múltiplos termos separados por espaço
-      const searchTerms = filters.searchTerm.toLowerCase().split(' ').filter(term => term.trim() !== '');
+      const searchTerms = filters.searchTerm
+        .toLowerCase()
+        .split(' ')
+        .filter((term) => term.trim() !== '');
       // Verifica se todos os termos de busca estão presentes em algum campo do produto
-      const matchesAllTerms = searchTerms.every(term => {
+      const matchesAllTerms = searchTerms.every((term) => {
         return (
           product.code?.toLowerCase().includes(term) ||
           product.name?.toLowerCase().includes(term) ||
@@ -439,11 +528,13 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     }
 
     // Column filters
-    const passesColumnFilters = Object.entries(columnFilters).every(([columnId, selectedValues]) => {
-      if (selectedValues.size === 0) return true;
-      const value = String(product[columnId] || '');
-      return selectedValues.has(value);
-    });
+    const passesColumnFilters = Object.entries(columnFilters).every(
+      ([columnId, selectedValues]) => {
+        if (selectedValues.size === 0) return true;
+        const value = String(product[columnId] || '');
+        return selectedValues.has(value);
+      },
+    );
 
     return passesColumnFilters;
   });
@@ -451,32 +542,45 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   // LOG DE PROVA: Aplicado filtro de ocultos
   const hiddenCount = products.filter((_, idx) => hiddenItems.has(idx)).length;
   const removedCount = products.length - filteredProducts.length;
-  console.log('🔍 PROVA - Aplicado filtro de ocultos: removidos', removedCount, 'de', products.length, 'itens', {
-    hiddenCount,
-    showHidden,
-    filteredCount: filteredProducts.length,
-    timestamp: new Date().toISOString()
-  });
+  console.log(
+    '🔍 PROVA - Aplicado filtro de ocultos: removidos',
+    removedCount,
+    'de',
+    products.length,
+    'itens',
+    {
+      hiddenCount,
+      showHidden,
+      filteredCount: filteredProducts.length,
+      timestamp: new Date().toISOString(),
+    },
+  );
 
   // Se houver busca e NÃO estiver mostrando apenas ocultos, ordenar para ocultos ficarem no final
-  const sortedFilteredProducts = (filters.searchTerm && !showHidden)
-    ? filteredProducts.sort((a, b) => {
-        const aHidden = hiddenItems.has(products.indexOf(a));
-        const bHidden = hiddenItems.has(products.indexOf(b));
-        if (aHidden === bHidden) return 0;
-        if (aHidden) return 1;
-        return -1;
-      })
-    : filteredProducts;
+  const sortedFilteredProducts =
+    filters.searchTerm && !showHidden
+      ? filteredProducts.sort((a, b) => {
+          const aHidden = hiddenItems.has(products.indexOf(a));
+          const bHidden = hiddenItems.has(products.indexOf(b));
+          if (aHidden === bHidden) return 0;
+          if (aHidden) return 1;
+          return -1;
+        })
+      : filteredProducts;
 
   // Calcular a média de desconto em percentual
   const calculateAverageDiscountPercent = () => {
     if (products.length === 0) return 0;
-    
-    const totalOriginalPrice = products.reduce((acc, p) => acc + p.totalPrice, 0);
+
+    const totalOriginalPrice = products.reduce(
+      (acc, p) => acc + p.totalPrice,
+      0,
+    );
     const totalDiscount = products.reduce((acc, p) => acc + p.discount, 0);
-    
-    return totalOriginalPrice > 0 ? (totalDiscount / totalOriginalPrice) * 100 : 0;
+
+    return totalOriginalPrice > 0
+      ? (totalDiscount / totalOriginalPrice) * 100
+      : 0;
   };
 
   // Calcular a quantidade total de unidades
@@ -502,14 +606,14 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   // Efeito para recalcular os valores quando o imposto de entrada mudar
   useEffect(() => {
     // Força a re-renderização da tabela quando o imposto de entrada mudar
-    setFilters(prevFilters => ({ ...prevFilters }));
+    setFilters((prevFilters) => ({ ...prevFilters }));
   }, [impostoEntrada]);
 
   const handleCopyValue = async (value: any) => {
     try {
       let success;
       let displayValue = value;
-      
+
       if (typeof value === 'number') {
         success = await copyNumberToClipboard(value, 2);
         displayValue = formatCurrency(value);
@@ -525,7 +629,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
           duration: 1500,
           position: 'bottom-right',
           icon: <Check className="h-4 w-4 text-green-500" />,
-          className: 'bg-green-50 text-green-800 border border-green-200'
+          className: 'bg-green-50 text-green-800 border border-green-200',
         });
       } else {
         throw new Error('Falha ao copiar valor');
@@ -534,13 +638,13 @@ export const ProductTable: React.FC<ProductTableProps> = ({
       console.error('Erro ao copiar:', error);
       toast.error('Erro ao copiar valor para a área de transferência', {
         icon: <Copy className="h-4 w-4 text-red-500" />,
-        className: 'bg-red-50 text-red-800 border border-red-200'
+        className: 'bg-red-50 text-red-800 border border-red-200',
       });
     }
   };
 
   const calcularCustoComImposto = (custoLiquido: number): number => {
-    return custoLiquido * (1 + (impostoEntrada / 100));
+    return custoLiquido * (1 + impostoEntrada / 100);
   };
 
   return (
@@ -558,44 +662,70 @@ export const ProductTable: React.FC<ProductTableProps> = ({
               Mostrar apenas ocultados
             </Label>
           </div>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
             <Card className="bg-white/50">
               <CardContent className="p-3">
-                <div className="text-xs font-medium text-muted-foreground">Quantidade</div>
+                <div className="text-xs font-medium text-muted-foreground">
+                  Quantidade
+                </div>
                 <div className="text-sm font-medium">
-                  <span className="font-semibold">{sortedFilteredProducts.length}</span>
+                  <span className="font-semibold">
+                    {sortedFilteredProducts.length}
+                  </span>
                 </div>
               </CardContent>
             </Card>
             <Card className="bg-white/50">
               <CardContent className="p-3">
-                <div className="text-xs font-medium text-muted-foreground">Quantidade de Unidades</div>
+                <div className="text-xs font-medium text-muted-foreground">
+                  Quantidade de Unidades
+                </div>
                 <div className="text-sm font-medium tabular-nums">
-                  <span className="font-semibold">{Math.floor(filteredTotalQuantity)}</span>
+                  <span className="font-semibold">
+                    {Math.floor(filteredTotalQuantity)}
+                  </span>
                 </div>
               </CardContent>
             </Card>
             <Card className="bg-white/50">
               <CardContent className="p-3">
-                <div className="text-xs font-medium text-muted-foreground">Valor Total</div>
+                <div className="text-xs font-medium text-muted-foreground">
+                  Valor Total
+                </div>
                 <div className="text-sm font-medium tabular-nums">
-                  {sortedFilteredProducts.reduce((acc, p) => acc + p.totalPrice, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  {sortedFilteredProducts
+                    .reduce((acc, p) => acc + p.totalPrice, 0)
+                    .toLocaleString('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                    })}
                 </div>
               </CardContent>
             </Card>
             <Card className="bg-white/50">
               <CardContent className="p-3">
-                <div className="text-xs font-medium text-muted-foreground">Valor Líquido</div>
+                <div className="text-xs font-medium text-muted-foreground">
+                  Valor Líquido
+                </div>
                 <div className="text-sm font-medium tabular-nums">
-                  {calculateTotalNetValue(sortedFilteredProducts).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  {calculateTotalNetValue(
+                    sortedFilteredProducts,
+                  ).toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                  })}
                 </div>
               </CardContent>
             </Card>
             <Card className="bg-white/50">
               <CardContent className="p-3">
-                <div className="text-xs font-medium text-muted-foreground">Desconto Médio</div>
-                <div className="text-sm font-medium tabular-nums">{averageDiscountPercent.toFixed(1)}%</div>
+                <div className="text-xs font-medium text-muted-foreground">
+                  Desconto Médio
+                </div>
+                <div className="text-sm font-medium tabular-nums">
+                  {averageDiscountPercent.toFixed(1)}%
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -606,36 +736,50 @@ export const ProductTable: React.FC<ProductTableProps> = ({
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-50/80">
-              {sortedColumns.map((column) => (
-                visibleColumns.has(column.id) && (
-                  <TableHead
-                    key={column.id}
-                    className={cn(
-                      "h-9 px-3 text-xs font-medium select-none group relative text-center",
-                      column.id === 'xapuriPrice' && "bg-blue-50/50 text-blue-700",
-                      column.id === 'epitaPrice' && "bg-emerald-50/50 text-emerald-700",
-                      draggedColumn === column.id && "bg-slate-200",
-                      dragOverColumn === column.id && "bg-slate-100"
-                    )}
-                    style={{ 
-                      width: columnWidths[column.id] || column.minWidth,
-                      minWidth: getMinWidth(column.id)
-                    }}
-                    draggable
-                    onDragStart={() => handleDragStart(column.id)}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      handleDragOver(column.id);
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      handleDragEnd();
-                    }}
-                  >
-                    {renderColumnHeader(column, products, visibleColumns, handleDragStart, handleDragOver, handleDragEnd, draggedColumn, dragOverColumn, columnFilters, handleFilter)}
-                  </TableHead>
-                )
-              ))}
+              {sortedColumns.map(
+                (column) =>
+                  visibleColumns.has(column.id) && (
+                    <TableHead
+                      key={column.id}
+                      className={cn(
+                        'h-9 px-3 text-xs font-medium select-none group relative text-center',
+                        column.id === 'xapuriPrice' &&
+                          'bg-blue-50/50 text-blue-700',
+                        column.id === 'epitaPrice' &&
+                          'bg-emerald-50/50 text-emerald-700',
+                        draggedColumn === column.id && 'bg-slate-200',
+                        dragOverColumn === column.id && 'bg-slate-100',
+                      )}
+                      style={{
+                        width: columnWidths[column.id] || column.minWidth,
+                        minWidth: getMinWidth(column.id),
+                      }}
+                      draggable
+                      onDragStart={() => handleDragStart(column.id)}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        handleDragOver(column.id);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        handleDragEnd();
+                      }}
+                    >
+                      {renderColumnHeader(
+                        column,
+                        products,
+                        visibleColumns,
+                        handleDragStart,
+                        handleDragOver,
+                        handleDragEnd,
+                        draggedColumn,
+                        dragOverColumn,
+                        columnFilters,
+                        handleFilter,
+                      )}
+                    </TableHead>
+                  ),
+              )}
               <TableHead className="w-12 text-center text-xs font-medium">
                 Ações
               </TableHead>
@@ -648,26 +792,44 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 
               // Calcular o custo com desconto (Custo Bruto - Desconto Médio)
               const custoComDesconto = calculateCustoComDesconto(product);
-              
+
               // Calcular o custo líquido (Custo c/ desconto + Imposto de Entrada)
-              const custoLiquido = calculateCustoLiquido(product, impostoEntrada);
+              const custoLiquido = calculateCustoLiquido(
+                product,
+                impostoEntrada,
+              );
               // Novo: custo líquido + frete proporcional
-              const custoLiquidoComFrete = custoLiquido + (product.freteProporcional || 0);
-              
+              const custoLiquidoComFrete =
+                custoLiquido + (product.freteProporcional || 0);
+
               // Calcular preços de venda com base no custo líquido + frete proporcional
-              const xapuriPrice = roundPrice(calculateSalePrice({ ...product, netPrice: custoLiquidoComFrete }, xapuriMarkup), roundingType);
-              const epitaPrice = roundPrice(calculateSalePrice({ ...product, netPrice: custoLiquidoComFrete }, epitaMarkup), roundingType);
-              
-              const tamanhoReferencia = extrairTamanhoDaReferencia(product.reference);
+              const xapuriPrice = roundPrice(
+                calculateSalePrice(
+                  { ...product, netPrice: custoLiquidoComFrete },
+                  xapuriMarkup,
+                ),
+                roundingType,
+              );
+              const epitaPrice = roundPrice(
+                calculateSalePrice(
+                  { ...product, netPrice: custoLiquidoComFrete },
+                  epitaMarkup,
+                ),
+                roundingType,
+              );
+
+              const tamanhoReferencia = extrairTamanhoDaReferencia(
+                product.reference,
+              );
               const tamanhoDescricao = extrairTamanhoDaDescricao(product.name);
               const tamanho = tamanhoReferencia || tamanhoDescricao || '';
 
               return (
-                <TableRow 
+                <TableRow
                   key={getId(product, productIndex)}
                   className={cn(
-                    "h-10 hover:bg-slate-50/80 transition-colors",
-                    isHidden && "opacity-60"
+                    'h-10 hover:bg-slate-50/80 transition-colors',
+                    isHidden && 'opacity-60',
                   )}
                 >
                   {sortedColumns.map((column) => {
@@ -675,11 +837,16 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 
                     if (column.id === 'image') {
                       return (
-                        <TableCell key={column.id} className="w-12 p-0 text-center">
+                        <TableCell
+                          key={column.id}
+                          className="w-12 p-0 text-center"
+                        >
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleImageSearch(productIndex, product)}
+                            onClick={() =>
+                              handleImageSearch(productIndex, product)
+                            }
                             className="h-10 w-full rounded-none opacity-0 hover:opacity-100 focus:opacity-100 group-hover:opacity-100"
                           >
                             <ImageIcon className="h-4 w-4" />
@@ -697,12 +864,19 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                             min="0"
                             step="0.01"
                             value={custoExtraMap[product.codigo] ?? ''}
-                            onChange={e => {
-                              setCustoExtraMap(prev => ({ ...prev, [product.codigo]: e.target.value }));
+                            onChange={(e) => {
+                              setCustoExtraMap((prev) => ({
+                                ...prev,
+                                [product.codigo]: e.target.value,
+                              }));
                               // Persistir o valor no armazenamento da nota
                               const valor = parseFloat(e.target.value) || 0;
                               if (product.nfeId) {
-                                updateProdutoCustoExtra(product.nfeId, product.codigo, valor);
+                                updateProdutoCustoExtra(
+                                  product.nfeId,
+                                  product.codigo,
+                                  valor,
+                                );
                               }
                             }}
                             className="w-24 text-right"
@@ -712,26 +886,54 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                     }
 
                     // Ajustar preços finais para somar custo extra
-                    let value: any = column.getValue ? 
-                      column.getValue(product) : 
-                      product[column.id as keyof Product];
+                    let value: any = column.getValue
+                      ? column.getValue(product)
+                      : product[column.id as keyof Product];
                     if (column.id === 'xapuriPrice') {
-                      const custoExtra = parseFloat(custoExtraMap[product.codigo] || '0') || 0;
-                      const custoLiquido = calculateCustoLiquido(product, impostoEntrada);
-                      const custoLiquidoComFrete = custoLiquido + (product.freteProporcional || 0);
-                      value = roundPrice(calculateSalePrice({ ...product, netPrice: custoLiquidoComFrete }, xapuriMarkup), roundingType) + custoExtra;
+                      const custoExtra =
+                        parseFloat(custoExtraMap[product.codigo] || '0') || 0;
+                      const custoLiquido = calculateCustoLiquido(
+                        product,
+                        impostoEntrada,
+                      );
+                      const custoLiquidoComFrete =
+                        custoLiquido + (product.freteProporcional || 0);
+                      value =
+                        roundPrice(
+                          calculateSalePrice(
+                            { ...product, netPrice: custoLiquidoComFrete },
+                            xapuriMarkup,
+                          ),
+                          roundingType,
+                        ) + custoExtra;
                     }
                     if (column.id === 'epitaPrice') {
-                      const custoExtra = parseFloat(custoExtraMap[product.codigo] || '0') || 0;
-                      const custoLiquido = calculateCustoLiquido(product, impostoEntrada);
-                      const custoLiquidoComFrete = custoLiquido + (product.freteProporcional || 0);
-                      value = roundPrice(calculateSalePrice({ ...product, netPrice: custoLiquidoComFrete }, epitaMarkup), roundingType) + custoExtra;
+                      const custoExtra =
+                        parseFloat(custoExtraMap[product.codigo] || '0') || 0;
+                      const custoLiquido = calculateCustoLiquido(
+                        product,
+                        impostoEntrada,
+                      );
+                      const custoLiquidoComFrete =
+                        custoLiquido + (product.freteProporcional || 0);
+                      value =
+                        roundPrice(
+                          calculateSalePrice(
+                            { ...product, netPrice: custoLiquidoComFrete },
+                            epitaMarkup,
+                          ),
+                          roundingType,
+                        ) + custoExtra;
                     }
                     if (column.id === 'size') value = tamanho;
-                    if (column.id === 'cor') value = product.cor || 'Cor não cadastrada';
+                    if (column.id === 'cor')
+                      value = product.cor || 'Cor não cadastrada';
                     if (column.id === 'netPrice') {
                       // Custo Líquido = custo unitário + frete proporcional
-                      const custoLiquido = calculateCustoLiquido(product, impostoEntrada);
+                      const custoLiquido = calculateCustoLiquido(
+                        product,
+                        impostoEntrada,
+                      );
                       const freteProporcional = product.freteProporcional || 0;
                       value = custoLiquido + freteProporcional;
                     }
@@ -740,13 +942,16 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                       <TableCell
                         key={column.id}
                         className={cn(
-                          "px-3 group relative text-sm hover:bg-slate-100 transition-colors text-center align-middle",
-                          column.id === 'name' && "break-words whitespace-normal",
-                          column.id === 'xapuriPrice' && "bg-blue-50/50 hover:bg-blue-100/50",
-                          column.id === 'epitaPrice' && "bg-emerald-50/50 hover:bg-emerald-100/50"
+                          'px-3 group relative text-sm hover:bg-slate-100 transition-colors text-center align-middle',
+                          column.id === 'name' &&
+                            'break-words whitespace-normal',
+                          column.id === 'xapuriPrice' &&
+                            'bg-blue-50/50 hover:bg-blue-100/50',
+                          column.id === 'epitaPrice' &&
+                            'bg-emerald-50/50 hover:bg-emerald-100/50',
                         )}
-                        style={{ 
-                          minWidth: getMinWidth(column.id)
+                        style={{
+                          minWidth: getMinWidth(column.id),
                         }}
                       >
                         <CellContent value={value} column={column} />
