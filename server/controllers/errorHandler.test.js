@@ -10,7 +10,7 @@ const app = express();
 app.get('/erro', faultyController);
 
 // Middleware de tratamento de erros semelhante ao usado no servidor
-// eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Algo deu errado!' });
 });
