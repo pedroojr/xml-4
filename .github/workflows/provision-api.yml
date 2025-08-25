@@ -10,24 +10,6 @@ jobs:
   provision:
     runs-on: ubuntu-latest
     steps:
-      - name: Check required secrets
-        run: |
-          echo "Checking secrets..."
-          for v in SFTP_HOST SFTP_PORT SFTP_USERNAME SFTP_PASSWORD; do
-            if [ -z "${!v}" ]; then 
-              echo "❌ Missing secret: $v" >&2
-              exit 1
-            else
-              echo "✅ Secret $v is set"
-            fi
-          done
-          echo "✅ All required secrets are present"
-        env:
-          SFTP_HOST: ${{ secrets.SFTP_HOST }}
-          SFTP_PORT: ${{ secrets.SFTP_PORT }}
-          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
-          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
-
       - name: Create provision script
         run: |
           cat > provision-api.sh << 'EOF'
