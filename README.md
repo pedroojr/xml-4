@@ -71,7 +71,7 @@ xml-4/
 
 #### **1. Deploy Frontend (Produção)**
 ```yaml
-Trigger: Push para master
+Trigger: Push para main
 Target: /var/www/html
 URL: https://xml.lojasrealce.shop/
 ```
@@ -93,7 +93,7 @@ URL: https://dev.xml.lojasrealce.shop/
 graph LR
     A[Push Code] --> B[GitHub Actions]
     B --> C{Branch?}
-    C -->|master| D[Deploy Produção]
+    C -->|main| D[Deploy Produção]
     C -->|develop| E[Deploy Desenvolvimento]
     D --> F[Build + SFTP]
     E --> G[Build + SFTP]
@@ -231,14 +231,14 @@ Você é um assistente especializado em DevOps e CI/CD para o projeto XML Import
    - Diretório: /var/www/dev
 
 ## WORKFLOWS DISPONÍVEIS
-- **Deploy Frontend**: Trigger automático em push para master
+- **Deploy Frontend**: Trigger automático em push para main
 - **Deploy Dev**: Trigger automático em push para develop/dev
 - **Provision API**: Configuração manual via script
 - **Provision Frontend**: Configuração manual via script
 - **Provision Dev**: Configuração manual via script
 
 ## INSTRUÇÕES ESPECÍFICAS
-1. **Para deploy automático**: Push para branch master (produção) ou develop (desenvolvimento)
+1. **Para deploy automático**: Push para branch main (produção) ou develop (desenvolvimento)
 2. **Para deploy manual**: Use GitHub Actions → "Run workflow"
 3. **Para provisionamento**: Execute scripts no servidor via SSH
 4. **Para troubleshooting**: Verifique logs do PM2 e Nginx
@@ -290,7 +290,7 @@ graph TB
     
     subgraph "GitHub Actions"
         B --> C{Branch?}
-        C -->|master| D[Deploy Frontend Prod]
+        C -->|main| D[Deploy Frontend Prod]
         C -->|develop| E[Deploy Frontend Dev]
         C -->|manual| F[Provision Scripts]
     end
@@ -334,7 +334,7 @@ sequenceDiagram
     participant Nginx as Nginx
     participant PM2 as PM2
     
-    Dev->>Git: Push to master/develop
+    Dev->>Git: Push to main/develop
     Git->>Actions: Trigger workflow
     Actions->>Actions: Build frontend
     Actions->>VPS: SFTP deploy
@@ -376,7 +376,7 @@ npm run dev          # Modo desenvolvimento
 
 ### **Estrutura de Branches**
 ```bash
-master    # Produção (deploy automático)
+main      # Produção (deploy automático)
 develop   # Desenvolvimento (deploy automático)
 feature/* # Novas funcionalidades
 hotfix/*  # Correções urgentes

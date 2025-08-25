@@ -21,7 +21,7 @@ export interface NFE {
 }
 
 export const useNFEStorage = () => {
-  const { nfes: savedNFEs, loading, error, loadNFEs, saveNFE: apiSaveNFE, updateNFE, deleteNFE: apiDeleteNFE } = useNFEAPI();
+  const { nfes: savedNFEs, loading, error, loadNFEs, saveNFE: apiSaveNFE, updateNFE, deleteNFE: apiDeleteNFE, loadNFEById } = useNFEAPI();
 
   const checkDuplicateNFE = (chaveNFE: string | undefined): boolean => {
     if (!chaveNFE) return false;
@@ -135,5 +135,6 @@ export const useNFEStorage = () => {
     updateProdutoCustoExtra,
     updateProdutoFreteProporcional,
     loadNFEs,
+    loadNFEById,
   };
 }; 

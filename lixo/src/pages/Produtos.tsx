@@ -33,10 +33,11 @@ const Produtos = () => {
     visibleColumns: new Set(getDefaultColumns().map(col => col.id))
   });
 
-  // Extrair todos os produtos das NFEs
+  // Extrair todos os produtos das NFEs (defensivo caso produtos não venha no GET /nfes)
   const allProducts = React.useMemo(() => {
     return savedNFEs.reduce((acc: any[], nfe) => {
-      const nfeProdutos = nfe.produtos.map(produto => ({
+      const produtos = Array.isArray(nfe.produtos) ? nfe.produtos : [];
+      const nfeProdutos = produtos.map(produto => ({
         ...produto,
         nfeId: nfe.id,
         fornecedor: nfe.fornecedor,

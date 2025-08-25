@@ -27,7 +27,7 @@ const Index = () => {
   const [brandName, setBrandName] = useState<string>("");
   const [isEditingBrand, setIsEditingBrand] = useState(false);
 
-  const { savedNFEs, saveNFE, removeNFE, updateHiddenItems, updateShowHidden, updateNFE, loadNFEs } = useNFEStorage();
+  const { savedNFEs, saveNFE, removeNFE, updateHiddenItems, updateShowHidden, updateNFE, loadNFEs, loadNFEById } = useNFEStorage();
 
   // Estado centralizado no servidor - SEM estado local
   const currentNFE = currentNFeId ? savedNFEs.find(nfe => nfe.id === currentNFeId) : null;
@@ -338,7 +338,24 @@ const Index = () => {
     return numero;
   };
 
-  const handleLoadNFe = (nfe: NFE) => {
+  const handleLoadNFe = async (nfe: NFE) => {
+    console.log('🔍 DEBUG - handleLoadNFe chamado:', {
+      nfeId: nfe.id,
+      produtosCount: nfe.produtos?.length,
+      primeiroProduto: nfe.produtos?.[0],
+      timestamp: new Date().toISOString()
+    });
+
+    // DEBUG: Log da estrutura completa da NFE
+    console.log('🔍 DEBUG - Estrutura completa da NFE:', {
+      nfe: nfe,
+      keys: Object.keys(nfe),
+      hasProdutos: 'produtos' in nfe,
+      produtosType: typeof nfe.produtos,
+      produtosIsArray: Array.isArray(nfe.produtos),
+      timestamp: new Date().toISOString()
+    });
+
     // Limpar mudanças pendentes ao carregar nova NFE
     setPendingChanges({});
     
@@ -356,8 +373,19 @@ const Index = () => {
       setHiddenItems(new Set());
     }
     
+    // Se a lista de produtos não veio neste objeto (GET /nfes), buscar a NFE completa
+    let sourceNfe = nfe as NFE;
+    if (!Array.isArray(nfe.produtos) || nfe.produtos.length === 0) {
+      try {
+        const full = await loadNFEById(nfe.id);
+        sourceNfe = full;
+      } catch (e) {
+        console.error('Erro ao carregar NFE completa:', e);
+      }
+    }
+
     // Normaliza campos vindos do servidor para o shape usado na UI
-    const normalized = (nfe.produtos || []).map((p: NFE['produtos'][0], index) => ({
+    const normalized = (sourceNfe.produtos || []).map((p: NFE['produtos'][0], index) => ({
       codigo: p.codigo ?? '',
       descricao: p.descricao ?? '',
       cor: 'Cor não cadastrada',
@@ -396,10 +424,17 @@ const Index = () => {
       freteProporcional: p.freteProporcional ?? 0,
       custoExtra: p.custoExtra ?? 0,
     }));
+
+    console.log('🔍 DEBUG - Produtos normalizados em handleLoadNFe:', {
+      count: normalized.length,
+      primeiroNormalizado: normalized[0],
+      timestamp: new Date().toISOString()
+    });
+
     setProducts(normalized);
-    setCurrentNFeId(nfe.id);
-    setInvoiceNumber(nfe.numero);
-    setBrandName(nfe.fornecedor);
+    setCurrentNFeId(sourceNfe.id);
+    setInvoiceNumber(sourceNfe.numero);
+    setBrandName(sourceNfe.fornecedor);
     setIsEditingBrand(false);
     setXmlContentForDataSystem(null);
     // Não mudar a aba - deixar os produtos visíveis
