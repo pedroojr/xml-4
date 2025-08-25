@@ -3,7 +3,6 @@ name: Deploy Frontend to VPS via SFTP
 on:
   push:
     branches:
-      - main
       - master
   workflow_dispatch:
 

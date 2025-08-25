@@ -2,6 +2,9 @@ name: Provision Frontend Domain (Nginx + SSL + Caching)
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - master
 
 jobs:
   provision:
