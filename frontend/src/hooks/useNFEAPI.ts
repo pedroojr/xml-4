@@ -1,115 +1,84 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { nfeAPI, NFE } from '@/services/api';
 import { toast } from 'sonner';
 
 export const useNFEAPI = () => {
-  const [nfes, setNfes] = useState<NFE[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  // Carregar todas as NFEs
-  const loadNFEs = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await nfeAPI.getAll();
-      setNfes(data);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar NFEs';
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const {
+    data: nfes = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<NFE[], Error>({
+    queryKey: ['nfes'],
+    queryFn: nfeAPI.getAll,
+  });
 
-  // Salvar NFE
-  const saveNFE = useCallback(async (nfe: NFE) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await nfeAPI.save(nfe);
-      await loadNFEs(); // Recarregar lista
+  const saveMutation = useMutation({
+    mutationFn: nfeAPI.save,
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['nfes'] });
       toast.success(result.message);
-      return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao salvar NFE';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [loadNFEs]);
+    },
+    onError: (err: unknown) => {
+      const message = err instanceof Error ? err.message : 'Erro ao salvar NFE';
+      toast.error(message);
+    },
+  });
 
-  // Atualizar NFE
-  const updateNFE = useCallback(async (id: string, data: Partial<NFE>) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await nfeAPI.update(id, data);
-      await loadNFEs(); // Recarregar lista
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<NFE> }) =>
+      nfeAPI.update(id, data),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['nfes'] });
       toast.success(result.message);
-      return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao atualizar NFE';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [loadNFEs]);
+    },
+    onError: (err: unknown) => {
+      const message = err instanceof Error ? err.message : 'Erro ao atualizar NFE';
+      toast.error(message);
+    },
+  });
 
-  // Excluir NFE
-  const deleteNFE = useCallback(async (id: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await nfeAPI.delete(id);
-      await loadNFEs(); // Recarregar lista
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => nfeAPI.delete(id),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['nfes'] });
       toast.success(result.message);
-      return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao excluir NFE';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [loadNFEs]);
+    },
+    onError: (err: unknown) => {
+      const message = err instanceof Error ? err.message : 'Erro ao excluir NFE';
+      toast.error(message);
+    },
+  });
 
-  // Carregar NFE por ID
-  const loadNFEById = useCallback(async (id: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const nfe = await nfeAPI.getById(id);
-      return nfe;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar NFE';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Carregar NFEs na inicialização
-  useEffect(() => {
-    loadNFEs();
-  }, [loadNFEs]);
+  const loadNFEById = useCallback(
+    async (id: string) => {
+      try {
+        return await queryClient.fetchQuery({
+          queryKey: ['nfe', id],
+          queryFn: () => nfeAPI.getById(id),
+        });
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Erro ao carregar NFE';
+        toast.error(message);
+        throw err;
+      }
+    },
+    [queryClient]
+  );
 
   return {
     nfes,
-    loading,
-    error,
-    loadNFEs,
-    saveNFE,
-    updateNFE,
-    deleteNFE,
+    loading: isLoading,
+    error: error ? error.message : null,
+    loadNFEs: refetch,
+    saveNFE: saveMutation.mutateAsync,
+    updateNFE: (id: string, data: Partial<NFE>) =>
+      updateMutation.mutateAsync({ id, data }),
+    deleteNFE: deleteMutation.mutateAsync,
     loadNFEById,
   };
-}; 
+};

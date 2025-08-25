@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNFEAPI } from './useNFEAPI';
 
 export interface NFE {
@@ -123,6 +123,28 @@ export const useNFEStorage = () => {
     }
   };
 
+  const updateHiddenItems = async (id: string, hiddenItems: string[]) => {
+    try {
+      await updateNFE(id, { hiddenItems });
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Erro ao atualizar itens ocultos');
+    }
+  };
+
+  const updateShowHidden = async (id: string, showHidden: boolean) => {
+    try {
+      await updateNFE(id, { showHidden });
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Erro ao atualizar visibilidade de itens ocultos');
+    }
+  };
+
   return {
     savedNFEs,
     loading,
@@ -134,7 +156,10 @@ export const useNFEStorage = () => {
     updateNFEImpostoEntrada,
     updateProdutoCustoExtra,
     updateProdutoFreteProporcional,
+    updateHiddenItems,
+    updateShowHidden,
+    updateNFE,
     loadNFEs,
     loadNFEById,
   };
-}; 
+};
