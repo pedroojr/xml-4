@@ -73,8 +73,6 @@ jobs:
       - name: Install backend dependencies
         working-directory: server
         run: npm ci
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
       - name: Run e2e tests
         env:
           PORT: 3001
@@ -85,10 +83,12 @@ jobs:
         run: |
           cd server
           npm run migrate
-          npm start &
-          until curl -s -H "x-api-key: ${API_KEY}" http://127.0.0.1:3001/api/status > /dev/null; do sleep 1; done
+          npm start >/tmp/server.log 2>&1 &
+          server_pid=$!
+          until curl -fsS -H "x-api-key: ${API_KEY}" http://127.0.0.1:3001/api/status > /dev/null; do sleep 1; done
           cd ..
           npm run test:e2e
+          kill $server_pid
 
   deploy:
     needs:
