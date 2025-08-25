@@ -83,8 +83,8 @@ jobs:
           npm run migrate
           npm start &
           until curl -s http://localhost:3001/ > /dev/null; do sleep 1; done
-      - name: Setup Playwright
-        uses: microsoft/playwright-github-action@v1
+      - name: Install Playwright browsers
+        run: npx playwright install
       - name: Run e2e tests
         env:
           TEST_BASE_URL: http://127.0.0.1:3001
