@@ -402,7 +402,7 @@ const Index = () => {
     setBrandName(nfe.fornecedor);
     setIsEditingBrand(false);
     setXmlContentForDataSystem(null);
-    setCurrentTab("upload");
+    // Não mudar a aba - deixar os produtos visíveis
   };
 
   const handleXapuriMarkupChange = async (value: number) => {
