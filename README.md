@@ -124,12 +124,16 @@ VITE_ENV=production
 NODE_ENV=development
 PORT=3002
 ALLOWED_ORIGINS=https://dev.xml.lojasrealce.shop
+API_KEY=dev-secret
 
 # Produção
 NODE_ENV=production
 PORT=3001
 ALLOWED_ORIGINS=https://xml.lojasrealce.shop,https://www.xml.lojasrealce.shop
+API_KEY=prod-secret
 ```
+
+Todas as requisições para a API devem incluir o cabeçalho `x-api-key` com o valor definido em `API_KEY`.
 
 ### **Configuração PM2**
 

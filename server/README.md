@@ -8,7 +8,8 @@ Este é o servidor backend para o XML Importer, que fornece uma API REST para ge
 - **API REST**: Endpoints para CRUD de NFEs e produtos
 - **Upload de XML**: Processamento de arquivos XML de NF-e
 - **CORS Configurado**: Acesso remoto de outros PCs
-- **Segurança**: Helmet para proteção básica
+- **Segurança**: Helmet para proteção básica e chave de API
+- **Validação**: Schemas de entrada com express-validator
 
 ## 📋 Pré-requisitos
 
@@ -27,8 +28,9 @@ Este é o servidor backend para o XML Importer, que fornece uma API REST para ge
    ```bash
    # Copiar arquivo de exemplo
    copy env.example .env
-   
+
    # Editar .env com suas configurações
+   # Inclua uma API_KEY para habilitar autenticação simples
    ```
 
 3. **Iniciar servidor:**
@@ -75,6 +77,8 @@ http://[SEU_IP]:3001/api/status
 
 ### Status
 - `GET /api/status` - Status do servidor
+
+> Todos os endpoints exigem o cabeçalho `x-api-key` definido no `.env`.
 
 ## 🗄️ Estrutura do Banco de Dados
 
@@ -125,6 +129,7 @@ http://[SEU_IP]:3001/api/status
 - **CORS**: Configurado para permitir apenas origens específicas
 - **Helmet**: Headers de segurança básicos
 - **Validação**: Validação de entrada nos endpoints
+- **Autenticação**: Proteção por chave de API via header `x-api-key`
 - **Rate Limiting**: Pode ser adicionado se necessário
 
 ## 📝 Scripts Disponíveis
