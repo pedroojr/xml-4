@@ -119,7 +119,6 @@ jobs:
       - name: Create execution trigger
         run: |
           echo "Creating execution trigger..."
-          # Criar um arquivo que o servidor pode monitorar
           echo "$(date): API provision requested" > provision-trigger.txt
 
       - name: Upload execution trigger
