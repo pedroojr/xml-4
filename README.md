@@ -46,6 +46,8 @@ xml-4/
 └── README.md               # Esta documentação
 ```
 
+> **Nota:** o frontend oficial do sistema encontra-se **apenas** na pasta `frontend/`.
+
 ---
 
 ## 🌍 **Ambientes**
