@@ -36,7 +36,7 @@ const sampleXml = `<?xml version="1.0" encoding="UTF-8"?>
   </infNFe>
 </NFe>`;
 
-test('upload XML and list NFEs', async ({ request }) => {
+test('Upload de NFE e visualização de produtos', async ({ request }) => {
   const uploadResponse = await request.post(`${baseURL}/api/upload-xml`, {
     headers: {
       ...(apiKey ? { 'x-api-key': apiKey } : {}),
@@ -51,18 +51,18 @@ test('upload XML and list NFEs', async ({ request }) => {
   });
 
   expect(uploadResponse.ok()).toBeTruthy();
-  const body = await uploadResponse.json();
-  const id = body.id;
+  const { id } = await uploadResponse.json();
   expect(id).toBeTruthy();
 
-  const listResponse = await request.get(`${baseURL}/api/nfes`, {
+  const nfeResponse = await request.get(`${baseURL}/api/nfes/${id}`, {
     headers: {
       ...(apiKey ? { 'x-api-key': apiKey } : {}),
     },
   });
 
-  expect(listResponse.ok()).toBeTruthy();
-  const nfes = await listResponse.json();
-  const hasUploaded = Array.isArray(nfes) && nfes.some((nfe: any) => nfe.id === id);
-  expect(hasUploaded).toBeTruthy();
+  expect(nfeResponse.ok()).toBeTruthy();
+  const nfe = await nfeResponse.json();
+  expect(Array.isArray(nfe.produtos)).toBeTruthy();
+  const hasProduct = nfe.produtos.some((p: any) => p.descricao === 'Produto Teste');
+  expect(hasProduct).toBeTruthy();
 });
