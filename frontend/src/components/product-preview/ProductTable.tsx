@@ -539,22 +539,22 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     return passesColumnFilters;
   });
 
-  // LOG DE PROVA: Aplicado filtro de ocultos
-  const hiddenCount = products.filter((_, idx) => hiddenItems.has(idx)).length;
-  const removedCount = products.length - filteredProducts.length;
-  console.log(
-    '🔍 PROVA - Aplicado filtro de ocultos: removidos',
-    removedCount,
-    'de',
-    products.length,
-    'itens',
-    {
-      hiddenCount,
-      showHidden,
-      filteredCount: filteredProducts.length,
-      timestamp: new Date().toISOString(),
-    },
-  );
+  // LOG DE PROVA: Aplicado filtro de ocultos (comentado para evitar spam)
+  // const hiddenCount = products.filter((_, idx) => hiddenItems.has(idx)).length;
+  // const removedCount = products.length - filteredProducts.length;
+  // console.log(
+  //   '🔍 PROVA - Aplicado filtro de ocultos: removidos',
+  //   removedCount,
+  //   'de',
+  //   products.length,
+  //   'itens',
+  //   {
+  //     hiddenCount,
+  //     showHidden,
+  //     filteredCount: filteredProducts.length,
+  //     timestamp: new Date().toISOString(),
+  //   },
+  // );
 
   // Se houver busca e NÃO estiver mostrando apenas ocultos, ordenar para ocultos ficarem no final
   const sortedFilteredProducts =

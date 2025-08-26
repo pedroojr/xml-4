@@ -184,7 +184,21 @@ const Index = () => {
             brand: p.brand ?? '',
             totalPrice: p.valorTotal ?? 0,
             discount: p.discount ?? 0,
-            netPrice: (p.valorTotal ?? 0) - (p.discount ?? 0),
+            netPrice: (() => {
+              const valorTotal = p.valorTotal ?? 0;
+              const discount = p.discount ?? 0;
+              const unitPrice = p.valorUnitario ?? 0;
+              const quantidade = p.quantidade ?? 1;
+              
+              // Se valorTotal for muito alto (mais de 10x o preço unitário), usar cálculo alternativo
+              if (valorTotal > unitPrice * quantidade * 10) {
+                console.warn('Valor total muito alto detectado:', { valorTotal, unitPrice, quantidade, discount });
+                // Calcular baseado no preço unitário
+                return (unitPrice * quantidade) - discount;
+              }
+              
+              return valorTotal - discount;
+            })(),
             quantity: p.quantidade ?? 0,
             imageUrl: p.imageUrl ?? '',
             tags: [],
@@ -373,7 +387,21 @@ const Index = () => {
         brand: p.brand ?? '',
         totalPrice: p.valorTotal ?? 0,
         discount: p.discount ?? 0,
-        netPrice: (p.valorTotal ?? 0) - (p.discount ?? 0),
+        netPrice: (() => {
+          const valorTotal = p.valorTotal ?? 0;
+          const discount = p.discount ?? 0;
+          const unitPrice = p.valorUnitario ?? 0;
+          const quantidade = p.quantidade ?? 1;
+          
+          // Se valorTotal for muito alto (mais de 10x o preço unitário), usar cálculo alternativo
+          if (valorTotal > unitPrice * quantidade * 10) {
+            console.warn('Valor total muito alto detectado:', { valorTotal, unitPrice, quantidade, discount });
+            // Calcular baseado no preço unitário
+            return (unitPrice * quantidade) - discount;
+          }
+          
+          return valorTotal - discount;
+        })(),
         quantity: p.quantidade ?? 0,
         imageUrl: p.imageUrl ?? '',
         tags: [],
