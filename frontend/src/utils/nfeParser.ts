@@ -60,27 +60,6 @@ export const parseNFeXML = (xmlText: string): Product[] => {
     return isNaN(number) ? 0 : number;
   };
 
-  let totalProductsValue = 0;
-  let totalInvoiceValue = 0;
-
-  const totalNode = xmlDoc.getElementsByTagNameNS(ns, 'total')[0];
-  if (totalNode) {
-    const icmsTotalNode = totalNode.getElementsByTagNameNS(ns, 'ICMSTot')[0];
-    if (icmsTotalNode) {
-      totalProductsValue = parseNumber(getElementText(icmsTotalNode, 'vProd'));
-      totalInvoiceValue = parseNumber(getElementText(icmsTotalNode, 'vNF'));
-    }
-  }
-
-  const totalDiscount = totalProductsValue - totalInvoiceValue;
-  const discountPercentage =
-    totalDiscount > 0 ? (totalDiscount / totalProductsValue) * 100 : 0;
-
-  console.log('Valor Total Produtos:', totalProductsValue);
-  console.log('Valor Total Nota:', totalInvoiceValue);
-  console.log('Desconto Total:', totalDiscount);
-  console.log('Porcentagem de Desconto:', discountPercentage.toFixed(2) + '%');
-
   const getICMSInfo = (element: Element) => {
     if (!element) return { cst: '', orig: '' };
 
@@ -122,12 +101,8 @@ export const parseNFeXML = (xmlText: string): Product[] => {
     const quantity = parseNumber(getElementText(prod, 'qCom'));
     const unitPrice = parseNumber(getElementText(prod, 'vUnCom'));
     const totalPrice = parseNumber(getElementText(prod, 'vProd'));
-
-    const unitDiscount = unitPrice * (discountPercentage / 100);
-    const netUnitPrice = unitPrice - unitDiscount;
-
-    const totalDiscount = unitDiscount * quantity;
-    const netPrice = netUnitPrice * quantity;
+    const discount = parseNumber(getElementText(prod, 'vDesc'));
+    const netPrice = totalPrice - discount;
 
     const nome = getElementText(prod, 'xProd');
     const codigo = getElementText(prod, 'cProd');
@@ -149,7 +124,7 @@ export const parseNFeXML = (xmlText: string): Product[] => {
       quantity: quantity,
       unitPrice: unitPrice,
       totalPrice: totalPrice,
-      discount: totalDiscount,
+      discount: discount,
       netPrice: netPrice,
       color: corIdentificada || '',
       size: tamanho,
