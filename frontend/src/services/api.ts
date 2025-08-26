@@ -1,4 +1,7 @@
 import axios from 'axios';
+import type { NFE, Product } from '@/types/nfe';
+
+export type { NFE, Product };
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4005/api';
 const DEBUG = import.meta.env.VITE_DEBUG === 'true';
@@ -42,51 +45,6 @@ api.interceptors.response.use(
   }
 );
 
-export interface NFE {
-  id: string;
-  data: string;
-  numero: string;
-  chaveNFE?: string;
-  fornecedor: string;
-  valor: number;
-  itens: number;
-  produtos: Product[];
-  impostoEntrada: number;
-  xapuriMarkup?: number;
-  epitaMarkup?: number;
-  roundingType?: string;
-  valorFrete?: number;
-  isFavorite?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface Product {
-  id?: number;
-  nfeId?: string;
-  codigo: string;
-  descricao: string;
-  ncm?: string;
-  cfop?: string;
-  unidade?: string;
-  quantidade: number;
-  valorUnitario: number;
-  valorTotal: number;
-  baseCalculoICMS?: number;
-  valorICMS?: number;
-  aliquotaICMS?: number;
-  baseCalculoIPI?: number;
-  valorIPI?: number;
-  aliquotaIPI?: number;
-  ean?: string;
-  reference?: string;
-  brand?: string;
-  imageUrl?: string;
-  descricao_complementar?: string;
-  custoExtra?: number;
-  freteProporcional?: number;
-}
-
 // API de NFEs
 export const nfeAPI = {
   // Listar todas as NFEs
@@ -128,6 +86,18 @@ export const uploadAPI = {
     formData.append('xml', file);
 
     const response = await api.post('/upload-xml', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+  // Upload de arquivo de pedido em PDF
+  uploadPDF: async (file: File): Promise<{ itens: any[] }> => {
+    const formData = new FormData();
+    formData.append('pedido', file);
+
+    const response = await api.post('/importar-pedido', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
