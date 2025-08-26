@@ -114,19 +114,6 @@ const Index = () => {
     roundingType?: RoundingType;
   }>({});
 
-  // LOG DE PROVA: Carregado hiddenItems do servidor
-  useEffect(() => {
-    if (currentNFeId && currentNFE) {
-      console.log('🔍 PROVA - Carregado hiddenItems do servidor:', {
-        nfeId: currentNFE.id,
-        hiddenItems: currentNFE.hiddenItems || [],
-        showHidden: currentNFE.showHidden,
-        produtosCount: currentNFE.produtos?.length,
-        timestamp: new Date().toISOString(),
-      });
-    }
-  }, [currentNFeId, currentNFE, storageKey]);
-
   // Valores vindos APENAS do servidor, mas com mudanças pendentes aplicadas
   const xapuriMarkup =
     pendingChanges.xapuriMarkup ?? currentNFE?.xapuriMarkup ?? 160;
@@ -140,59 +127,9 @@ const Index = () => {
   const showHidden =
     pendingChanges.showHidden ?? currentNFE?.showHidden ?? false;
 
-  // DEBUG: Log para valores derivados
-  useEffect(() => {
-    if (currentNFeId) {
-      console.log('🔍 DEBUG - Valores Derivados:', {
-        xapuriMarkup,
-        epitaMarkup,
-        impostoEntrada,
-        roundingType,
-        hiddenItems: Array.from(hiddenItems),
-        showHidden,
-        pendingChanges,
-        timestamp: new Date().toISOString(),
-      });
-    }
-  }, [
-    currentNFeId,
-    xapuriMarkup,
-    epitaMarkup,
-    impostoEntrada,
-    roundingType,
-    hiddenItems,
-    showHidden,
-    pendingChanges,
-  ]);
-
-  // DEBUG: Log para savedNFEs
-  useEffect(() => {
-    console.log('🔍 DEBUG - savedNFEs atualizado:', {
-      count: savedNFEs.length,
-      nfes: savedNFEs.map((n) => ({
-        id: n.id,
-        numero: n.numero,
-        xapuriMarkup: n.xapuriMarkup,
-        hiddenItems: n.hiddenItems,
-        showHidden: n.showHidden,
-      })),
-      timestamp: new Date().toISOString(),
-    });
-  }, [savedNFEs]);
-
   // Sincronização automática quando currentNFeId muda
   useEffect(() => {
     if (currentNFeId && currentNFE) {
-      // DEBUG: Log dos dados brutos do servidor
-      console.log('🔍 DEBUG - Dados brutos do servidor:', {
-        nfeId: currentNFE.id,
-        produtosCount: currentNFE.produtos?.length,
-        primeiroProduto: currentNFE.produtos?.[0],
-        todosProdutos: currentNFE.produtos,
-        hiddenItemsFromServer: currentNFE.hiddenItems,
-        timestamp: new Date().toISOString(),
-      });
-
       // Aplicar fonte da verdade para itens ocultos: servidor, com fallback localStorage
       const serverIds = new Set<string>(
         Array.isArray(currentNFE.hiddenItems) ? currentNFE.hiddenItems : [],
@@ -222,15 +159,6 @@ const Index = () => {
       // Normalizar produtos para garantir compatibilidade
       const normalizedProducts: Product[] = (currentNFE.produtos || []).map(
         (p, index) => {
-          // DEBUG: Log de cada produto sendo normalizado
-          console.log('🔍 DEBUG - Normalizando produto:', {
-            original: p,
-            codigo: p.codigo,
-            quantidade: p.quantidade,
-            valorUnitario: p.valorUnitario,
-            valorTotal: p.valorTotal,
-          });
-
           return {
             codigo: p.codigo ?? '',
             descricao: p.descricao ?? '',
@@ -255,8 +183,8 @@ const Index = () => {
             reference: p.reference ?? '',
             brand: p.brand ?? '',
             totalPrice: p.valorTotal ?? 0,
-            netPrice: p.valorUnitario ?? 0,
-            discount: 0,
+            discount: p.discount ?? 0,
+            netPrice: (p.valorTotal ?? 0) - (p.discount ?? 0),
             quantity: p.quantidade ?? 0,
             imageUrl: p.imageUrl ?? '',
             tags: [],
@@ -273,13 +201,6 @@ const Index = () => {
         },
       );
 
-      // DEBUG: Log dos produtos normalizados
-      console.log('🔍 DEBUG - Produtos normalizados:', {
-        count: normalizedProducts.length,
-        primeiroNormalizado: normalizedProducts[0],
-        timestamp: new Date().toISOString(),
-      });
-
       setProducts(normalizedProducts);
       setInvoiceNumber(currentNFE.numero);
       setBrandName(currentNFE.fornecedor);
@@ -293,21 +214,7 @@ const Index = () => {
       const syncInterval = setInterval(() => {
         // Só sincronizar se não houver mudanças pendentes
         if (Object.keys(pendingChanges).length === 0) {
-          // LOG DE PROVA: Polling preservado
-          console.log(
-            '🔍 PROVA - Polling preservado: hiddenItems =',
-            currentNFE?.hiddenItems || [],
-            {
-              nfeId: currentNFeId,
-              timestamp: new Date().toISOString(),
-            },
-          );
           loadNFEs();
-        } else {
-          console.log(
-            '🔍 DEBUG - Pulando sincronização devido a mudanças pendentes:',
-            pendingChanges,
-          );
         }
       }, 5000); // 5 segundos em vez de 1 segundo
 
@@ -416,34 +323,12 @@ const Index = () => {
   };
 
   const handleLoadNFe = async (nfe: NFE) => {
-    console.log('🔍 DEBUG - handleLoadNFe chamado:', {
-      nfeId: nfe.id,
-      produtosCount: nfe.produtos?.length,
-      primeiroProduto: nfe.produtos?.[0],
-      timestamp: new Date().toISOString(),
-    });
-
-    // DEBUG: Log da estrutura completa da NFE
-    console.log('🔍 DEBUG - Estrutura completa da NFE:', {
-      nfe: nfe,
-      keys: Object.keys(nfe),
-      hasProdutos: 'produtos' in nfe,
-      produtosType: typeof nfe.produtos,
-      produtosIsArray: Array.isArray(nfe.produtos),
-      timestamp: new Date().toISOString(),
-    });
-
     // Limpar mudanças pendentes ao carregar nova NFE
     setPendingChanges({});
 
     // RESTAURAR ITENS OCULTOS DA NFE CARREGADA
     if (nfe.hiddenItems && Array.isArray(nfe.hiddenItems)) {
       const serverHiddenItems = new Set(nfe.hiddenItems);
-      console.log('🔍 DEBUG - Restaurando itens ocultos ao carregar NFE:', {
-        nfeId: nfe.id,
-        serverHiddenItems: Array.from(serverHiddenItems),
-        timestamp: new Date().toISOString(),
-      });
       setHiddenItems(serverHiddenItems);
     } else {
       // Se não há itens ocultos no servidor, limpar estado local
@@ -487,8 +372,8 @@ const Index = () => {
         reference: p.reference ?? '',
         brand: p.brand ?? '',
         totalPrice: p.valorTotal ?? 0,
-        netPrice: p.valorUnitario ?? 0,
-        discount: 0,
+        discount: p.discount ?? 0,
+        netPrice: (p.valorTotal ?? 0) - (p.discount ?? 0),
         quantity: p.quantidade ?? 0,
         imageUrl: p.imageUrl ?? '',
         tags: [],
@@ -503,12 +388,6 @@ const Index = () => {
         custoExtra: p.custoExtra ?? 0,
       }),
     );
-
-    console.log('🔍 DEBUG - Produtos normalizados em handleLoadNFe:', {
-      count: normalized.length,
-      primeiroNormalizado: normalized[0],
-      timestamp: new Date().toISOString(),
-    });
 
     setProducts(normalized);
     setCurrentNFeId(sourceNfe.id);
