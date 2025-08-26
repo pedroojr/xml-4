@@ -64,6 +64,12 @@ export const getNfeById = (id) => {
   };
 };
 
+export const getNfeByChave = (chaveNFE) => {
+  if (!chaveNFE) return null;
+  const stmt = db.prepare('SELECT * FROM nfes WHERE chaveNFE = ?');
+  return stmt.get(chaveNFE) || null;
+};
+
 export const saveNfe = ({
   id,
   data,
@@ -81,6 +87,11 @@ export const saveNfe = ({
   hiddenItems,
   showHidden,
 }) => {
+  // Determina ID efetivo: prioriza chaveNFE; se já existir uma NFE com a mesma chave, reutiliza o mesmo ID
+  const selectByChave = db.prepare('SELECT id FROM nfes WHERE chaveNFE = ?');
+  const existing = chaveNFE ? selectByChave.get(chaveNFE) : null;
+  const effectiveId = (existing && existing.id) ? existing.id : (chaveNFE || id);
+
   const insertNFE = db.prepare(`
     INSERT OR REPLACE INTO nfes (
       id, data, numero, chaveNFE, fornecedor, valor, itens,
@@ -103,7 +114,7 @@ export const saveNfe = ({
 
   db.transaction(() => {
     insertNFE.run(
-      id,
+      effectiveId,
       data,
       numero,
       chaveNFE,
@@ -119,12 +130,12 @@ export const saveNfe = ({
       showHidden || 0,
     );
 
-    deleteProdutos.run(id);
+    deleteProdutos.run(effectiveId);
 
     if (produtos && Array.isArray(produtos)) {
       produtos.forEach((produto) => {
         insertProduto.run(
-          id,
+          effectiveId,
           produto.codigo,
           produto.descricao,
           produto.ncm,

@@ -50,6 +50,7 @@ exports.up = async function(knex) {
 
   await knex.schema.raw('CREATE INDEX IF NOT EXISTS idx_nfes_fornecedor ON nfes(fornecedor);');
   await knex.schema.raw('CREATE INDEX IF NOT EXISTS idx_nfes_data ON nfes(data);');
+  await knex.schema.raw('CREATE UNIQUE INDEX IF NOT EXISTS idx_nfes_chaveNFE_unique ON nfes(chaveNFE) WHERE chaveNFE IS NOT NULL');
   await knex.schema.raw('CREATE INDEX IF NOT EXISTS idx_produtos_nfeId ON produtos(nfeId);');
   await knex.schema.raw('CREATE INDEX IF NOT EXISTS idx_produtos_codigo ON produtos(codigo);');
 };

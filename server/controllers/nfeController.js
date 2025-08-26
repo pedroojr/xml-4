@@ -1,4 +1,4 @@
-import { getAllNfes, getNfeById, saveNfe, updateNfe, deleteNfe } from '../models/nfeModel.js';
+import { getAllNfes, getNfeById, getNfeByChave, saveNfe, updateNfe, deleteNfe } from '../models/nfeModel.js';
 import logger from '../utils/logger.js';
 
 export const listNfes = (req, res) => {
@@ -26,6 +26,13 @@ export const getNfe = (req, res) => {
 
 export const createNfe = (req, res) => {
   try {
+    // Bloquear tentativa de criar NFE com chave já existente
+    if (req.body?.chaveNFE) {
+      const exists = getNfeByChave(req.body.chaveNFE);
+      if (exists) {
+        return res.status(409).json({ error: 'NFE já cadastrada com esta chave' });
+      }
+    }
     const id = saveNfe(req.body);
     res.json({ message: 'NFE salva com sucesso', id });
   } catch (error) {
