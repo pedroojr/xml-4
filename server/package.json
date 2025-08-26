@@ -2,10 +2,11 @@
   "name": "xml-importer-server",
   "version": "1.0.0",
   "description": "Backend server for XML Importer",
-  "main": "server.js",
+  "main": "dist/server.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
+    "build": "tsc",
+    "start": "node dist/server.js",
     "dev": "nodemon server.js",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "migrate": "knex --knexfile knexfile.cjs migrate:latest",
@@ -37,6 +38,7 @@
     "prettier": "^3.4.2",
     "supertest": "^6.3.4",
     "ts-jest": "^29.4.1",
+    "typescript": "^5.9.2",
     "typescript-eslint": "^8.0.1"
   }
 }
