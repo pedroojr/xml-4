@@ -45,6 +45,7 @@ tmp/
 temp/
 frontend-backup-*/
 backup-antes-simplificacao/
+# Legacy discarded resources
 lixo/
 
 # Playwright

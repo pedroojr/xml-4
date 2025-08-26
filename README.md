@@ -32,6 +32,9 @@
 - **Servidor**: Hostinger VPS (Ubuntu)
 
 ### **Estrutura do Projeto**
+
+O frontend oficial reside exclusivamente na pasta `frontend/`.
+
 ```
 xml-4/
 ├── frontend/                    # Frontend React
