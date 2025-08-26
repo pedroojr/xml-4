@@ -32,7 +32,8 @@ import {
   formatNumberForCopy,
   formatCurrency,
   formatNumber,
-} from '../../utils/formatters';
+  formatPercent,
+} from '@/utils/formatters';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
@@ -692,12 +693,12 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                   Valor Total
                 </div>
                 <div className="text-sm font-medium tabular-nums">
-                  {sortedFilteredProducts
-                    .reduce((acc, p) => acc + p.totalPrice, 0)
-                    .toLocaleString('pt-BR', {
-                      style: 'currency',
-                      currency: 'BRL',
-                    })}
+                  {formatCurrency(
+                    sortedFilteredProducts.reduce(
+                      (acc, p) => acc + p.totalPrice,
+                      0,
+                    ),
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -707,12 +708,9 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                   Valor Líquido
                 </div>
                 <div className="text-sm font-medium tabular-nums">
-                  {calculateTotalNetValue(
-                    sortedFilteredProducts,
-                  ).toLocaleString('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                  })}
+                  {formatCurrency(
+                    calculateTotalNetValue(sortedFilteredProducts),
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -722,7 +720,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                   Desconto Médio
                 </div>
                 <div className="text-sm font-medium tabular-nums">
-                  {averageDiscountPercent.toFixed(1)}%
+                  {formatPercent(averageDiscountPercent)}
                 </div>
               </CardContent>
             </Card>

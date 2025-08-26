@@ -26,3 +26,14 @@ export const formatDate = (date: Date): string => {
     year: 'numeric'
   });
 };
+
+export const formatPercent = (
+  value: number,
+  fractionDigits = 1
+): string => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'percent',
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(value / 100);
+};
