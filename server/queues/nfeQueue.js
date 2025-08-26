@@ -1,10 +1,13 @@
 import { Queue } from 'bullmq';
 
-const connection = {
-  host: process.env.REDIS_HOST || 'redis',
-  port: Number(process.env.REDIS_PORT || 6379),
-};
+let nfeQueue;
+if (process.env.REDIS_HOST) {
+  const connection = {
+    host: process.env.REDIS_HOST,
+    port: Number(process.env.REDIS_PORT || 6379),
+  };
 
-const nfeQueue = new Queue('nfeQueue', { connection });
+  nfeQueue = new Queue('nfeQueue', { connection });
+}
 
 export default nfeQueue;
