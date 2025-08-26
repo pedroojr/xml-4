@@ -55,7 +55,7 @@ export const parseNFeXML = (xmlText: string): Product[] => {
 
   const parseNumber = (text: string) => {
     if (!text) return 0;
-    const cleanText = text.replace(/[^\d,.-]/g, '').replace(',', '.');
+    const cleanText = text.replace(/\./g, '').replace(',', '.');
     const number = parseFloat(cleanText);
     return isNaN(number) ? 0 : number;
   };
