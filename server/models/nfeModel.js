@@ -5,7 +5,9 @@ export const getAllNfes = () => {
     SELECT
       n.*,
       COUNT(p.id) as produtosCount,
-      SUM(p.valorTotal) as valorTotal
+      SUM(p.valorTotal) as valorTotal,
+      SUM(p.discount) as discountTotal,
+      SUM(p.netPrice) as netPriceTotal
     FROM nfes n
     LEFT JOIN produtos p ON n.id = p.nfeId
     GROUP BY n.id
@@ -35,7 +37,16 @@ export const getNfeById = (id) => {
     return null;
   }
 
-  const produtosStmt = db.prepare('SELECT * FROM produtos WHERE nfeId = ?');
+  const produtosStmt = db.prepare(`
+    SELECT
+      id, nfeId, codigo, descricao, ncm, cfop, unidade, quantidade,
+      valorUnitario, valorTotal, baseCalculoICMS, valorICMS, aliquotaICMS,
+      baseCalculoIPI, valorIPI, aliquotaIPI, ean, reference, brand,
+      imageUrl, descricao_complementar, custoExtra, freteProporcional,
+      discount, netPrice
+    FROM produtos
+    WHERE nfeId = ?
+  `);
   const produtos = produtosStmt.all(id);
 
   let hiddenItems = [];
@@ -83,8 +94,9 @@ export const saveNfe = ({
       nfeId, codigo, descricao, ncm, cfop, unidade, quantidade,
       valorUnitario, valorTotal, baseCalculoICMS, valorICMS, aliquotaICMS,
       baseCalculoIPI, valorIPI, aliquotaIPI, ean, reference, brand,
-      imageUrl, descricao_complementar, custoExtra, freteProporcional
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      imageUrl, descricao_complementar, custoExtra, freteProporcional,
+      discount, netPrice
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const deleteProdutos = db.prepare('DELETE FROM produtos WHERE nfeId = ?');
@@ -134,6 +146,8 @@ export const saveNfe = ({
           produto.descricao_complementar,
           produto.custoExtra || 0,
           produto.freteProporcional || 0,
+          produto.discount || 0,
+          produto.netPrice || 0,
         );
       });
     }
