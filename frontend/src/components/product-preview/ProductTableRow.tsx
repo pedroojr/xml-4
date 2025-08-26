@@ -66,7 +66,7 @@ export const ProductTableRow: React.FC<ProductTableRowProps> = ({
       <TableCell>{product.unidade || '-'}</TableCell> {/* Changed to unidade */}
       <TableCell className="text-right">{formatNumber(product.quantidade)}</TableCell> {/* Changed to quantidade */}
       <TableCell className="text-right">{formatCurrency(product.valorUnitario)}</TableCell> {/* Changed to valorUnitario */}
-      <TableCell className="text-right">{formatCurrency(product.totalPrice)}</TableCell>
+      <TableCell className="text-right">{formatCurrency(product.valorTotal)}</TableCell>
       <TableCell className="text-right">{formatCurrency(unitSalePrice)}</TableCell>
       <TableCell className="text-right">{formatCurrency(product.discount)}</TableCell>
       <TableCell className="text-right">{formatCurrency(unitNetPrice)}</TableCell>

@@ -54,11 +54,11 @@ export const UnitValuesTable: React.FC<UnitValuesTableProps> = ({
       </TableHeader>
       <TableBody>
         {products.map((product, index) => {
-          const unitNetPrice = product.quantity > 0 ? product.netPrice / product.quantity : 0;
-          const unitDiscount = product.quantity > 0 ? product.discount / product.quantity : 0;
-          const xapuriPrice = product.quantity > 0 ? 
+          const unitNetPrice = product.quantidade > 0 ? product.netPrice / product.quantidade : 0;
+          const unitDiscount = product.quantidade > 0 ? product.discount / product.quantidade : 0;
+          const xapuriPrice = product.quantidade > 0 ?
             roundPrice(calculateSalePrice({ ...product, netPrice: unitNetPrice }, xapuriMarkup), roundingType) : 0;
-          const epitaPrice = product.quantity > 0 ? 
+          const epitaPrice = product.quantidade > 0 ?
             roundPrice(calculateSalePrice({ ...product, netPrice: unitNetPrice }, epitaMarkup), roundingType) : 0;
           const isConfirmed = confirmedItems.has(index);
           const isHidden = hiddenItems.has(index);
@@ -68,16 +68,16 @@ export const UnitValuesTable: React.FC<UnitValuesTableProps> = ({
           }
 
           return (
-            <TableRow 
-              key={product.code} 
+            <TableRow
+              key={product.codigo}
               className={cn(
                 "hover:bg-slate-50 transition-colors",
                 isConfirmed && "bg-slate-100"
               )}
             >
               <TableCell>{product.ean || '-'}</TableCell>
-              <TableCell>{product.name}</TableCell>
-              <TableCell className="text-right">{formatCurrency(product.unitPrice)}</TableCell>
+              <TableCell>{product.descricao}</TableCell>
+              <TableCell className="text-right">{formatCurrency(product.valorUnitario)}</TableCell>
               <TableCell className="text-right">{formatCurrency(unitDiscount)}</TableCell>
               <TableCell className="text-right">{formatCurrency(unitNetPrice)}</TableCell>
               <TableCell className="text-right">{formatCurrency(xapuriPrice)}</TableCell>

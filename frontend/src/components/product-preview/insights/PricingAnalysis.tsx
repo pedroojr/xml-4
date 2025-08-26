@@ -25,7 +25,7 @@ export const PricingAnalysis: React.FC<PricingAnalysisProps> = ({
 }) => {
   // Calculando os totais e médias
   const totalCost = products.reduce((sum, product) => sum + product.netPrice, 0);
-  const totalGrossCost = products.reduce((sum, product) => sum + product.totalPrice, 0);
+  const totalGrossCost = products.reduce((sum, product) => sum + product.valorTotal, 0);
   const freightCost = totalCost * (freightCostPercentage / 100);
   const taxCost = totalCost * (taxRate / 100);
   

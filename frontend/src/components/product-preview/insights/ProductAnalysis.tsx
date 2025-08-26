@@ -45,7 +45,7 @@ export const ProductAnalysis: React.FC<ProductAnalysisProps> = ({ products }) =>
         produtos: []
       };
     }
-    acc[tamanho].quantidade += product.quantity;
+    acc[tamanho].quantidade += product.quantidade;
     acc[tamanho].valorTotal += product.netPrice;
     acc[tamanho].produtos.push(product);
     return acc;
@@ -57,10 +57,10 @@ export const ProductAnalysis: React.FC<ProductAnalysisProps> = ({ products }) =>
       acc[product.ncm] = {
         quantidade: 0,
         valorTotal: 0,
-        descricao: NCM_DESCRIPTIONS[product.ncm] || product.name.split(' ')[0]
+        descricao: NCM_DESCRIPTIONS[product.ncm] || product.descricao.split(' ')[0]
       };
     }
-    acc[product.ncm].quantidade += product.quantity;
+    acc[product.ncm].quantidade += product.quantidade;
     acc[product.ncm].valorTotal += product.netPrice;
     return acc;
   }, {} as Record<string, { quantidade: number; valorTotal: number; descricao: string }>);
@@ -75,7 +75,7 @@ export const ProductAnalysis: React.FC<ProductAnalysisProps> = ({ products }) =>
   };
 
   const faixaPrecoStats = products.reduce((acc, product) => {
-    const precoUnitario = product.netPrice / product.quantity;
+    const precoUnitario = product.netPrice / product.quantidade;
     const faixa = getFaixaPreco(precoUnitario);
     if (!acc[faixa]) {
       acc[faixa] = {
@@ -84,7 +84,7 @@ export const ProductAnalysis: React.FC<ProductAnalysisProps> = ({ products }) =>
         produtos: []
       };
     }
-    acc[faixa].quantidade += product.quantity;
+    acc[faixa].quantidade += product.quantidade;
     acc[faixa].valorTotal += product.netPrice;
     acc[faixa].produtos.push(product);
     return acc;

@@ -93,7 +93,7 @@ const CellContent: React.FC<{
       if (
         column.id.toLowerCase().includes('price') ||
         column.id.toLowerCase().includes('valor') ||
-        column.id === 'unitPrice' ||
+        column.id === 'valorUnitario' ||
         column.id === 'netPrice'
       ) {
         return 'moeda';
@@ -109,7 +109,7 @@ const CellContent: React.FC<{
       formatacao={getFormatacao()}
       className={cn(
         'w-full flex items-center justify-center',
-        column.id === 'name' && 'whitespace-normal text-center',
+        column.id === 'descricao' && 'whitespace-normal text-center',
       )}
     />
   );
@@ -416,12 +416,12 @@ export const ProductTable: React.FC<ProductTableProps> = ({
       if (
         column.id.toLowerCase().includes('price') ||
         column.id.toLowerCase().includes('discount') ||
-        column.id === 'unitPrice' ||
+        column.id === 'valorUnitario' ||
         column.id === 'netPrice'
       ) {
         return formatNumberForCopy(value, 2);
       }
-      if (column.id === 'quantity') {
+      if (column.id === 'quantidade') {
         return formatNumberForCopy(value, 4);
       }
     }
@@ -486,7 +486,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   // Gerar ID estável compatível com ProductPreview
   const getId = (p: Product, index: number): string => {
     if (p.ean && p.ean.length > 0) return String(p.ean);
-    if (p.code && p.code.length > 0) return `cod:${p.code}:${index}`;
+    if (p.codigo && p.codigo.length > 0) return `cod:${p.codigo}:${index}`;
     if (p.reference) return `ref:${p.reference}:${index}`;
     return `idx:${index}`;
   };
@@ -511,8 +511,8 @@ export const ProductTable: React.FC<ProductTableProps> = ({
       // Verifica se todos os termos de busca estão presentes em algum campo do produto
       const matchesAllTerms = searchTerms.every((term) => {
         return (
-          product.code?.toLowerCase().includes(term) ||
-          product.name?.toLowerCase().includes(term) ||
+          product.codigo?.toLowerCase().includes(term) ||
+          product.descricao?.toLowerCase().includes(term) ||
           product.ean?.toLowerCase().includes(term) ||
           product.reference?.toLowerCase().includes(term) ||
           product.descricao_complementar?.toLowerCase().includes(term)
@@ -573,7 +573,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     if (products.length === 0) return 0;
 
     const totalOriginalPrice = products.reduce(
-      (acc, p) => acc + p.totalPrice,
+      (acc, p) => acc + p.valorTotal,
       0,
     );
     const totalDiscount = products.reduce((acc, p) => acc + p.discount, 0);
@@ -585,7 +585,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 
   // Calcular a quantidade total de unidades
   const calculateTotalQuantity = (prods: Product[]) => {
-    return prods.reduce((acc, p) => acc + p.quantity, 0);
+    return prods.reduce((acc, p) => acc + p.quantidade, 0);
   };
 
   // Função para calcular o valor líquido total diretamente do XML
@@ -693,7 +693,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                 </div>
                 <div className="text-sm font-medium tabular-nums">
                   {sortedFilteredProducts
-                    .reduce((acc, p) => acc + p.totalPrice, 0)
+                    .reduce((acc, p) => acc + p.valorTotal, 0)
                     .toLocaleString('pt-BR', {
                       style: 'currency',
                       currency: 'BRL',
@@ -819,7 +819,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
               const tamanhoReferencia = extrairTamanhoDaReferencia(
                 product.reference,
               );
-              const tamanhoDescricao = extrairTamanhoDaDescricao(product.name);
+              const tamanhoDescricao = extrairTamanhoDaDescricao(product.descricao);
               const tamanho = tamanhoReferencia || tamanhoDescricao || '';
 
               return (
@@ -941,7 +941,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                         key={column.id}
                         className={cn(
                           'px-3 group relative text-sm hover:bg-slate-100 transition-colors text-center align-middle',
-                          column.id === 'name' &&
+                          column.id === 'descricao' &&
                             'break-words whitespace-normal',
                           column.id === 'xapuriPrice' &&
                             'bg-blue-50/50 hover:bg-blue-100/50',
@@ -983,18 +983,18 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 // Função auxiliar para definir larguras mínimas baseadas no tipo de coluna
 const getMinWidth = (columnId: string): number => {
   switch (columnId) {
-    case 'code':
+    case 'codigo':
       return 120; // Código do produto
-    case 'name':
+    case 'descricao':
       return 250; // Descrição do produto
-    case 'quantity':
+    case 'quantidade':
       return 80; // Quantidade
-    case 'unitPrice':
+    case 'valorUnitario':
     case 'unitPriceWithDiscount': // Nova coluna de custo com desconto
     case 'netPrice':
     case 'xapuriPrice':
     case 'epitaPrice':
-    case 'totalPrice':
+    case 'valorTotal':
       return 110; // Campos de preço
     case 'reference':
       return 100; // Referência

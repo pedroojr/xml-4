@@ -98,11 +98,11 @@ export const parseNFeXML = (xmlText: string): Product[] => {
 
     const icmsInfo = getICMSInfo(icms);
 
-    const quantity = parseNumber(getElementText(prod, 'qCom'));
-    const unitPrice = parseNumber(getElementText(prod, 'vUnCom'));
-    const totalPrice = parseNumber(getElementText(prod, 'vProd'));
+    const quantidade = parseNumber(getElementText(prod, 'qCom'));
+    const valorUnitario = parseNumber(getElementText(prod, 'vUnCom'));
+    const valorTotal = parseNumber(getElementText(prod, 'vProd'));
     const discount = parseNumber(getElementText(prod, 'vDesc'));
-    const netPrice = totalPrice - discount;
+    const netPrice = valorTotal - discount;
 
     const nome = getElementText(prod, 'xProd');
     const codigo = getElementText(prod, 'cProd');
@@ -115,31 +115,25 @@ export const parseNFeXML = (xmlText: string): Product[] => {
     const { brand, confidence } = identifyBrand(referencia, nome);
 
     const product: Product = {
-      code: codigo,
+      codigo,
       ean: getElementText(prod, 'cEAN'),
-      name: nome,
+      descricao: nome,
       ncm: getElementText(prod, 'NCM'),
       cfop: getElementText(prod, 'CFOP'),
-      uom: getElementText(prod, 'uCom'),
-      quantity: quantity,
-      unitPrice: unitPrice,
-      totalPrice: totalPrice,
-      discount: discount,
-      netPrice: netPrice,
+      unidade: getElementText(prod, 'uCom'),
+      quantidade,
+      valorUnitario,
+      valorTotal,
+      discount,
+      netPrice,
       color: corIdentificada || '',
       size: tamanho,
       reference: referencia,
       salePrice: netPrice * 1.3,
-      brand: brand,
+      brand,
       descricao_complementar: formatarDescricaoComplementar(
         item.getElementsByTagName('infAdProd')[0]?.textContent || '',
       ),
-      codigo: codigo,
-      descricao: nome,
-      unidade: getElementText(prod, 'uCom'),
-      quantidade: quantity,
-      valorUnitario: unitPrice,
-      valorTotal: totalPrice,
       baseCalculoICMS: 0,
       valorICMS: 0,
       aliquotaICMS: 0,
