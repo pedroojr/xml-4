@@ -15,24 +15,18 @@ export interface Product {
   aliquotaIPI: number;
   xapuriPrice?: number;
   epitaPrice?: number;
-  code: string;
-  name: string;
   ean?: string;
   reference?: string;
   brand?: string;
-  totalPrice: number; // total extraído do XML
-  netPrice: number; // total líquido (totalPrice - discount)
+  netPrice: number; // total líquido (valorTotal - discount)
   discount: number;
-  quantity: number;
   imageUrl?: string;
   tags?: string[];
   salePrice: number; // preço de venda calculado
-  uom?: string;
   color?: string;
   size?: string;
   fornecedor?: string;
   descricao_complementar?: string;
-  unitPrice: number;
   freteProporcional?: number;
   custoExtra?: number;
 }
@@ -52,8 +46,6 @@ export interface NFE {
   isFavorite?: boolean;
   itens?: number;
   valor?: number;
-  brandName?: string;
-  invoiceNumber?: string;
   impostoEntrada: number;
 }
 
@@ -78,9 +70,7 @@ export interface SavedNFe {
   id: string;
   products: Product[];
   date: string;
-  name: string;
-  invoiceNumber?: string;
-  brandName?: string;
+  fornecedor: string;
   hiddenItems?: Set<number>;
   xapuriMarkup?: number;
   epitaMarkup?: number;

@@ -45,9 +45,9 @@ export const ExportOptions: React.FC<ExportOptionsProps> = ({
   onClose 
 }) => {
   const [exportFields, setExportFields] = useState<ExportField[]>([
-    { id: 'code', label: 'Código', checked: true },
+    { id: 'codigo', label: 'Código', checked: true },
     { id: 'ean', label: 'EAN', checked: true },
-    { id: 'name', label: 'Descrição', checked: true },
+    { id: 'descricao', label: 'Descrição', checked: true },
     { id: 'ncm', label: 'NCM', checked: true },
     { id: 'cfop', label: 'CFOP', checked: true },
     { id: 'unidade', label: 'Unidade', checked: true },
@@ -205,14 +205,14 @@ export const ExportOptions: React.FC<ExportOptionsProps> = ({
   const exportToDataSystemFormat = () => {
     // Formato específico para importação no DataSystem
     const dataSystemRows = products.map(product => ({
-      codigo: product.code,
+      codigo: product.codigo,
       ean: product.ean,
-      descricao: product.name,
+      descricao: product.descricao,
       ncm: product.ncm,
       preco_custo: product.netPrice,
       preco_venda: product.salePrice,
-      estoque: product.quantity,
-      unidade: product.uom,
+      estoque: product.quantidade,
+      unidade: product.unidade,
       marca: product.brand || brandName,
       referencia: product.reference || '',
       cor: product.color || '',

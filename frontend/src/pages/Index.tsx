@@ -86,7 +86,7 @@ const Index = () => {
   // Função para gerar ID estável do produto (mesma regra do ProductPreview)
   const getProductId = (p: Product, index: number) => {
     if (p.ean && p.ean.length > 0) return String(p.ean);
-    if (p.code && p.code.length > 0) return `cod:${p.code}:${index}`;
+    if (p.codigo && p.codigo.length > 0) return `cod:${p.codigo}:${index}`;
     if (p.reference) return `ref:${p.reference}:${index}`;
     return `idx:${index}`;
   };
@@ -177,38 +177,32 @@ const Index = () => {
             aliquotaIPI: p.aliquotaIPI ?? 0,
             xapuriPrice: 0,
             epitaPrice: 0,
-            code: p.codigo ?? '',
-            name: p.descricao ?? '',
             ean: p.ean ?? '',
             reference: p.reference ?? '',
             brand: p.brand ?? '',
-            totalPrice: p.valorTotal ?? 0,
             discount: p.discount ?? 0,
             netPrice: (() => {
               const valorTotal = p.valorTotal ?? 0;
               const discount = p.discount ?? 0;
-              const unitPrice = p.valorUnitario ?? 0;
+              const valorUnitario = p.valorUnitario ?? 0;
               const quantidade = p.quantidade ?? 1;
               
               // Se valorTotal for muito alto (mais de 10x o preço unitário), usar cálculo alternativo
-              if (valorTotal > unitPrice * quantidade * 10) {
-                console.warn('Valor total muito alto detectado:', { valorTotal, unitPrice, quantidade, discount });
+              if (valorTotal > valorUnitario * quantidade * 10) {
+                console.warn('Valor total muito alto detectado:', { valorTotal, valorUnitario, quantidade, discount });
                 // Calcular baseado no preço unitário
-                return (unitPrice * quantidade) - discount;
+                return (valorUnitario * quantidade) - discount;
               }
-              
+
               return valorTotal - discount;
             })(),
-            quantity: p.quantidade ?? 0,
             imageUrl: p.imageUrl ?? '',
             tags: [],
             salePrice: 0,
-            uom: p.unidade ?? '',
             color: 'Cor não cadastrada',
             size: undefined,
             fornecedor: undefined,
             descricao_complementar: p.descricao_complementar ?? '',
-            unitPrice: p.valorUnitario ?? 0,
             freteProporcional: p.freteProporcional ?? 0,
             custoExtra: p.custoExtra ?? 0,
           };
@@ -380,38 +374,32 @@ const Index = () => {
         aliquotaIPI: p.aliquotaIPI ?? 0,
         xapuriPrice: 0,
         epitaPrice: 0,
-        code: p.codigo ?? '',
-        name: p.descricao ?? '',
         ean: p.ean ?? '',
         reference: p.reference ?? '',
         brand: p.brand ?? '',
-        totalPrice: p.valorTotal ?? 0,
         discount: p.discount ?? 0,
         netPrice: (() => {
           const valorTotal = p.valorTotal ?? 0;
           const discount = p.discount ?? 0;
-          const unitPrice = p.valorUnitario ?? 0;
+          const valorUnitario = p.valorUnitario ?? 0;
           const quantidade = p.quantidade ?? 1;
           
           // Se valorTotal for muito alto (mais de 10x o preço unitário), usar cálculo alternativo
-          if (valorTotal > unitPrice * quantidade * 10) {
-            console.warn('Valor total muito alto detectado:', { valorTotal, unitPrice, quantidade, discount });
+          if (valorTotal > valorUnitario * quantidade * 10) {
+            console.warn('Valor total muito alto detectado:', { valorTotal, valorUnitario, quantidade, discount });
             // Calcular baseado no preço unitário
-            return (unitPrice * quantidade) - discount;
+            return (valorUnitario * quantidade) - discount;
           }
-          
+
           return valorTotal - discount;
         })(),
-        quantity: p.quantidade ?? 0,
         imageUrl: p.imageUrl ?? '',
         tags: [],
         salePrice: 0,
-        uom: p.unidade ?? '',
         color: 'Cor não cadastrada',
         size: undefined,
         fornecedor: undefined,
         descricao_complementar: p.descricao_complementar ?? '',
-        unitPrice: p.valorUnitario ?? 0,
         freteProporcional: p.freteProporcional ?? 0,
         custoExtra: p.custoExtra ?? 0,
       }),

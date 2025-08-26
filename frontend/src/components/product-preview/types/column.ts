@@ -22,17 +22,17 @@ export const getDefaultColumns = (): Column[] => [
     minWidth: 48,
     order: 0
   },
-  { 
-    id: 'code', 
-    header: 'Código', 
+  {
+    id: 'codigo',
+    header: 'Código',
     initiallyVisible: true,
     width: 'w-fit',
     minWidth: 100,
     order: 1
   },
-  { 
-    id: 'name', 
-    header: 'Descrição', 
+  {
+    id: 'descricao',
+    header: 'Descrição',
     initiallyVisible: true,
     width: 'w-fit',
     minWidth: 300,
@@ -86,18 +86,18 @@ export const getDefaultColumns = (): Column[] => [
     minWidth: 80,
     order: 8
   },
-  { 
-    id: 'uom', 
-    header: 'UN', 
+  {
+    id: 'unidade',
+    header: 'UN',
     initiallyVisible: true,
     width: 'w-fit',
     minWidth: 56,
     order: 9
   },
-  { 
-    id: 'quantity', 
-    header: 'Qtd.', 
-    initiallyVisible: true, 
+  {
+    id: 'quantidade',
+    header: 'Qtd.',
+    initiallyVisible: true,
     alignment: 'right',
     width: 'w-fit',
     minWidth: 80,
@@ -105,9 +105,9 @@ export const getDefaultColumns = (): Column[] => [
     format: (value: number) => formatNumber(value)
   },
   {
-    id: 'unitPrice',
-    header: 'Custo Bruto', 
-    initiallyVisible: true, 
+    id: 'valorUnitario',
+    header: 'Custo Bruto',
+    initiallyVisible: true,
     alignment: 'right',
     width: 'w-fit',
     minWidth: 112,
@@ -116,22 +116,22 @@ export const getDefaultColumns = (): Column[] => [
   },
   {
     id: 'unitPriceWithDiscount',
-    header: 'Custo c/ desconto', 
-    initiallyVisible: true, 
+    header: 'Custo c/ desconto',
+    initiallyVisible: true,
     alignment: 'right',
     width: 'w-fit',
     minWidth: 112,
     order: 12,
     format: (value: number) => formatCurrency(value),
     getValue: (product: Product) => {
-      const unitDiscount = product.quantity > 0 ? product.discount / product.quantity : 0;
-      return product.unitPrice - unitDiscount;
+      const unitDiscount = product.quantidade > 0 ? product.discount / product.quantidade : 0;
+      return product.valorUnitario - unitDiscount;
     }
   },
   {
-    id: 'totalPrice',
-    header: 'Total', 
-    initiallyVisible: true, 
+    id: 'valorTotal',
+    header: 'Total',
+    initiallyVisible: true,
     alignment: 'right',
     width: 'w-fit',
     minWidth: 112,
@@ -148,8 +148,8 @@ export const getDefaultColumns = (): Column[] => [
     order: 14,
     format: (value: number) => formatCurrency(value),
     getValue: (product: Product) => {
-      const unitDiscount = product.quantity > 0 ? product.discount / product.quantity : 0;
-      const custoComDesconto = product.unitPrice - unitDiscount;
+      const unitDiscount = product.quantidade > 0 ? product.discount / product.quantidade : 0;
+      const custoComDesconto = product.valorUnitario - unitDiscount;
       // Aqui assumimos que o impostoEntrada está disponível globalmente ou é passado como parâmetro
       // O valor real será calculado no ProductTable.tsx
       return custoComDesconto; // O valor real com imposto será calculado no ProductTable
@@ -186,7 +186,7 @@ export const getDefaultColumns = (): Column[] => [
     minWidth: 112,
     order: 15,
     format: (value: number) => formatCurrency(value),
-    getValue: (product: Product) => product.quantity > 0 ? product.discount / product.quantity : 0
+    getValue: (product: Product) => product.quantidade > 0 ? product.discount / product.quantidade : 0
   },
   {
     id: 'xapuriPrice',
@@ -220,9 +220,9 @@ export const getDefaultColumns = (): Column[] => [
 ];
 
 export const compactColumns = [
-  'name',
+  'descricao',
   'ean',
-  'quantity',
+  'quantidade',
   'netPrice',
   'xapuriPrice',
   'epitaPrice'

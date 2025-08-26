@@ -35,8 +35,8 @@ const Dashboard = () => {
   // Cálculos dos totais com verificações de segurança
   const totalNotas = savedNFEs.length;
   const totalProdutos = savedNFEs.reduce((acc, nfe) => acc + (Array.isArray(nfe.produtos) ? nfe.produtos.length : 0), 0);
-  const quantidadeTotal = savedNFEs.reduce((acc, nfe) => 
-    acc + (Array.isArray(nfe.produtos) ? nfe.produtos.reduce((sum, prod) => sum + (Number(prod.quantity) || 0), 0) : 0), 0);
+  const quantidadeTotal = savedNFEs.reduce((acc, nfe) =>
+    acc + (Array.isArray(nfe.produtos) ? nfe.produtos.reduce((sum, prod) => sum + (Number(prod.quantidade) || 0), 0) : 0), 0);
   const valorTotal = savedNFEs.reduce((acc, nfe) => acc + (Number(nfe.valor) || 0), 0);
   const totalImpostos = valorTotal * 0.17; // 17% de impostos
   const notasFavoritas = savedNFEs.filter(nfe => nfe.isFavorite).length;

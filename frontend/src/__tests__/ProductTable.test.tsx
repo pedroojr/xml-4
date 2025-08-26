@@ -34,7 +34,7 @@ describe('ProductTable', () => {
   });
 
   const columns = getDefaultColumns().filter((c) =>
-    ['code', 'name', 'quantity', 'unitPrice', 'totalPrice'].includes(c.id)
+    ['codigo', 'descricao', 'quantidade', 'valorUnitario', 'valorTotal'].includes(c.id)
   );
   const visibleColumns = new Set(columns.map((c) => c.id));
 
@@ -56,13 +56,13 @@ describe('ProductTable', () => {
       aliquotaIPI: 0,
       xapuriPrice: 0,
       epitaPrice: 0,
-      code: '001',
-      name: 'Produto A',
-      totalPrice: 20,
+      ean: undefined,
+      reference: undefined,
+      brand: undefined,
       netPrice: 20,
       discount: 0,
-      quantity: 2,
-      unitPrice: 10,
+      imageUrl: undefined,
+      tags: undefined,
       salePrice: 0
     } as any,
     {
@@ -82,13 +82,13 @@ describe('ProductTable', () => {
       aliquotaIPI: 0,
       xapuriPrice: 0,
       epitaPrice: 0,
-      code: '002',
-      name: 'Produto B',
-      totalPrice: 5,
+      ean: undefined,
+      reference: undefined,
+      brand: undefined,
       netPrice: 5,
       discount: 0,
-      quantity: 1,
-      unitPrice: 5,
+      imageUrl: undefined,
+      tags: undefined,
       salePrice: 0
     } as any
   ];

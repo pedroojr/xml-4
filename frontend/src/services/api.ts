@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { Product } from '@/types/nfe';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4005/api';
 const DEBUG = import.meta.env.VITE_DEBUG === 'true';
@@ -60,32 +61,6 @@ export interface NFE {
   isFavorite?: boolean;
   createdAt?: string;
   updatedAt?: string;
-}
-
-export interface Product {
-  id?: number;
-  nfeId?: string;
-  codigo: string;
-  descricao: string;
-  ncm?: string;
-  cfop?: string;
-  unidade?: string;
-  quantidade: number;
-  valorUnitario: number;
-  valorTotal: number;
-  baseCalculoICMS?: number;
-  valorICMS?: number;
-  aliquotaICMS?: number;
-  baseCalculoIPI?: number;
-  valorIPI?: number;
-  aliquotaIPI?: number;
-  ean?: string;
-  reference?: string;
-  brand?: string;
-  imageUrl?: string;
-  descricao_complementar?: string;
-  custoExtra?: number;
-  freteProporcional?: number;
 }
 
 // API de NFEs

@@ -4,7 +4,7 @@ import { Product } from '../../types/nfe';
 const formatProductName = (name: string): string => {
   // Remove códigos específicos no final do nome (como SCY765/02)
   const nameWithoutCode = name.replace(/\s+\w+\/\d+$/, '');
-  
+
   // Capitaliza cada palavra
   return nameWithoutCode
     .split(' ')
@@ -21,9 +21,9 @@ const formatProductName = (name: string): string => {
 
 export const generateProductDescription = (product: Product): string => {
   const parts: string[] = [];
-  
+
   // Nome do produto formatado
-  const formattedName = formatProductName(product.name);
+  const formattedName = formatProductName(product.descricao);
   parts.push(formattedName);
 
   // Dados técnicos em uma seção separada
@@ -35,8 +35,8 @@ export const generateProductDescription = (product: Product): string => {
   }
 
   // Adiciona código do produto se disponível e diferente da referência
-  if (product.code && product.code !== product.reference) {
-    technicalInfo.push(product.code);
+  if (product.codigo && product.codigo !== product.reference) {
+    technicalInfo.push(product.codigo);
   }
 
   // Adiciona EAN se disponível (sem o prefixo EAN)

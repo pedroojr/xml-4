@@ -63,11 +63,11 @@ const Produtos = () => {
         product.codigo?.toString().toLowerCase().includes(searchLower) ||
         product.descricao?.toLowerCase().includes(searchLower) ||
         product.ean?.toString().includes(searchLower) ||
-        product.referencia?.toLowerCase().includes(searchLower) ||
+        product.reference?.toLowerCase().includes(searchLower) ||
         product.fornecedor?.toLowerCase().includes(searchLower) ||
         product.descricao_complementar?.toLowerCase().includes(searchLower);
 
-      const matchesImageFilter = !settings.showOnlyWithImage || product.imagem;
+      const matchesImageFilter = !settings.showOnlyWithImage || product.imageUrl;
       const matchesHiddenFilter =
         !settings.showOnlyHidden || settings.hiddenItems.has(product.id);
 
@@ -108,16 +108,16 @@ const Produtos = () => {
 
   // Estatísticas dos produtos
   const totalQuantidade = filteredProducts.reduce(
-    (acc, prod) => acc + (prod.quantity || 0),
+    (acc, prod) => acc + (prod.quantidade || 0),
     0,
   );
   const totalUnidades = filteredProducts.length;
   const valorTotal = filteredProducts.reduce(
-    (acc, prod) => acc + (prod.valor || 0),
+    (acc, prod) => acc + (prod.valorTotal || 0),
     0,
   );
   const descontoMedio =
-    filteredProducts.reduce((acc, prod) => acc + (prod.desconto || 0), 0) /
+    filteredProducts.reduce((acc, prod) => acc + (prod.discount || 0), 0) /
       filteredProducts.length || 0;
 
   // Renderizar números de página

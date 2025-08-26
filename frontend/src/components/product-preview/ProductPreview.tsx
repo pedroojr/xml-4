@@ -48,7 +48,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   const [valorFrete, setValorFrete] = useState<number>(0);
 
   // Calculate suggested markups
-  const totalBruto = products.reduce((sum, p) => sum + p.totalPrice, 0);
+  const totalBruto = products.reduce((sum, p) => sum + p.valorTotal, 0);
   const totalLiquido = products.reduce((sum, p) => sum + p.netPrice, 0);
   
   // Markup sugerido para Xapuri (ajustando para custo líquido)
@@ -118,7 +118,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   };
 
   const handleImageSearch = async (index: number, product: Product) => {
-    const searchTerms = `${product.ean} ${product.code} ${product.name}`;
+    const searchTerms = `${product.ean} ${product.codigo} ${product.descricao}`;
     window.open(`https://www.google.com/search?q=${encodeURIComponent(searchTerms)}&tbm=isch`, '_blank');
   };
 
@@ -262,7 +262,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
           isOpen={isImageModalOpen}
           onClose={() => setIsImageModalOpen(false)}
           imageUrl={selectedImageProduct?.imageUrl || ''}
-          productName={selectedImageProduct?.name || ''}
+          productName={selectedImageProduct?.descricao || ''}
           productEan={selectedImageProduct?.ean || ''}
           onSearchNew={() => {
             if (selectedImageProduct) {

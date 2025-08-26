@@ -9,8 +9,6 @@ export interface NFE {
   valor: number;
   itens: number;
   produtos: any[];
-  brandName?: string;
-  invoiceNumber?: string;
   isFavorite?: boolean;
   chaveNFE?: string;
   impostoEntrada: number;

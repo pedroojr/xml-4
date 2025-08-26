@@ -2,8 +2,8 @@ import { Product } from '../../types/nfe';
 
 // Calcula o custo com desconto (Custo Bruto - Desconto Médio)
 export const calculateCustoComDesconto = (product: Product): number => {
-  const unitDiscount = product.quantity > 0 ? product.discount / product.quantity : 0;
-  return product.unitPrice - unitDiscount;
+  const unitDiscount = product.quantidade > 0 ? product.discount / product.quantidade : 0;
+  return product.valorUnitario - unitDiscount;
 };
 
 // Calcula o custo líquido (Custo c/ desconto × (1 + Imposto de Entrada / 100))
@@ -37,7 +37,7 @@ export const calculateTotals = (products: Product[], impostoEntrada: number) => 
     const custoComDesconto = calculateCustoComDesconto(product);
     const custoLiquido = calculateCustoLiquido(product, impostoEntrada);
     return {
-      totalBruto: acc.totalBruto + product.totalPrice,
+      totalBruto: acc.totalBruto + product.valorTotal,
       totalDesconto: acc.totalDesconto + product.discount,
       totalLiquido: acc.totalLiquido + product.netPrice,
       totalCustoLiquido: acc.totalCustoLiquido + custoLiquido,
