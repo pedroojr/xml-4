@@ -7,12 +7,13 @@ import config from '../config/index.js';
 await jest.unstable_mockModule('../models/nfeModel.js', () => ({
   getAllNfes: jest.fn(),
   getNfeById: jest.fn(),
+  getNfeByChave: jest.fn(),
   saveNfe: jest.fn(),
   updateNfe: jest.fn(),
   deleteNfe: jest.fn(),
 }));
 
-const { getAllNfes, getNfeById, saveNfe } = await import('../models/nfeModel.js');
+const { getAllNfes, getNfeById, getNfeByChave, saveNfe } = await import('../models/nfeModel.js');
 const nfeRoutes = (await import('../routes/nfeRoutes.js')).default;
 
 const app = express();
