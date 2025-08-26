@@ -12,7 +12,7 @@ export const uploadXml = async (req, res) => {
     const xmlContent = req.file.buffer.toString('utf-8');
     if (process.env.REDIS_HOST) {
       const job = await nfeQueue.add('processNfe', { xml: xmlContent });
-      return res.status(202).json({ id: job.id });
+      return res.status(200).json({ id: job.id });
     }
 
     const parsed = await parseStringPromise(xmlContent, { explicitArray: false });
@@ -50,7 +50,7 @@ export const uploadXml = async (req, res) => {
     };
 
     saveNfe(nfeData);
-    res.status(201).json({ id: nfeData.id });
+    res.status(200).json({ id: nfeData.id });
   } catch (error) {
     logger.error(`Erro no upload: ${error}`);
     res.status(500).json({ error: error.message || 'Erro interno do servidor' });

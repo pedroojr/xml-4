@@ -52,7 +52,7 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>
       </infNFe>
     </NFe>`;
 
-describe('POST /api/upload-xml', () => {
+describe('POST /api/upload', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -60,10 +60,10 @@ describe('POST /api/upload-xml', () => {
   it('should enqueue XML file successfully', async () => {
     process.env.REDIS_HOST = 'redis';
     const res = await request(app)
-      .post('/api/upload-xml')
+      .post('/api/upload')
       .set('x-api-key', 'testkey')
       .attach('xml', Buffer.from(xml), 'file.xml');
-    expect(res.status).toBe(202);
+    expect(res.status).toBe(200);
     expect(res.body.id).toBe('job123');
     expect(nfeQueue.add).toHaveBeenCalledTimes(1);
     expect(saveNfe).not.toHaveBeenCalled();
@@ -73,10 +73,10 @@ describe('POST /api/upload-xml', () => {
     delete process.env.REDIS_HOST;
     saveNfe.mockReturnValue('123');
     const res = await request(app)
-      .post('/api/upload-xml')
+      .post('/api/upload')
       .set('x-api-key', 'testkey')
       .attach('xml', Buffer.from(xml), 'file.xml');
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(200);
     expect(res.body.id).toBe('123');
     expect(saveNfe).toHaveBeenCalledTimes(1);
     expect(nfeQueue.add).not.toHaveBeenCalled();
@@ -85,7 +85,7 @@ describe('POST /api/upload-xml', () => {
   it('should return 400 when no file is provided', async () => {
     delete process.env.REDIS_HOST;
     const res = await request(app)
-      .post('/api/upload-xml')
+      .post('/api/upload')
       .set('x-api-key', 'testkey');
     expect(res.status).toBe(400);
     expect(Array.isArray(res.body.errors)).toBe(true);

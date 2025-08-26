@@ -14,25 +14,22 @@ const upload = multer({
   }
 });
 
-router.post(
-  '/upload-xml',
-  upload.single('xml'),
-  [
-    check('xml').custom((value, { req }) => {
-      if (!req.file) {
-        throw new Error('Arquivo XML é obrigatório');
-      }
-      if (
-        req.file.mimetype !== 'text/xml' &&
-        !req.file.originalname.toLowerCase().endsWith('.xml')
-      ) {
-        throw new Error('Formato de arquivo inválido');
-      }
-      return true;
-    })
-  ],
-  validate,
-  uploadXml
-);
+const xmlValidation = [
+  check('xml').custom((value, { req }) => {
+    if (!req.file) {
+      throw new Error('Arquivo XML é obrigatório');
+    }
+    if (
+      req.file.mimetype !== 'text/xml' &&
+      !req.file.originalname.toLowerCase().endsWith('.xml')
+    ) {
+      throw new Error('Formato de arquivo inválido');
+    }
+    return true;
+  })
+];
+
+router.post('/upload-xml', upload.single('xml'), xmlValidation, validate, uploadXml);
+router.post('/upload', upload.single('xml'), xmlValidation, validate, uploadXml);
 
 export default router;
