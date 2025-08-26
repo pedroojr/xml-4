@@ -14,7 +14,7 @@ import db, { DB_PATH } from './models/database.js';
 import { authMiddleware } from './middleware/auth.js';
 import logger from './utils/logger.js';
 import config from './config/index.js';
-import { register } from './utils/metrics.js';
+import { register } from './utils/metrics';
 
 const app = express();
 const PORT = config.port;
