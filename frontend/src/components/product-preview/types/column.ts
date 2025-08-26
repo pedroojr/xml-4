@@ -1,4 +1,5 @@
 import { Product } from '../../../types/nfe';
+import { formatCurrency, formatNumber } from '@/utils/formatters';
 
 export interface Column {
   id: string;
@@ -101,51 +102,51 @@ export const getDefaultColumns = (): Column[] => [
     width: 'w-fit',
     minWidth: 80,
     order: 10,
-    format: (value: number) => value.toLocaleString()
+    format: (value: number) => formatNumber(value)
   },
-  { 
-    id: 'unitPrice', 
+  {
+    id: 'unitPrice',
     header: 'Custo Bruto', 
     initiallyVisible: true, 
     alignment: 'right',
     width: 'w-fit',
     minWidth: 112,
     order: 11,
-    format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    format: (value: number) => formatCurrency(value)
   },
-  { 
-    id: 'unitPriceWithDiscount', 
+  {
+    id: 'unitPriceWithDiscount',
     header: 'Custo c/ desconto', 
     initiallyVisible: true, 
     alignment: 'right',
     width: 'w-fit',
     minWidth: 112,
     order: 12,
-    format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+    format: (value: number) => formatCurrency(value),
     getValue: (product: Product) => {
       const unitDiscount = product.quantity > 0 ? product.discount / product.quantity : 0;
       return product.unitPrice - unitDiscount;
     }
   },
-  { 
-    id: 'totalPrice', 
+  {
+    id: 'totalPrice',
     header: 'Total', 
     initiallyVisible: true, 
     alignment: 'right',
     width: 'w-fit',
     minWidth: 112,
     order: 13,
-    format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    format: (value: number) => formatCurrency(value)
   },
-  { 
-    id: 'netPrice', 
+  {
+    id: 'netPrice',
     header: 'Custo Líquido', 
     initiallyVisible: true, 
     alignment: 'right',
     width: 'w-fit',
     minWidth: 112,
     order: 14,
-    format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+    format: (value: number) => formatCurrency(value),
     getValue: (product: Product) => {
       const unitDiscount = product.quantity > 0 ? product.discount / product.quantity : 0;
       const custoComDesconto = product.unitPrice - unitDiscount;
@@ -162,7 +163,7 @@ export const getDefaultColumns = (): Column[] => [
     width: 'w-fit',
     minWidth: 112,
     order: 14.5,
-    format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+    format: (value: number) => formatCurrency(value),
     getValue: (product: Product) => product.freteProporcional ?? 0
   },
   {
@@ -173,39 +174,39 @@ export const getDefaultColumns = (): Column[] => [
     width: 'w-fit',
     minWidth: 112,
     order: 14.6,
-    format: (value: number) => value?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) || '',
+    format: (value: number) => (value != null ? formatCurrency(value) : ''),
     getValue: (product: Product) => product.custoExtra ?? 0
   },
-  { 
-    id: 'unitDiscount', 
+  {
+    id: 'unitDiscount',
     header: 'Desc. Un.', 
     initiallyVisible: true, 
     alignment: 'right',
     width: 'w-fit',
     minWidth: 112,
     order: 15,
-    format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+    format: (value: number) => formatCurrency(value),
     getValue: (product: Product) => product.quantity > 0 ? product.discount / product.quantity : 0
   },
-  { 
-    id: 'xapuriPrice', 
+  {
+    id: 'xapuriPrice',
     header: 'Preço Xap.', 
     initiallyVisible: true, 
     alignment: 'right',
     width: 'w-fit',
     minWidth: 112,
     order: 16,
-    format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    format: (value: number) => formatCurrency(value)
   },
-  { 
-    id: 'epitaPrice', 
+  {
+    id: 'epitaPrice',
     header: 'Preço Epit.', 
     initiallyVisible: true, 
     alignment: 'right',
     width: 'w-fit',
     minWidth: 112,
     order: 17,
-    format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    format: (value: number) => formatCurrency(value)
   },
   {
     id: 'descricao_complementar',
