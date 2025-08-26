@@ -12,7 +12,7 @@ await jest.unstable_mockModule('../models/nfeModel.js', () => ({
   deleteNfe: jest.fn(),
 }));
 
-const { getAllNfes, getNfeById } = await import('../models/nfeModel.js');
+const { getAllNfes, getNfeById, saveNfe } = await import('../models/nfeModel.js');
 const nfeRoutes = (await import('../routes/nfeRoutes.js')).default;
 
 const app = express();
@@ -34,6 +34,15 @@ describe('GET /api/nfes', () => {
 });
 
 describe('GET /api/nfes/:id', () => {
+  it('should return the NFE when found', async () => {
+    getNfeById.mockReturnValue({ id: '123' });
+    const res = await request(app)
+      .get('/api/nfes/123')
+      .set('x-api-key', 'testkey');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ id: '123' });
+  });
+
   it('should return 404 when NFE is not found', async () => {
     getNfeById.mockReturnValue(null);
     const res = await request(app)
@@ -41,5 +50,35 @@ describe('GET /api/nfes/:id', () => {
       .set('x-api-key', 'testkey');
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'NFE não encontrada' });
+  });
+});
+
+describe('POST /api/nfes', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should create a new NFE', async () => {
+    saveNfe.mockReturnValue('1');
+    const res = await request(app)
+      .post('/api/nfes')
+      .set('x-api-key', 'testkey')
+      .send({ id: '1', fornecedor: 'Teste', valor: 100 });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ message: 'NFE salva com sucesso', id: '1' });
+    expect(saveNfe).toHaveBeenCalledWith({
+      id: '1',
+      fornecedor: 'Teste',
+      valor: 100,
+    });
+  });
+
+  it('should return 400 for invalid payload', async () => {
+    const res = await request(app)
+      .post('/api/nfes')
+      .set('x-api-key', 'testkey')
+      .send({ fornecedor: 'Teste' });
+    expect(res.status).toBe(400);
+    expect(Array.isArray(res.body.errors)).toBe(true);
   });
 });
