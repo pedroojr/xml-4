@@ -8,6 +8,7 @@ const api = axios.create({
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
+    'x-api-key': import.meta.env.VITE_API_KEY ?? '',
   },
 });
 
