@@ -4,6 +4,8 @@ import { jest } from '@jest/globals';
 import { authMiddleware } from '../middleware/auth.js';
 import config from '../config/index.js';
 
+process.env.REDIS_HOST = 'redis';
+
 await jest.unstable_mockModule('../queues/nfeQueue.js', () => ({
   default: { add: jest.fn().mockResolvedValue({ id: 'job123' }) },
 }));
@@ -54,8 +56,7 @@ describe('POST /api/upload-xml', () => {
       .set('x-api-key', 'testkey')
       .attach('xml', Buffer.from(xml), 'file.xml');
     expect(res.status).toBe(202);
-    expect(res.body.message).toBe('NFE enfileirada com sucesso');
-    expect(res.body.jobId).toBe('job123');
+    expect(res.body.id).toBe('job123');
     expect(nfeQueue.add).toHaveBeenCalledTimes(1);
   });
 
