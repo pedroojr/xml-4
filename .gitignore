@@ -43,6 +43,7 @@ pids/
 # Temporary files
 tmp/
 temp/
+# Legacy or experimental directories
 frontend-backup-*/
 backup-antes-simplificacao/
 lixo/
