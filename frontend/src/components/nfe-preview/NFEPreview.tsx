@@ -20,7 +20,7 @@ const NFEPreview: React.FC<NFEPreviewProps> = ({ nfe, onClose }) => {
   const handleCopyValue = async (value: number | string) => {
     let success;
     if (typeof value === 'number') {
-      success = await copyNumberToClipboard(value);
+      success = await copyNumberToClipboard(value, 2);
     } else {
       success = await copyToClipboard(value);
     }
