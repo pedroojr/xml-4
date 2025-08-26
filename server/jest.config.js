@@ -1,4 +1,8 @@
 export default {
   testEnvironment: 'node',
-  testMatch: ['**/*.test.js'],
+  transform: {
+    '^.+\\.ts$': ['ts-jest', { useESM: true }],
+  },
+  extensionsToTreatAsEsm: ['.ts'],
+  testMatch: ['**/*.test.js', '**/*.test.ts'],
 };
