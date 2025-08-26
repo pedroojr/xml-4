@@ -26,7 +26,7 @@ export function Copiavel({ valor, formatacao = 'texto', className = "" }: Copiav
       let sucesso;
       
       if (typeof valor === 'number') {
-        sucesso = await copyNumberToClipboard(valor);
+        sucesso = await copyNumberToClipboard(valor, 2);
       } else {
         sucesso = await copyToClipboard(String(valor));
       }
