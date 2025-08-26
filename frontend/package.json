@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "deploy:staging": "npm run build:dev && echo 'Build de desenvolvimento criado em dist/'",
     "deploy:production": "npm run build:prod && echo 'Build de produção criado em dist/'",
-    "test": "vitest run",
+    "test": "vitest",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
