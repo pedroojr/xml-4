@@ -62,7 +62,8 @@ describe('ProductTable', () => {
       netPrice: 20,
       discount: 0,
       quantity: 2,
-      unitPrice: 10
+      unitPrice: 10,
+      salePrice: 0
     } as any,
     {
       codigo: '002',
@@ -87,7 +88,8 @@ describe('ProductTable', () => {
       netPrice: 5,
       discount: 0,
       quantity: 1,
-      unitPrice: 5
+      unitPrice: 5,
+      salePrice: 0
     } as any
   ];
 

@@ -10,9 +10,14 @@ export const formatNumber = (value: number): string => {
 };
 
 // Função para converter número para formato brasileiro ao copiar
-export const formatNumberForCopy = (value: number, decimalPlaces: number = 2): string => {
-  return value.toFixed(decimalPlaces).replace('.', ',');
-};
+export const formatNumberForCopy = (
+  value: number,
+  decimalPlaces = 2
+): string =>
+  new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: decimalPlaces,
+    maximumFractionDigits: decimalPlaces,
+  }).format(value);
 
 export const formatDate = (date: Date): string => {
   return date.toLocaleDateString('pt-BR', {

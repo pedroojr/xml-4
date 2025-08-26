@@ -588,11 +588,9 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     return prods.reduce((acc, p) => acc + p.quantity, 0);
   };
 
-  // Função para calcular o valor líquido total (Valor Total - Desconto Total)
+  // Função para calcular o valor líquido total diretamente do XML
   const calculateTotalNetValue = (prods: Product[]) => {
-    const totalValue = prods.reduce((acc, p) => acc + p.totalPrice, 0);
-    const totalDiscount = prods.reduce((acc, p) => acc + p.discount, 0);
-    return totalValue - totalDiscount;
+    return prods.reduce((acc, p) => acc + p.netPrice, 0);
   };
 
   const averageDiscountPercent = calculateAverageDiscountPercent();
