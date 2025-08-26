@@ -43,6 +43,8 @@ exports.up = async function(knex) {
     table.text('descricao_complementar');
     table.float('custoExtra').defaultTo(0);
     table.float('freteProporcional').defaultTo(0);
+    table.float('discount').defaultTo(0);
+    table.float('netPrice').defaultTo(0);
     table.foreign('nfeId').references('id').inTable('nfes').onDelete('CASCADE');
   });
 
