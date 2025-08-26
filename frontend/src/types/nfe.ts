@@ -6,7 +6,7 @@ export interface Product {
   unidade: string;
   quantidade: number;
   valorUnitario: number;
-  valorTotal: number;
+  valorTotal: number; // valor total do XML
   baseCalculoICMS: number;
   valorICMS: number;
   aliquotaICMS: number;
@@ -20,13 +20,13 @@ export interface Product {
   ean?: string;
   reference?: string;
   brand?: string;
-  totalPrice: number;
-  netPrice: number;
+  totalPrice: number; // total extraído do XML
+  netPrice: number; // total líquido (totalPrice - discount)
   discount: number;
   quantity: number;
   imageUrl?: string;
   tags?: string[];
-  salePrice?: number;
+  salePrice: number; // preço de venda calculado
   uom?: string;
   color?: string;
   size?: string;
