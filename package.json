@@ -2,10 +2,9 @@
   "name": "xml-4",
   "private": true,
   "scripts": {
-    "test:e2e": "npm --prefix server install && DB_PATH=$PWD/server/database.sqlite npm --prefix server run migrate && start-server-and-test 'DB_PATH=$PWD/server/database.sqlite PORT=4005 npm --prefix server run start' http://localhost:4005/health 'TEST_BASE_URL=http://localhost:4005 TEST_API_KEY=changeme playwright test'"
+    "test:e2e": "TEST_BASE_URL=${TEST_BASE_URL:-http://localhost:4005} TEST_API_KEY=${TEST_API_KEY:-changeme} playwright test"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.0",
-    "start-server-and-test": "^2.0.13"
+    "@playwright/test": "^1.55.0"
   }
 }
