@@ -86,7 +86,7 @@ export const saveNfe = ({
   valorFrete,
   hiddenItems,
   showHidden,
-}) => {
+} = {}) => {
   // Determina ID efetivo: prioriza chaveNFE; se já existir uma NFE com a mesma chave, reutiliza o mesmo ID
   const selectByChave = db.prepare('SELECT id FROM nfes WHERE chaveNFE = ?');
   const existing = chaveNFE ? selectByChave.get(chaveNFE) : null;
