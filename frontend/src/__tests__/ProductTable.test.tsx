@@ -40,14 +40,12 @@ describe('ProductTable', () => {
 
   const products: Product[] = [
     {
-      codigo: '001',
-      descricao: 'Produto A',
       ncm: '',
       cfop: '',
-      unidade: '',
-      quantidade: 2,
-      valorUnitario: 10,
-      valorTotal: 20,
+      uom: '',
+      quantity: 2,
+      unitPrice: 10,
+      totalPrice: 20,
       baseCalculoICMS: 0,
       valorICMS: 0,
       aliquotaICMS: 0,
@@ -58,22 +56,17 @@ describe('ProductTable', () => {
       epitaPrice: 0,
       code: '001',
       name: 'Produto A',
-      totalPrice: 20,
       netPrice: 20,
       discount: 0,
-      quantity: 2,
-      unitPrice: 10,
       salePrice: 0
     } as any,
     {
-      codigo: '002',
-      descricao: 'Produto B',
       ncm: '',
       cfop: '',
-      unidade: '',
-      quantidade: 1,
-      valorUnitario: 5,
-      valorTotal: 5,
+      uom: '',
+      quantity: 1,
+      unitPrice: 5,
+      totalPrice: 5,
       baseCalculoICMS: 0,
       valorICMS: 0,
       aliquotaICMS: 0,
@@ -84,11 +77,8 @@ describe('ProductTable', () => {
       epitaPrice: 0,
       code: '002',
       name: 'Produto B',
-      totalPrice: 5,
       netPrice: 5,
       discount: 0,
-      quantity: 1,
-      unitPrice: 5,
       salePrice: 0
     } as any
   ];

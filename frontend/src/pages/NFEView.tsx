@@ -114,9 +114,9 @@ const NFEView = () => {
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-medium">{produto.descricao}</h3>
+                    <h3 className="font-medium">{produto.name ?? produto.descricao}</h3>
                     <p className="text-sm text-gray-500">
-                      {produto.codigo} • {produto.ncm}
+                      {(produto.code ?? produto.codigo)} • {produto.ncm}
                     </p>
                     {produto.informacoesAdicionais && (
                       <p className="text-sm text-gray-600 mt-2">
@@ -125,9 +125,9 @@ const NFEView = () => {
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="font-medium">{formatCurrency(produto.valorTotal)}</p>
+                    <p className="font-medium">{formatCurrency(produto.totalPrice ?? produto.valorTotal)}</p>
                     <p className="text-sm text-gray-500">
-                      {produto.quantidade} x {formatCurrency(produto.valorUnitario)}
+                      {(produto.quantity ?? produto.quantidade)} x {formatCurrency(produto.unitPrice ?? produto.valorUnitario)}
                     </p>
                   </div>
                 </div>

@@ -158,17 +158,16 @@ const Index = () => {
 
       // Normalizar produtos para garantir compatibilidade
       const normalizedProducts: Product[] = (currentNFE.produtos || []).map(
-        (p, index) => {
+        (p) => {
           return {
-            codigo: p.codigo ?? '',
-            descricao: p.descricao ?? '',
-            cor: 'Cor não cadastrada', // Valor padrão para cor
+            code: p.code ?? p.codigo ?? '',
+            name: p.name ?? p.descricao ?? '',
             ncm: p.ncm ?? '',
             cfop: p.cfop ?? '',
-            unidade: p.unidade ?? '',
-            quantidade: p.quantidade ?? 0,
-            valorUnitario: p.valorUnitario ?? 0,
-            valorTotal: p.valorTotal ?? 0,
+            uom: p.uom ?? p.unidade ?? '',
+            quantity: p.quantity ?? p.quantidade ?? 0,
+            unitPrice: p.unitPrice ?? p.valorUnitario ?? 0,
+            totalPrice: p.totalPrice ?? p.valorTotal ?? 0,
             baseCalculoICMS: p.baseCalculoICMS ?? 0,
             valorICMS: p.valorICMS ?? 0,
             aliquotaICMS: p.aliquotaICMS ?? 0,
@@ -177,38 +176,32 @@ const Index = () => {
             aliquotaIPI: p.aliquotaIPI ?? 0,
             xapuriPrice: 0,
             epitaPrice: 0,
-            code: p.codigo ?? '',
-            name: p.descricao ?? '',
             ean: p.ean ?? '',
             reference: p.reference ?? '',
             brand: p.brand ?? '',
-            totalPrice: p.valorTotal ?? 0,
             discount: p.discount ?? 0,
             netPrice: (() => {
-              const valorTotal = p.valorTotal ?? 0;
+              const valorTotal = p.totalPrice ?? p.valorTotal ?? 0;
               const discount = p.discount ?? 0;
-              const unitPrice = p.valorUnitario ?? 0;
-              const quantidade = p.quantidade ?? 1;
-              
+              const unitPrice = p.unitPrice ?? p.valorUnitario ?? 0;
+              const quantidade = p.quantity ?? p.quantidade ?? 1;
+
               // Se valorTotal for muito alto (mais de 10x o preço unitário), usar cálculo alternativo
               if (valorTotal > unitPrice * quantidade * 10) {
                 console.warn('Valor total muito alto detectado:', { valorTotal, unitPrice, quantidade, discount });
                 // Calcular baseado no preço unitário
-                return (unitPrice * quantidade) - discount;
+                return unitPrice * quantidade - discount;
               }
-              
+
               return valorTotal - discount;
             })(),
-            quantity: p.quantidade ?? 0,
             imageUrl: p.imageUrl ?? '',
             tags: [],
             salePrice: 0,
-            uom: p.unidade ?? '',
             color: 'Cor não cadastrada',
             size: undefined,
             fornecedor: undefined,
             descricao_complementar: p.descricao_complementar ?? '',
-            unitPrice: p.valorUnitario ?? 0,
             freteProporcional: p.freteProporcional ?? 0,
             custoExtra: p.custoExtra ?? 0,
           };
@@ -307,7 +300,7 @@ const Index = () => {
         numero: nfeInfo.numero,
         chaveNFE: nfeInfo.chaveNFE,
         fornecedor: nfeInfo.emitNome,
-        valor: extractedProducts.reduce((sum, p) => sum + p.valorTotal, 0),
+        valor: extractedProducts.reduce((sum, p) => sum + p.totalPrice, 0),
         itens: extractedProducts.length,
         produtos: extractedProducts,
         impostoEntrada: impostoEntrada,
@@ -362,16 +355,15 @@ const Index = () => {
 
     // Normaliza campos vindos do servidor para o shape usado na UI
     const normalized = (sourceNfe.produtos || []).map(
-      (p: NFE['produtos'][0], index) => ({
-        codigo: p.codigo ?? '',
-        descricao: p.descricao ?? '',
-        cor: 'Cor não cadastrada',
+      (p: NFE['produtos'][0]) => ({
+        code: p.code ?? p.codigo ?? '',
+        name: p.name ?? p.descricao ?? '',
         ncm: p.ncm ?? '',
         cfop: p.cfop ?? '',
-        unidade: p.unidade ?? '',
-        quantidade: p.quantidade ?? 0,
-        valorUnitario: p.valorUnitario ?? 0,
-        valorTotal: p.valorTotal ?? 0,
+        uom: p.uom ?? p.unidade ?? '',
+        quantity: p.quantity ?? p.quantidade ?? 0,
+        unitPrice: p.unitPrice ?? p.valorUnitario ?? 0,
+        totalPrice: p.totalPrice ?? p.valorTotal ?? 0,
         baseCalculoICMS: p.baseCalculoICMS ?? 0,
         valorICMS: p.valorICMS ?? 0,
         aliquotaICMS: p.aliquotaICMS ?? 0,
@@ -380,38 +372,32 @@ const Index = () => {
         aliquotaIPI: p.aliquotaIPI ?? 0,
         xapuriPrice: 0,
         epitaPrice: 0,
-        code: p.codigo ?? '',
-        name: p.descricao ?? '',
         ean: p.ean ?? '',
         reference: p.reference ?? '',
         brand: p.brand ?? '',
-        totalPrice: p.valorTotal ?? 0,
         discount: p.discount ?? 0,
         netPrice: (() => {
-          const valorTotal = p.valorTotal ?? 0;
+          const valorTotal = p.totalPrice ?? p.valorTotal ?? 0;
           const discount = p.discount ?? 0;
-          const unitPrice = p.valorUnitario ?? 0;
-          const quantidade = p.quantidade ?? 1;
-          
+          const unitPrice = p.unitPrice ?? p.valorUnitario ?? 0;
+          const quantidade = p.quantity ?? p.quantidade ?? 1;
+
           // Se valorTotal for muito alto (mais de 10x o preço unitário), usar cálculo alternativo
           if (valorTotal > unitPrice * quantidade * 10) {
             console.warn('Valor total muito alto detectado:', { valorTotal, unitPrice, quantidade, discount });
             // Calcular baseado no preço unitário
-            return (unitPrice * quantidade) - discount;
+            return unitPrice * quantidade - discount;
           }
-          
+
           return valorTotal - discount;
         })(),
-        quantity: p.quantidade ?? 0,
         imageUrl: p.imageUrl ?? '',
         tags: [],
         salePrice: 0,
-        uom: p.unidade ?? '',
         color: 'Cor não cadastrada',
         size: undefined,
         fornecedor: undefined,
         descricao_complementar: p.descricao_complementar ?? '',
-        unitPrice: p.valorUnitario ?? 0,
         freteProporcional: p.freteProporcional ?? 0,
         custoExtra: p.custoExtra ?? 0,
       }),
@@ -505,7 +491,7 @@ const Index = () => {
           data: new Date().toISOString().split('T')[0],
           numero: invoiceNumber,
           fornecedor: brandName,
-          valor: products.reduce((sum, p) => sum + p.valorTotal, 0),
+          valor: products.reduce((sum, p) => sum + p.totalPrice, 0),
           itens: products.length,
           produtos: products,
           impostoEntrada: impostoEntrada,
