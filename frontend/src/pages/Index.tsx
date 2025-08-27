@@ -56,6 +56,9 @@ const Index: React.FC = () => {
   const roundingType = (pendingChanges.roundingType ?? currentNFE?.roundingType ?? 'none') as RoundingType;
   const showHidden = pendingChanges.showHidden ?? currentNFE?.showHidden ?? false;
 
+  // Chave para persistência local dos itens ocultos por NFE
+  const storageKey = currentNFeId ? `hidden-items:${currentNFeId}` : '';
+
 //
   // Sincronização automática quando currentNFeId muda
   useEffect(() => {
