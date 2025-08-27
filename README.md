@@ -46,6 +46,8 @@ xml-4/
 └── README.md               # Esta documentação
 ```
 
+Diretórios temporários como `lixo/` são ignorados pelo Git e não fazem parte do repositório.
+
 ---
 
 ## 🌍 **Ambientes**
