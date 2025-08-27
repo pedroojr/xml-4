@@ -9,6 +9,14 @@ export const formatNumber = (value: number): string => {
   return new Intl.NumberFormat('pt-BR').format(value);
 };
 
+export const formatPercent = (value: number): string => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'percent',
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(value / 100);
+};
+
 // Função para converter número para formato brasileiro ao copiar
 export const formatNumberForCopy = (
   value: number,
