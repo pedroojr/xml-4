@@ -17,6 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { useProductSettings } from '@/hooks/useProductSettings';
 import type { Product } from '@/types/nfe';
+import { formatPercent } from '@/utils/formatters';
 
 const ITEMS_PER_PAGE = 50;
 
@@ -225,7 +226,7 @@ const Produtos = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold">
-              {descontoMedio.toFixed(1)}%
+              {formatPercent(descontoMedio)}
             </div>
             <div className="text-sm text-muted-foreground">Desconto Médio</div>
           </CardContent>
