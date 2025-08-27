@@ -20,6 +20,8 @@ const Index: React.FC = () => {
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [brandName, setBrandName] = useState('');
   const [isEditingBrand, setIsEditingBrand] = useState(false);
+  // Define setter used later to store/clear XML content for DataSystem export
+  const [, setXmlContentForDataSystem] = useState<string | null>(null);
 
   const {
     savedNFEs,
