@@ -21,13 +21,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Verify .env.production exists
+      - name: Setup .env.production for build
         run: |
-          if [ ! -f ".env.production" ]; then
+          # Copiar .env.production do frontend para a raiz (onde o Vite espera)
+          if [ -f "frontend/.env.production" ]; then
+            cp frontend/.env.production .env.production
+            echo "Using frontend/.env.production for build configuration"
+          elif [ -f ".env.production" ]; then
+            echo "Using root .env.production for build configuration"
+          else
             echo ".env.production file not found" >&2
             exit 1
           fi
-          echo "Using .env.production for build configuration"
+          echo "Contents of .env.production:"
+          cat .env.production
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
