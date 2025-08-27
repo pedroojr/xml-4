@@ -7,7 +7,7 @@ const API_BASE_URL = (() => {
     return envUrl.replace(/\/$/, ''); // remove barra final, se houver
   }
   if (import.meta.env.PROD) {
-    return 'https://82.29.58.242:3001/api';
+    return 'http://82.29.58.242:3001/api';
   }
   return 'http://localhost:4005/api';
 })();
