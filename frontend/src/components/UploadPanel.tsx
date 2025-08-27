@@ -5,10 +5,16 @@ import FileUploadPDF from './FileUploadPDF';
 
 interface UploadPanelProps {
   onFileSelect: (file: File) => void;
+  onTabChange?: (tab: string) => void;
 }
 
-export const UploadPanel: React.FC<UploadPanelProps> = ({ onFileSelect }) => {
+export const UploadPanel: React.FC<UploadPanelProps> = ({ onFileSelect, onTabChange }) => {
   const [currentTab, setCurrentTab] = useState('upload');
+
+  const handleTabChange = (tab: string) => {
+    setCurrentTab(tab);
+    onTabChange?.(tab);
+  };
   const [pdfItems, setPdfItems] = useState<
     {
       item: string;
@@ -23,7 +29,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({ onFileSelect }) => {
     <Tabs
       defaultValue="upload"
       value={currentTab}
-      onValueChange={setCurrentTab}
+      onValueChange={handleTabChange}
       className="w-full"
     >
       <TabsList className="grid w-full grid-cols-2 mb-6">

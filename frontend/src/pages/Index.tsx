@@ -20,6 +20,7 @@ const Index: React.FC = () => {
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [brandName, setBrandName] = useState('');
   const [isEditingBrand, setIsEditingBrand] = useState(false);
+  const [currentTab, setCurrentTab] = useState('upload');
   // Define setter used later to store/clear XML content for DataSystem export
   const [, setXmlContentForDataSystem] = useState<string | null>(null);
 
@@ -520,7 +521,7 @@ const Index: React.FC = () => {
               <Info size={16} />
               <span>Importador de NF-e</span>
             </div>
-            <UploadPanel onFileSelect={handleFileSelect} />
+            <UploadPanel onFileSelect={handleFileSelect} onTabChange={setCurrentTab} />
           </div>
         )}
 

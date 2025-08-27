@@ -491,53 +491,55 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     return `idx:${index}`;
   };
 
-  const filteredProducts = products.filter((product, idx) => {
-    const isItemHidden = hiddenItems.has(idx);
+  const filteredProducts = products
+    .map((product, idx) => ({ product, originalIndex: idx }))
+    .filter(({ product, originalIndex }) => {
+      const isItemHidden = hiddenItems.has(originalIndex);
 
-    // Se mostrar apenas ocultados, filtra só os ocultos
-    if (showHidden) {
-      if (!isItemHidden) return false;
-    } else {
-      // Se não mostrar ocultados, filtra só os visíveis (exceto na busca)
-      if (!filters.searchTerm && isItemHidden) return false;
-    }
+      // Se mostrar apenas ocultados, filtra só os ocultos
+      if (showHidden) {
+        if (!isItemHidden) return false;
+      } else {
+        // Se não mostrar ocultados, filtra só os visíveis (exceto na busca)
+        if (!filters.searchTerm && isItemHidden) return false;
+      }
 
-    if (filters.searchTerm) {
-      // Divide o termo de busca em múltiplos termos separados por espaço
-      const searchTerms = filters.searchTerm
-        .toLowerCase()
-        .split(' ')
-        .filter((term) => term.trim() !== '');
-      // Verifica se todos os termos de busca estão presentes em algum campo do produto
-      const matchesAllTerms = searchTerms.every((term) => {
-        return (
-          product.code?.toLowerCase().includes(term) ||
-          product.name?.toLowerCase().includes(term) ||
-          product.ean?.toLowerCase().includes(term) ||
-          product.reference?.toLowerCase().includes(term) ||
-          product.descricao_complementar?.toLowerCase().includes(term)
-        );
-      });
-      if (!matchesAllTerms) return false;
-      // Em modo de busca, mostra todos os que passaram no filtro acima
-    }
+      if (filters.searchTerm) {
+        // Divide o termo de busca em múltiplos termos separados por espaço
+        const searchTerms = filters.searchTerm
+          .toLowerCase()
+          .split(' ')
+          .filter((term) => term.trim() !== '');
+        // Verifica se todos os termos de busca estão presentes em algum campo do produto
+        const matchesAllTerms = searchTerms.every((term) => {
+          return (
+            product.code?.toLowerCase().includes(term) ||
+            product.name?.toLowerCase().includes(term) ||
+            product.ean?.toLowerCase().includes(term) ||
+            product.reference?.toLowerCase().includes(term) ||
+            product.descricao_complementar?.toLowerCase().includes(term)
+          );
+        });
+        if (!matchesAllTerms) return false;
+        // Em modo de busca, mostra todos os que passaram no filtro acima
+      }
 
-    // Filtro por produtos com imagem
-    if (filters.showOnlyWithImages) {
-      if (!product.imageUrl) return false;
-    }
+      // Filtro por produtos com imagem
+      if (filters.showOnlyWithImages) {
+        if (!product.imageUrl) return false;
+      }
 
-    // Column filters
-    const passesColumnFilters = Object.entries(columnFilters).every(
-      ([columnId, selectedValues]) => {
-        if (selectedValues.size === 0) return true;
-        const value = String(product[columnId] || '');
-        return selectedValues.has(value);
-      },
-    );
+      // Column filters
+      const passesColumnFilters = Object.entries(columnFilters).every(
+        ([columnId, selectedValues]) => {
+          if (selectedValues.size === 0) return true;
+          const value = String(product[columnId] || '');
+          return selectedValues.has(value);
+        },
+      );
 
-    return passesColumnFilters;
-  });
+      return passesColumnFilters;
+    });
 
   // LOG DE PROVA: Aplicado filtro de ocultos (comentado para evitar spam)
   // const hiddenCount = products.filter((_, idx) => hiddenItems.has(idx)).length;
@@ -560,8 +562,8 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   const sortedFilteredProducts =
     filters.searchTerm && !showHidden
       ? filteredProducts.sort((a, b) => {
-          const aHidden = hiddenItems.has(products.indexOf(a));
-          const bHidden = hiddenItems.has(products.indexOf(b));
+          const aHidden = hiddenItems.has(a.originalIndex);
+          const bHidden = hiddenItems.has(b.originalIndex);
           if (aHidden === bHidden) return 0;
           if (aHidden) return 1;
           return -1;
@@ -781,8 +783,8 @@ export const ProductTable: React.FC<ProductTableProps> = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedFilteredProducts.map((product: ProductWithNfeId, index) => {
-              const productIndex = products.indexOf(product);
+            {sortedFilteredProducts.map(({ product, originalIndex }: { product: ProductWithNfeId, originalIndex: number }, index) => {
+              const productIndex = originalIndex;
               const isHidden = hiddenItems.has(productIndex);
 
               // Calcular o custo com desconto (Custo Bruto - Desconto Médio)
