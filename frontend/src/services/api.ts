@@ -65,14 +65,14 @@ export interface NFE {
 export interface Product {
   id?: number;
   nfeId?: string;
-  codigo: string;
-  descricao: string;
+  code: string;
+  name: string;
   ncm?: string;
   cfop?: string;
-  unidade?: string;
-  quantidade: number;
-  valorUnitario: number;
-  valorTotal: number;
+  uom?: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
   baseCalculoICMS?: number;
   valorICMS?: number;
   aliquotaICMS?: number;

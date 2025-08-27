@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNFEAPI } from './useNFEAPI';
+import { Product } from '../types/nfe';
 
 export interface NFE {
   id: string;
@@ -8,7 +9,7 @@ export interface NFE {
   fornecedor: string;
   valor: number;
   itens: number;
-  produtos: any[];
+  produtos: Product[];
   brandName?: string;
   invoiceNumber?: string;
   isFavorite?: boolean;
@@ -90,7 +91,7 @@ export const useNFEStorage = () => {
       const nfe = savedNFEs.find(n => n.id === nfeId);
       if (nfe) {
         const updatedProdutos = nfe.produtos.map(produto =>
-          produto.codigo === produtoCodigo
+          produto.code === produtoCodigo
             ? { ...produto, custoExtra }
             : produto
         );
@@ -109,7 +110,7 @@ export const useNFEStorage = () => {
       const nfe = savedNFEs.find(n => n.id === nfeId);
       if (nfe) {
         const updatedProdutos = nfe.produtos.map(produto =>
-          produto.codigo === produtoCodigo
+          produto.code === produtoCodigo
             ? { ...produto, freteProporcional }
             : produto
         );

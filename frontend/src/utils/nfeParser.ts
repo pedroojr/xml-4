@@ -134,12 +134,6 @@ export const parseNFeXML = (xmlText: string): Product[] => {
       descricao_complementar: formatarDescricaoComplementar(
         item.getElementsByTagName('infAdProd')[0]?.textContent || '',
       ),
-      codigo: codigo,
-      descricao: nome,
-      unidade: getElementText(prod, 'uCom'),
-      quantidade: quantity,
-      valorUnitario: unitPrice,
-      valorTotal: totalPrice,
       baseCalculoICMS: 0,
       valorICMS: 0,
       aliquotaICMS: 0,
