@@ -21,14 +21,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Ensure VITE_API_URL secret is set
+      - name: Verify .env.production exists
         run: |
-          if [ -z "${VITE_API_URL}" ]; then
-            echo "VITE_API_URL secret is not set" >&2
+          if [ ! -f ".env.production" ]; then
+            echo ".env.production file not found" >&2
             exit 1
           fi
-        env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          echo "Using .env.production for build configuration"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -44,8 +43,6 @@ jobs:
       - name: Build (production)
         run: npm run build:prod
         working-directory: frontend
-        env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
       - name: Deploy via SFTP
         uses: wlixcc/SFTP-Deploy-Action@v1.2.4
