@@ -461,6 +461,19 @@ const Index: React.FC = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [
+    currentNFeId,
+    products,
+    invoiceNumber,
+    brandName,
+    impostoEntrada,
+    xapuriMarkup,
+    epitaMarkup,
+    roundingType,
+    hiddenItems,
+    showHidden,
+    updateNFE,
+  ]);
+
   useNfeSync({
     currentNFeId,
     products,
