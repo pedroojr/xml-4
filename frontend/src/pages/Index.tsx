@@ -239,7 +239,7 @@ const Index: React.FC = () => {
       setBrandName(nfeInfo.emitNome);
       setXmlContentForDataSystem(text);
 
-      // Salvar NFE
+      // Salvar NFE (tratar duplicidade sem quebrar a UI)
       const nfe = {
         id: nfeId,
         data: nfeInfo.dataEmissao,
@@ -253,12 +253,21 @@ const Index: React.FC = () => {
         xapuriMarkup: xapuriMarkup,
         epitaMarkup: epitaMarkup,
         roundingType: roundingType,
-        hiddenItems: Array.from(hiddenItems), // Salvar itens ocultos atuais
+        hiddenItems: Array.from(hiddenItems),
         showHidden: showHidden,
       };
 
-      saveNFE(nfe);
-      // Não mudar a aba - deixar os produtos visíveis
+      try {
+        await saveNFE(nfe);
+      } catch (err: any) {
+        // Se for duplicado (409 ou mensagem conhecida), apenas avisa e segue com produtos na tela
+        const msg = (err?.message || '').toString().toLowerCase();
+        if (msg.includes('já foi cadastrada')) {
+          console.warn('NF-e já cadastrada. Mantendo visualização local.');
+        } else {
+          console.error('Falha ao salvar NFE:', err);
+        }
+      }
     } catch (error) {
       console.error('Erro ao processar arquivo:', error);
       alert('Erro ao processar arquivo XML. Verifique se é uma NF-e válida.');
