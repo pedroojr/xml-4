@@ -1,6 +1,12 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4005/api';
+// Detecta automaticamente a API no mesmo domínio do site em produção
+const API_BASE_URL = (() => {
+  if (typeof window !== 'undefined' && window.location) {
+    return `${window.location.origin}/api`;
+  }
+  return import.meta.env.VITE_API_URL || 'http://localhost:4005/api';
+})();
 const DEBUG = import.meta.env.VITE_DEBUG === 'true';
 
 const api = axios.create({

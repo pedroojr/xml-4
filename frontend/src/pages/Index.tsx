@@ -294,7 +294,8 @@ const Index = () => {
       const extractedProducts = parseNFeXML(text);
       setProducts(extractedProducts);
 
-      const nfeId = `nfe_${Date.now()}`;
+      // Usar a chave da NFe como ID estável para evitar duplicidade
+      const nfeId = nfeInfo.chaveNFE || `nfe_${Date.now()}`;
       setCurrentNFeId(nfeId);
       setInvoiceNumber(nfeInfo.numero);
       setBrandName(nfeInfo.emitNome);
