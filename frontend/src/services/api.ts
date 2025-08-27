@@ -6,8 +6,8 @@ const API_BASE_URL = (() => {
   if (envUrl && envUrl.trim().length > 0) {
     return envUrl.replace(/\/$/, ''); // remove barra final, se houver
   }
-  if (typeof window !== 'undefined' && window.location) {
-    return `${window.location.origin}/api`;
+  if (import.meta.env.PROD) {
+    return 'https://82.29.58.242:3001/api';
   }
   return 'http://localhost:4005/api';
 })();
