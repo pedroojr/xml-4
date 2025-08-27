@@ -490,63 +490,7 @@ const Index: React.FC = () => {
     updateNFE,
   });
 
-  const handleDeleteCurrentNFe = () => {
-    if (currentNFeId) {
-      removeNFE(currentNFeId);
-      setProducts([]);
-      setCurrentNFeId(null);
-      setInvoiceNumber('');
-      setBrandName('');
-      setIsEditingBrand(false);
-      setHiddenItems(new Set());
-    }
-  };
-
-  const handleFileSelect = async (file: File) => {
-    setIsProcessing(true);
-    try {
-      const text = await file.text();
-      const xmlDoc = new DOMParser().parseFromString(text, 'text/xml');
-      const extractedProducts = parseNFeXML(text);
-      const nfeId = `nfe_${Date.now()}`;
-      setProducts(extractedProducts);
-      setCurrentNFeId(nfeId);
-      setInvoiceNumber(xmlDoc.querySelector('nNF')?.textContent || '');
-      setBrandName(xmlDoc.querySelector('emit xNome')?.textContent || '');
-      const nfe: NFE = {
-        id: nfeId,
-        data: new Date().toISOString(),
-        numero: xmlDoc.querySelector('nNF')?.textContent || '',
-        chaveNFE: xmlDoc.querySelector('infNFe')?.getAttribute('Id')?.replace('NFe', '') || '',
-        fornecedor: xmlDoc.querySelector('emit xNome')?.textContent || '',
-        valor: extractedProducts.reduce((s, p) => s + p.totalPrice, 0),
-        itens: extractedProducts.length,
-        produtos: extractedProducts,
-        impostoEntrada,
-        xapuriMarkup,
-        epitaMarkup,
-        roundingType,
-        hiddenItems: Array.from(hiddenItems),
-        showHidden,
-      };
-      saveNFE(nfe);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleLoadNFe = async (nfe: NFE) => {
-    setPendingChanges({});
-    let source = nfe;
-    if (!nfe.produtos || nfe.produtos.length === 0) {
-      source = await loadNFEById(nfe.id);
-    }
-    setProducts(source.produtos || []);
-    setCurrentNFeId(source.id);
-    setInvoiceNumber(source.numero);
-    setBrandName(source.fornecedor);
-    setHiddenItems(new Set(source.hiddenItems || []));
-  };
+  // (removido bloco duplicado de handlers após merge)
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
