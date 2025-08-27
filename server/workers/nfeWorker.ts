@@ -48,8 +48,8 @@ const worker = new Worker(
       produtos,
     };
 
-    saveNfe(nfeData);
-  },
+      saveNfe(nfeData as any);
+    },
   { connection }
 );
 

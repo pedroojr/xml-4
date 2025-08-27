@@ -50,7 +50,7 @@ export const uploadXml = async (req: Request, res: Response) => {
       produtos,
     };
 
-    saveNfe(nfeData);
+      saveNfe(nfeData as any);
     res.status(201).json({ id: nfeData.id });
   } catch (error: any) {
     logger.error(`Erro no upload: ${error}`);
