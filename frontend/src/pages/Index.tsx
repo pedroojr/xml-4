@@ -170,34 +170,39 @@ const Index: React.FC = () => {
   }, [currentNFeId, loadNFEs, pendingChanges, currentNFE?.hiddenItems]);
 
   const extractNFeInfo = (xmlDoc: Document) => {
-    const nfeNode = xmlDoc.querySelector('NFe');
+    const NS = 'http://www.portalfiscal.inf.br/nfe';
+
+    const pick = (node: Element | Document, tag: string): Element | null => {
+      const a = (node as any).getElementsByTagNameNS?.(NS, tag)?.[0] || null;
+      if (a) return a as Element;
+      const b = (node as any).getElementsByTagName?.(tag)?.[0] || null;
+      return (b as Element) || null;
+    };
+
+    const nfeNode =
+      (xmlDoc as any).getElementsByTagNameNS?.(NS, 'NFe')?.[0] ||
+      xmlDoc.getElementsByTagName('NFe')?.[0] ||
+      null;
     if (!nfeNode) return null;
 
-    const ideNode = nfeNode.querySelector('ide');
-    const emitNode = nfeNode.querySelector('emit');
-    const destNode = nfeNode.querySelector('dest');
-
+    const ideNode = pick(nfeNode, 'ide');
+    const emitNode = pick(nfeNode, 'emit');
     if (!ideNode || !emitNode) return null;
 
-    const numero = ideNode.querySelector('nNF')?.textContent || '';
-    const dataEmissao = ideNode.querySelector('dhEmi')?.textContent || '';
+    const text = (el: Element | null, tag: string) =>
+      (el && (pick(el, tag)?.textContent || '')) || '';
+
+    const numero = text(ideNode, 'nNF');
+    const dataEmissao = text(ideNode, 'dhEmi');
+
+    const infNFe = pick(nfeNode, 'infNFe');
     const chaveNFE =
-      nfeNode.querySelector('infNFe')?.getAttribute('Id')?.replace('NFe', '') ||
-      '';
+      (infNFe?.getAttribute('Id') || '')?.replace('NFe', '') || '';
 
-    const emitNome = emitNode.querySelector('xNome')?.textContent || '';
-    const emitCNPJ =
-      emitNode.querySelector('CNPJ')?.textContent ||
-      emitNode.querySelector('CPF')?.textContent ||
-      '';
+    const emitNome = text(emitNode, 'xNome');
+    const emitCNPJ = text(emitNode, 'CNPJ') || text(emitNode, 'CPF');
 
-    return {
-      numero,
-      dataEmissao,
-      chaveNFE,
-      emitNome,
-      emitCNPJ,
-    };
+    return { numero, dataEmissao, chaveNFE, emitNome, emitCNPJ };
   };
 
   const handleDeleteCurrentNFe = () => {
