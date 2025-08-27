@@ -17,6 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { useProductSettings } from '@/hooks/useProductSettings';
 import type { Product } from '@/types/nfe';
+import { formatPercent } from '@/utils/formatters';
 
 const ITEMS_PER_PAGE = 50;
 
@@ -60,14 +61,14 @@ const Produtos = () => {
     return allProducts.filter((product) => {
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch =
-        product.codigo?.toString().toLowerCase().includes(searchLower) ||
-        product.descricao?.toLowerCase().includes(searchLower) ||
+        product.code?.toString().toLowerCase().includes(searchLower) ||
+        product.name?.toLowerCase().includes(searchLower) ||
         product.ean?.toString().includes(searchLower) ||
-        product.referencia?.toLowerCase().includes(searchLower) ||
+        product.reference?.toLowerCase().includes(searchLower) ||
         product.fornecedor?.toLowerCase().includes(searchLower) ||
         product.descricao_complementar?.toLowerCase().includes(searchLower);
 
-      const matchesImageFilter = !settings.showOnlyWithImage || product.imagem;
+      const matchesImageFilter = !settings.showOnlyWithImage || product.imageUrl;
       const matchesHiddenFilter =
         !settings.showOnlyHidden || settings.hiddenItems.has(product.id);
 
@@ -113,11 +114,11 @@ const Produtos = () => {
   );
   const totalUnidades = filteredProducts.length;
   const valorTotal = filteredProducts.reduce(
-    (acc, prod) => acc + (prod.valor || 0),
+    (acc, prod) => acc + (prod.totalPrice || 0),
     0,
   );
   const descontoMedio =
-    filteredProducts.reduce((acc, prod) => acc + (prod.desconto || 0), 0) /
+    filteredProducts.reduce((acc, prod) => acc + (prod.discount || 0), 0) /
       filteredProducts.length || 0;
 
   // Renderizar números de página
@@ -225,7 +226,7 @@ const Produtos = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold">
-              {descontoMedio.toFixed(1)}%
+              {formatPercent(descontoMedio)}
             </div>
             <div className="text-sm text-muted-foreground">Desconto Médio</div>
           </CardContent>

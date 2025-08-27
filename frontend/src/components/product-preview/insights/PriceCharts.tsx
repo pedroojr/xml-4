@@ -16,7 +16,7 @@ import {
   LineChart,
   Line
 } from 'recharts';
-import { formatCurrency } from '../../../utils/formatters';
+import { formatCurrency, formatPercent } from '@/utils/formatters';
 
 interface PriceChartsProps {
   products: Product[];
@@ -83,10 +83,6 @@ export const PriceCharts: React.FC<PriceChartsProps> = ({
   // Formatar valores para o tooltip
   const formatTooltipValue = (value: number) => {
     return formatCurrency(value);
-  };
-
-  const formatPercentage = (value: number) => {
-    return `${value.toFixed(1)}%`;
   };
 
   const priceDistribution = preparePriceDistribution();
@@ -166,7 +162,7 @@ export const PriceCharts: React.FC<PriceChartsProps> = ({
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
-                <Tooltip formatter={formatPercentage} />
+                <Tooltip formatter={(value: number) => formatPercent(value)} />
                 <Legend />
                 <Line 
                   type="monotone" 

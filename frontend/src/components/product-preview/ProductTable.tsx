@@ -31,8 +31,8 @@ import { toast } from 'sonner';
 import {
   formatNumberForCopy,
   formatCurrency,
-  formatNumber,
-} from '../../utils/formatters';
+  formatPercent,
+} from '@/utils/formatters';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
@@ -357,11 +357,11 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   >({});
   // Estado local para custo extra de cada produto
   const [custoExtraMap, setCustoExtraMap] = useState<{
-    [codigo: string]: string;
+    [code: string]: string;
   }>(() => {
-    const initial: { [codigo: string]: string } = {};
+    const initial: { [code: string]: string } = {};
     products.forEach((p) => {
-      initial[p.codigo] =
+      initial[p.code] =
         p.custoExtra !== undefined && p.custoExtra !== null
           ? String(p.custoExtra)
           : '';
@@ -692,12 +692,12 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                   Valor Total
                 </div>
                 <div className="text-sm font-medium tabular-nums">
-                  {sortedFilteredProducts
-                    .reduce((acc, p) => acc + p.totalPrice, 0)
-                    .toLocaleString('pt-BR', {
-                      style: 'currency',
-                      currency: 'BRL',
-                    })}
+                  {formatCurrency(
+                    sortedFilteredProducts.reduce(
+                      (acc, p) => acc + p.totalPrice,
+                      0,
+                    ),
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -707,12 +707,9 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                   Valor Líquido
                 </div>
                 <div className="text-sm font-medium tabular-nums">
-                  {calculateTotalNetValue(
-                    sortedFilteredProducts,
-                  ).toLocaleString('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                  })}
+                  {formatCurrency(
+                    calculateTotalNetValue(sortedFilteredProducts),
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -722,7 +719,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                   Desconto Médio
                 </div>
                 <div className="text-sm font-medium tabular-nums">
-                  {averageDiscountPercent.toFixed(1)}%
+                  {formatPercent(averageDiscountPercent)}
                 </div>
               </CardContent>
             </Card>
@@ -861,18 +858,18 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                             type="number"
                             min="0"
                             step="0.01"
-                            value={custoExtraMap[product.codigo] ?? ''}
+                            value={custoExtraMap[product.code] ?? ''}
                             onChange={(e) => {
                               setCustoExtraMap((prev) => ({
                                 ...prev,
-                                [product.codigo]: e.target.value,
+                                [product.code]: e.target.value,
                               }));
                               // Persistir o valor no armazenamento da nota
                               const valor = parseFloat(e.target.value) || 0;
                               if (product.nfeId) {
                                 updateProdutoCustoExtra(
                                   product.nfeId,
-                                  product.codigo,
+                                  product.code,
                                   valor,
                                 );
                               }
@@ -889,7 +886,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                       : product[column.id as keyof Product];
                     if (column.id === 'xapuriPrice') {
                       const custoExtra =
-                        parseFloat(custoExtraMap[product.codigo] || '0') || 0;
+                        parseFloat(custoExtraMap[product.code] || '0') || 0;
                       const custoLiquido = calculateCustoLiquido(
                         product,
                         impostoEntrada,
@@ -907,7 +904,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                     }
                     if (column.id === 'epitaPrice') {
                       const custoExtra =
-                        parseFloat(custoExtraMap[product.codigo] || '0') || 0;
+                        parseFloat(custoExtraMap[product.code] || '0') || 0;
                       const custoLiquido = calculateCustoLiquido(
                         product,
                         impostoEntrada,

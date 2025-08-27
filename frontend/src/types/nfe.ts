@@ -1,12 +1,12 @@
 export interface Product {
-  codigo: string;
-  descricao: string;
+  code: string;
+  name: string;
   ncm: string;
   cfop: string;
-  unidade: string;
-  quantidade: number;
-  valorUnitario: number;
-  valorTotal: number; // valor total do XML
+  uom: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number; // valor total do XML
   baseCalculoICMS: number;
   valorICMS: number;
   aliquotaICMS: number;
@@ -15,24 +15,18 @@ export interface Product {
   aliquotaIPI: number;
   xapuriPrice?: number;
   epitaPrice?: number;
-  code: string;
-  name: string;
   ean?: string;
   reference?: string;
   brand?: string;
-  totalPrice: number; // total extraído do XML
   netPrice: number; // total líquido (totalPrice - discount)
   discount: number;
-  quantity: number;
   imageUrl?: string;
   tags?: string[];
   salePrice: number; // preço de venda calculado
-  uom?: string;
   color?: string;
   size?: string;
   fornecedor?: string;
   descricao_complementar?: string;
-  unitPrice: number;
   freteProporcional?: number;
   custoExtra?: number;
 }

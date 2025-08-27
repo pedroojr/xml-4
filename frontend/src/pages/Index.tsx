@@ -1,50 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Info, History, Edit2, Trash2 } from 'lucide-react';
-import FileUpload from '@/components/FileUpload';
-
-import FileUploadPDF from '@/components/FileUploadPDF';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Info, Edit2, Trash2 } from 'lucide-react';
+import UploadPanel from '@/components/UploadPanel';
 import ProductPreview from '@/components/product-preview/ProductPreview';
 import { useNFEStorage } from '@/hooks/useNFEStorage';
+import { useHiddenItems } from '@/hooks/useHiddenItems';
+import { useNfeSync } from '@/hooks/useNfeSync';
 import type { NFE } from '@/services/api';
 import { Product } from '@/types/nfe';
 import { RoundingType } from '@/components/product-preview/productCalculations';
 import { parseNFeXML } from '@/utils/nfeParser';
 
-const Index = () => {
+const Index: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [currentNFeId, setCurrentNFeId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [currentTab, setCurrentTab] = useState('upload');
-  const [xmlContentForDataSystem, setXmlContentForDataSystem] = useState<
-    string | null
-  >(null);
-  const [pdfItems, setPdfItems] = useState<
-    {
-      item: string;
-      descricao: string;
-      quantidade: number;
-      totalBruto: number;
-      totalLiquido: number;
-    }[]
-  >([]);
-  // Removed local states for hiddenItems, showHidden, markups, roundingType, impostoEntrada
-  const [invoiceNumber, setInvoiceNumber] = useState<string>('');
-  const [brandName, setBrandName] = useState<string>('');
+  const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [brandName, setBrandName] = useState('');
   const [isEditingBrand, setIsEditingBrand] = useState(false);
 
   const {
@@ -52,61 +26,23 @@ const Index = () => {
     saveNFE,
     removeNFE,
     updateHiddenItems,
-    updateShowHidden,
     updateNFE,
     loadNFEs,
     loadNFEById,
   } = useNFEStorage();
 
-  // Estado centralizado no servidor - SEM estado local
   const currentNFE = currentNFeId
     ? savedNFEs.find((nfe) => nfe.id === currentNFeId)
     : null;
 
-  // Estado de ocultos persistente no localStorage (à prova de reset)
-  const storageKey = currentNFeId ? `hidden-items:${currentNFeId}` : '';
-  const [hiddenItems, setHiddenItems] = useState<Set<string>>(() => {
-    if (!storageKey) return new Set();
-    try {
-      return new Set(JSON.parse(localStorage.getItem(storageKey) || '[]'));
-    } catch {
-      return new Set();
-    }
-  });
+  const { hiddenItems, setHiddenItems, toggleHiddenById } = useHiddenItems(
+    currentNFeId,
+    currentNFE?.hiddenItems,
+    updateHiddenItems,
+    loadNFEs,
+  );
 
-  // Persistir mudanças no localStorage
-  useEffect(() => {
-    if (storageKey && hiddenItems.size > 0) {
-      localStorage.setItem(storageKey, JSON.stringify([...hiddenItems]));
-    } else if (storageKey) {
-      localStorage.removeItem(storageKey);
-    }
-  }, [hiddenItems, storageKey]);
-
-  // Função para gerar ID estável do produto (mesma regra do ProductPreview)
-  const getProductId = (p: Product, index: number) => {
-    if (p.ean && p.ean.length > 0) return String(p.ean);
-    if (p.code && p.code.length > 0) return `cod:${p.code}:${index}`;
-    if (p.reference) return `ref:${p.reference}:${index}`;
-    return `idx:${index}`;
-  };
-
-  // Função para alternar visibilidade (à prova de reset)
-  const toggleHidden = (product: Product, index: number) => {
-    const id = getProductId(product, index);
-    setHiddenItems((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
-  // Estado local para mudanças pendentes (não salvas no servidor)
-  const [pendingChanges, setPendingChanges] = useState<{
+  const [pendingChanges, setPendingChanges] = useState<{ 
     showHidden?: boolean;
     xapuriMarkup?: number;
     epitaMarkup?: number;
@@ -114,19 +50,13 @@ const Index = () => {
     roundingType?: RoundingType;
   }>({});
 
-  // Valores vindos APENAS do servidor, mas com mudanças pendentes aplicadas
-  const xapuriMarkup =
-    pendingChanges.xapuriMarkup ?? currentNFE?.xapuriMarkup ?? 160;
-  const epitaMarkup =
-    pendingChanges.epitaMarkup ?? currentNFE?.epitaMarkup ?? 130;
-  const impostoEntrada =
-    pendingChanges.impostoEntrada ?? currentNFE?.impostoEntrada ?? 12;
-  const roundingType = (pendingChanges.roundingType ??
-    currentNFE?.roundingType ??
-    'none') as RoundingType;
-  const showHidden =
-    pendingChanges.showHidden ?? currentNFE?.showHidden ?? false;
+  const xapuriMarkup = pendingChanges.xapuriMarkup ?? currentNFE?.xapuriMarkup ?? 160;
+  const epitaMarkup = pendingChanges.epitaMarkup ?? currentNFE?.epitaMarkup ?? 130;
+  const impostoEntrada = pendingChanges.impostoEntrada ?? currentNFE?.impostoEntrada ?? 12;
+  const roundingType = (pendingChanges.roundingType ?? currentNFE?.roundingType ?? 'none') as RoundingType;
+  const showHidden = pendingChanges.showHidden ?? currentNFE?.showHidden ?? false;
 
+//
   // Sincronização automática quando currentNFeId muda
   useEffect(() => {
     if (currentNFeId && currentNFE) {
@@ -531,6 +461,7 @@ const Index = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [
+  useNfeSync({
     currentNFeId,
     products,
     invoiceNumber,
@@ -541,146 +472,79 @@ const Index = () => {
     roundingType,
     hiddenItems,
     showHidden,
+    pendingChanges,
+    loadNFEs,
     updateNFE,
-  ]);
+  });
+
+  const handleDeleteCurrentNFe = () => {
+    if (currentNFeId) {
+      removeNFE(currentNFeId);
+      setProducts([]);
+      setCurrentNFeId(null);
+      setInvoiceNumber('');
+      setBrandName('');
+      setIsEditingBrand(false);
+      setHiddenItems(new Set());
+    }
+  };
+
+  const handleFileSelect = async (file: File) => {
+    setIsProcessing(true);
+    try {
+      const text = await file.text();
+      const xmlDoc = new DOMParser().parseFromString(text, 'text/xml');
+      const extractedProducts = parseNFeXML(text);
+      const nfeId = `nfe_${Date.now()}`;
+      setProducts(extractedProducts);
+      setCurrentNFeId(nfeId);
+      setInvoiceNumber(xmlDoc.querySelector('nNF')?.textContent || '');
+      setBrandName(xmlDoc.querySelector('emit xNome')?.textContent || '');
+      const nfe: NFE = {
+        id: nfeId,
+        data: new Date().toISOString(),
+        numero: xmlDoc.querySelector('nNF')?.textContent || '',
+        chaveNFE: xmlDoc.querySelector('infNFe')?.getAttribute('Id')?.replace('NFe', '') || '',
+        fornecedor: xmlDoc.querySelector('emit xNome')?.textContent || '',
+        valor: extractedProducts.reduce((s, p) => s + p.totalPrice, 0),
+        itens: extractedProducts.length,
+        produtos: extractedProducts,
+        impostoEntrada,
+        xapuriMarkup,
+        epitaMarkup,
+        roundingType,
+        hiddenItems: Array.from(hiddenItems),
+        showHidden,
+      };
+      saveNFE(nfe);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleLoadNFe = async (nfe: NFE) => {
+    setPendingChanges({});
+    let source = nfe;
+    if (!nfe.produtos || nfe.produtos.length === 0) {
+      source = await loadNFEById(nfe.id);
+    }
+    setProducts(source.produtos || []);
+    setCurrentNFeId(source.id);
+    setInvoiceNumber(source.numero);
+    setBrandName(source.fornecedor);
+    setHiddenItems(new Set(source.hiddenItems || []));
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
-      <div className="w-full px-4 py-8">
+      <div className="w-full px-4 py-8 space-y-8">
         {products.length === 0 && (
-          <div className="w-full flex gap-8">
-            {/* Sidebar com notas importadas */}
-            {savedNFEs.length > 0 && (
-              <div className="w-80 flex-shrink-0">
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-8">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                    <History size={20} />
-                    Notas Importadas
-                  </h3>
-                  <div className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto">
-                    {Array.isArray(savedNFEs) ? (
-                      savedNFEs.length > 0 ? (
-                        savedNFEs.map((nfe) => (
-                          <button
-                            key={nfe.id}
-                            onClick={() => handleLoadNFe(nfe)}
-                            className="w-full text-left p-3 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-colors group"
-                          >
-                            <div className="font-medium text-slate-900 group-hover:text-blue-700 truncate">
-                              {nfe.fornecedor}
-                            </div>
-                            <div className="text-sm text-slate-600 flex items-center justify-between">
-                              <span>NF-e {nfe.numero}</span>
-                              <span className="text-xs bg-slate-100 px-2 py-1 rounded">
-                                {nfe.itens} itens
-                              </span>
-                            </div>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="text-center py-4 text-slate-500">
-                          Nenhuma NF-e salva ainda
-                        </div>
-                      )
-                    ) : (
-                      <div className="text-center py-4 text-slate-500">
-                        Carregando NF-es...
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Conteúdo principal */}
-            <div className="flex-1 space-y-8">
-              <div className="text-center">
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 text-blue-700 text-sm font-medium mb-4">
-                  <Info size={16} />
-                  <span>Importador de NF-e</span>
-                </div>
-                <h1 className="text-3xl font-bold text-slate-900 mb-2">
-                  Importação de Produtos via XML
-                </h1>
-                <p className="text-slate-600 w-full max-w-2xl">
-                  Faça upload do arquivo XML da NF-e para importar
-                  automaticamente os produtos
-                </p>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
-                <div className="w-full">
-                  <Tabs
-                    defaultValue="upload"
-                    value={currentTab}
-                    onValueChange={setCurrentTab}
-                    className="w-full"
-                  >
-                    <TabsList className="grid w-full grid-cols-2 mb-6">
-                      <TabsTrigger value="upload">Upload de XML</TabsTrigger>
-                      <TabsTrigger value="pdf">Upload de PDF</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="upload">
-                      <FileUpload onFileSelect={handleFileSelect} />
-                    </TabsContent>
-
-                    <TabsContent value="pdf">
-                      <FileUploadPDF onItemsExtracted={setPdfItems} />
-                      {pdfItems.length > 0 && (
-                        <div className="mt-8">
-                          <h2 className="text-xl font-bold mb-4 text-center">
-                            Produtos extraídos do PDF
-                          </h2>
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-                              <thead>
-                                <tr>
-                                  <th className="px-4 py-2 border">Item</th>
-                                  <th className="px-4 py-2 border">
-                                    Descrição
-                                  </th>
-                                  <th className="px-4 py-2 border">
-                                    Quantidade
-                                  </th>
-                                  <th className="px-4 py-2 border">
-                                    Total Bruto
-                                  </th>
-                                  <th className="px-4 py-2 border">
-                                    Total Líquido
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {pdfItems.map((item, idx) => (
-                                  <tr key={idx}>
-                                    <td className="px-4 py-2 border">
-                                      {item.item}
-                                    </td>
-                                    <td className="px-4 py-2 border">
-                                      {item.descricao}
-                                    </td>
-                                    <td className="px-4 py-2 border">
-                                      {item.quantidade}
-                                    </td>
-                                    <td className="px-4 py-2 border">
-                                      {item.totalBruto}
-                                    </td>
-                                    <td className="px-4 py-2 border">
-                                      {item.totalLiquido}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      )}
-                    </TabsContent>
-                  </Tabs>
-                </div>
-              </div>
+          <div className="text-center space-y-6">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 text-blue-700 text-sm font-medium">
+              <Info size={16} />
+              <span>Importador de NF-e</span>
             </div>
+            <UploadPanel onFileSelect={handleFileSelect} />
           </div>
         )}
 
@@ -692,123 +556,73 @@ const Index = () => {
         )}
 
         {products.length > 0 && (
-          <div className="w-full animate-fade-up">
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center gap-2">
-                {isEditingBrand ? (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={brandName}
-                      onChange={(e) => setBrandName(e.target.value)}
-                      className="w-96 text-base font-medium"
-                      autoFocus
-                      onBlur={() => handleBrandNameChange(brandName)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleBrandNameChange(brandName);
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-xl font-medium">
-                      {brandName}
-                      {invoiceNumber && `: ${invoiceNumber}`}
-                    </h1>
-                    <button
-                      onClick={() => setIsEditingBrand(true)}
-                      className="text-gray-400 hover:text-gray-600"
-                    >
-                      <Edit2 size={14} />
-                    </button>
-                  </div>
-                )}
-              </div>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              {isEditingBrand ? (
+                <Input
+                  value={brandName}
+                  onChange={(e) => setBrandName(e.target.value)}
+                  className="w-96 text-base font-medium"
+                  autoFocus
+                  onBlur={() => setIsEditingBrand(false)}
+                  onKeyDown={(e) => e.key === 'Enter' && setIsEditingBrand(false)}
+                />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-medium">
+                    {brandName}
+                    {invoiceNumber && `: ${invoiceNumber}`}
+                  </h1>
+                  <button onClick={() => setIsEditingBrand(true)} className="text-gray-400 hover:text-gray-600">
+                    <Edit2 size={14} />
+                  </button>
+                </div>
+              )}
 
-              <div className="flex items-center gap-2">
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2 text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 size={16} />
-                      Excluir NF
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Excluir Nota Fiscal</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Tem certeza que deseja excluir esta nota fiscal? Esta
-                        ação não pode ser desfeita.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={handleDeleteCurrentNFe}
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        Excluir
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center gap-2 text-red-600 hover:text-red-700">
+                    <Trash2 size={16} />
+                    Excluir NF
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir Nota Fiscal</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Tem certeza que deseja excluir esta nota fiscal? Esta ação não pode ser desfeita.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteCurrentNFe} className="bg-red-600 hover:bg-red-700">
+                      Excluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
 
             <ProductPreview
               products={products}
               hiddenItemIds={hiddenItems}
-              onToggleVisibilityById={(id) => {
-                // Calcula o PRÓXIMO conjunto uma única vez e usa tanto local quanto servidor
-                let nextArray: string[] = [];
-                setHiddenItems((prev) => {
-                  const next = new Set(prev);
-                  if (next.has(id)) {
-                    next.delete(id);
-                  } else {
-                    next.add(id);
-                  }
-                  nextArray = Array.from(next);
-                  // Persistência local imediata para resistir a refresh
-                  if (storageKey) {
-                    try {
-                      localStorage.setItem(
-                        storageKey,
-                        JSON.stringify(nextArray),
-                      );
-                    } catch (err) {
-                      console.error(err);
-                    }
-                  }
-                  return next;
-                });
-
-                if (currentNFeId) {
-                  updateHiddenItems(currentNFeId, nextArray);
-                  // Refrescar lista do servidor para refletir o novo estado
-                  loadNFEs();
-                }
-              }}
+              onToggleVisibilityById={toggleHiddenById}
               onNewFile={() => {
                 setProducts([]);
                 setCurrentNFeId(null);
                 setInvoiceNumber('');
                 setBrandName('');
                 setIsEditingBrand(false);
-                setXmlContentForDataSystem(null);
-                setCurrentTab('upload');
+                setHiddenItems(new Set());
               }}
               xapuriMarkup={xapuriMarkup}
               epitaMarkup={epitaMarkup}
               impostoEntrada={impostoEntrada}
               roundingType={roundingType}
-              onXapuriMarkupChange={handleXapuriMarkupChange}
-              onEpitaMarkupChange={handleEpitaMarkupChange}
-              onImpostoEntradaChange={handleImpostoEntradaChange}
-              onRoundingTypeChange={handleRoundingTypeChange}
+              onXapuriMarkupChange={(v) => setPendingChanges((p) => ({ ...p, xapuriMarkup: v }))}
+              onEpitaMarkupChange={(v) => setPendingChanges((p) => ({ ...p, epitaMarkup: v }))}
+              onImpostoEntradaChange={(v) => setPendingChanges((p) => ({ ...p, impostoEntrada: v }))}
+              onRoundingTypeChange={(v) => setPendingChanges((p) => ({ ...p, roundingType: v }))}
             />
           </div>
         )}
