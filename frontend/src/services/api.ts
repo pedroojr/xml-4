@@ -1,11 +1,15 @@
 import axios from 'axios';
 
-// Detecta automaticamente a API no mesmo domínio do site em produção
+// Base URL da API: prioriza VITE_API_URL para permitir backend em outro domínio
 const API_BASE_URL = (() => {
+  const envUrl = import.meta.env.VITE_API_URL as string | undefined;
+  if (envUrl && envUrl.trim().length > 0) {
+    return envUrl.replace(/\/$/, ''); // remove barra final, se houver
+  }
   if (typeof window !== 'undefined' && window.location) {
     return `${window.location.origin}/api`;
   }
-  return import.meta.env.VITE_API_URL || 'http://localhost:4005/api';
+  return 'http://localhost:4005/api';
 })();
 const DEBUG = import.meta.env.VITE_DEBUG === 'true';
 
@@ -22,7 +26,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     if (DEBUG) {
-      console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+      console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
     }
     return config;
   },
