@@ -2,7 +2,7 @@ import axios, { AxiosError, AxiosResponse } from 'axios';
 
 // Configuração da API
 const API_BASE_URL = import.meta.env.PROD 
-  ? 'https://your-production-api.com/api' 
+  ? 'https://xml.lojasrealce.shop/api' 
   : 'http://localhost:3010/api';
 
 const api = axios.create({
