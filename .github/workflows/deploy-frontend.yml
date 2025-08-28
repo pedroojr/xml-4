@@ -34,9 +34,13 @@ jobs:
           pwd
           echo $PWD
           ls -la
-          npm run build:prod
+          vite build --mode production
           ls -la
           ls -la dist/
+          cat dist/index.html
+          npm run preview &
+          sleep 5
+          curl -I http://localhost:4173
           find . -type f -name "*.html"
           find . -type f -name "*.js"
           find . -type f -name "*.css"
