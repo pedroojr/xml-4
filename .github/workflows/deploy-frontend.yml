@@ -34,7 +34,7 @@ jobs:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
         run: |
           cp .env.production .env
-          npm run build
+          npm run build:prod
 
       - name: Clean target directory
         uses: appleboy/ssh-action@v1.0.0
