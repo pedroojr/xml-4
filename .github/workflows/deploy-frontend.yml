@@ -26,6 +26,7 @@ jobs:
           npm install -g vite
           npm install -g @vitejs/plugin-react
           npm install -g typescript
+          npm install -g @types/node
 
       - name: Build
         working-directory: frontend
@@ -33,7 +34,7 @@ jobs:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
         run: |
           cp .env.production .env
-          vite build --mode production --debug
+          npm run build
 
       - name: Clean target directory
         uses: appleboy/ssh-action@v1.0.0
