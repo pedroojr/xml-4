@@ -57,6 +57,7 @@ jobs:
           username: ${{ secrets.SFTP_USERNAME }}
           password: ${{ secrets.SFTP_PASSWORD }}
           port: ${{ secrets.SFTP_PORT }}
-          source: "frontend/dist/"
+          source: "frontend/dist/*"
           target: /home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/
+          rm: true
           strip_components: 2
