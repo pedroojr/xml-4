@@ -24,6 +24,14 @@ jobs:
           npm cache clean --force
           npm ci --legacy-peer-deps
           npm install -g terser
+          npm install -g @vitejs/plugin-react
+          npm install -g rollup
+          npm install -g esbuild
+          npm install -g postcss
+          npm install -g autoprefixer
+          npm install -g tailwindcss
+          npm install -g @tailwindcss/typography
+          npm install -g tailwindcss-animate
           npm ls
 
       - name: Build
@@ -35,7 +43,6 @@ jobs:
           cp .env.production .env
           cat .env
           npm run deploy:production
-          npm run preview
 
       - name: Clean target directory
         uses: appleboy/ssh-action@v1.0.3
