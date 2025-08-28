@@ -25,7 +25,7 @@ export const useNFEStorage = () => {
 
   const checkDuplicateNFE = (chaveNFE: string | undefined): boolean => {
     if (!chaveNFE) return false;
-    return savedNFEs.some(nfe => nfe.chaveNFE === chaveNFE);
+    return Array.isArray(savedNFEs) ? savedNFEs.some(nfe => nfe.chaveNFE === chaveNFE) : false;
   };
 
   const saveNFE = async (nfe: NFE) => {
@@ -33,7 +33,7 @@ export const useNFEStorage = () => {
       // Verifica se já existe uma nota com a mesma chave
       if (nfe.chaveNFE && checkDuplicateNFE(nfe.chaveNFE)) {
         // Se for uma atualização da mesma nota (mesmo ID), permite
-        const existingNFE = savedNFEs.find(saved => saved.id === nfe.id);
+        const existingNFE = Array.isArray(savedNFEs) ? savedNFEs.find(saved => saved.id === nfe.id) : undefined;
         if (!existingNFE) {
           throw new Error('Esta nota fiscal já foi cadastrada anteriormente');
         }
@@ -62,7 +62,7 @@ export const useNFEStorage = () => {
 
   const toggleFavorite = async (id: string) => {
     try {
-      const nfe = savedNFEs.find(n => n.id === id);
+      const nfe = Array.isArray(savedNFEs) ? savedNFEs.find(n => n.id === id) : undefined;
       if (nfe) {
         await updateNFE(id, { isFavorite: !nfe.isFavorite });
       }
@@ -87,7 +87,7 @@ export const useNFEStorage = () => {
 
   const updateProdutoCustoExtra = async (nfeId: string, produtoCodigo: string, custoExtra: number) => {
     try {
-      const nfe = savedNFEs.find(n => n.id === nfeId);
+      const nfe = Array.isArray(savedNFEs) ? savedNFEs.find(n => n.id === nfeId) : undefined;
       if (nfe) {
         const updatedProdutos = nfe.produtos.map(produto =>
           produto.codigo === produtoCodigo
@@ -106,7 +106,7 @@ export const useNFEStorage = () => {
 
   const updateProdutoFreteProporcional = async (nfeId: string, produtoCodigo: string, freteProporcional: number) => {
     try {
-      const nfe = savedNFEs.find(n => n.id === nfeId);
+      const nfe = Array.isArray(savedNFEs) ? savedNFEs.find(n => n.id === nfeId) : undefined;
       if (nfe) {
         const updatedProdutos = nfe.produtos.map(produto =>
           produto.codigo === produtoCodigo
@@ -136,4 +136,4 @@ export const useNFEStorage = () => {
     updateProdutoFreteProporcional,
     loadNFEs,
   };
-}; 
+};

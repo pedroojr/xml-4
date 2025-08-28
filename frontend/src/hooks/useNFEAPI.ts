@@ -29,7 +29,13 @@ export const useNFEAPI = () => {
     setError(null);
     try {
       const result = await nfeAPI.save(nfe);
-      await loadNFEs(); // Recarregar lista
+      // Adicionar NFE à lista local em vez de recarregar tudo
+      if (result.nfe) {
+        setNfes(prev => [...prev, result.nfe]);
+      } else {
+        // Fallback: recarregar apenas se não tiver a NFE no resultado
+        await loadNFEs();
+      }
       toast.success(result.message);
       return result;
     } catch (err) {
@@ -48,7 +54,13 @@ export const useNFEAPI = () => {
     setError(null);
     try {
       const result = await nfeAPI.update(id, data);
-      await loadNFEs(); // Recarregar lista
+      // Atualizar NFE na lista local em vez de recarregar tudo
+      if (result.nfe) {
+        setNfes(prev => prev.map(nfe => nfe.id === id ? result.nfe : nfe));
+      } else {
+        // Fallback: recarregar apenas se não tiver a NFE no resultado
+        await loadNFEs();
+      }
       toast.success(result.message);
       return result;
     } catch (err) {
@@ -67,7 +79,8 @@ export const useNFEAPI = () => {
     setError(null);
     try {
       const result = await nfeAPI.delete(id);
-      await loadNFEs(); // Recarregar lista
+      // Remover NFE da lista local em vez de recarregar tudo
+      setNfes(prev => prev.filter(nfe => nfe.id !== id));
       toast.success(result.message);
       return result;
     } catch (err) {
@@ -78,7 +91,7 @@ export const useNFEAPI = () => {
     } finally {
       setLoading(false);
     }
-  }, [loadNFEs]);
+  }, []);
 
   // Carregar NFE por ID
   const loadNFEById = useCallback(async (id: string) => {
@@ -112,4 +125,4 @@ export const useNFEAPI = () => {
     deleteNFE,
     loadNFEById,
   };
-}; 
+};

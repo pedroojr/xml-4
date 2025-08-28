@@ -12,7 +12,7 @@ export const ServerStatus = () => {
   const checkStatus = async () => {
     setStatus('checking');
     try {
-      const result = await statusAPI.getStatus();
+      const result = await statusAPI.check();
       setStatus('online');
       setLastCheck(new Date());
     } catch (error) {
@@ -25,8 +25,8 @@ export const ServerStatus = () => {
   useEffect(() => {
     checkStatus();
     
-    // Verificar status a cada 30 segundos
-    const interval = setInterval(checkStatus, 30000);
+    // Verificar status a cada 60 segundos
+    const interval = setInterval(checkStatus, 60000);
     
     return () => clearInterval(interval);
   }, []);
@@ -104,4 +104,4 @@ export const ServerStatus = () => {
       )}
     </div>
   );
-}; 
+};

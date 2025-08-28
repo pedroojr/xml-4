@@ -33,29 +33,29 @@ const Dashboard = () => {
   const [periodoSelecionado, setPeriodoSelecionado] = useState('mes');
 
   // Cálculos dos totais com verificações de segurança
-  const totalNotas = savedNFEs.length;
-  const totalProdutos = savedNFEs.reduce((acc, nfe) => acc + (Array.isArray(nfe.produtos) ? nfe.produtos.length : 0), 0);
-  const quantidadeTotal = savedNFEs.reduce((acc, nfe) => 
-    acc + (Array.isArray(nfe.produtos) ? nfe.produtos.reduce((sum, prod) => sum + (Number(prod.quantity) || 0), 0) : 0), 0);
-  const valorTotal = savedNFEs.reduce((acc, nfe) => acc + (Number(nfe.valor) || 0), 0);
+  const totalNotas = Array.isArray(savedNFEs) ? savedNFEs.length : 0;
+  const totalProdutos = Array.isArray(savedNFEs) ? savedNFEs.reduce((acc, nfe) => acc + (Array.isArray(nfe.produtos) ? nfe.produtos.length : 0), 0) : 0;
+  const quantidadeTotal = Array.isArray(savedNFEs) ? savedNFEs.reduce((acc, nfe) => 
+    acc + (Array.isArray(nfe.produtos) ? nfe.produtos.reduce((sum, prod) => sum + (Number(prod.quantity) || 0), 0) : 0), 0) : 0;
+  const valorTotal = Array.isArray(savedNFEs) ? savedNFEs.reduce((acc, nfe) => acc + (Number(nfe.valor) || 0), 0) : 0;
   const totalImpostos = valorTotal * 0.17; // 17% de impostos
-  const notasFavoritas = savedNFEs.filter(nfe => nfe.isFavorite).length;
+  const notasFavoritas = Array.isArray(savedNFEs) ? savedNFEs.filter(nfe => nfe.isFavorite).length : 0;
 
   // Cálculo do volume de compras por fornecedor
-  const volumePorFornecedor = savedNFEs.reduce((acc: any, nfe) => {
+  const volumePorFornecedor = Array.isArray(savedNFEs) ? savedNFEs.reduce((acc: any, nfe) => {
     const fornecedorNome = nfe.fornecedor || 'Fornecedor não especificado';
     if (!acc[fornecedorNome]) {
       acc[fornecedorNome] = {
         valor: 0,
         itens: 0,
         performance: 0,
-        crescimento: Math.random() * 20 - 10 // Simulação de crescimento (-10% a +10%)
+        crescimento: 0 // Será calculado baseado em dados reais quando houver histórico
       };
     }
     acc[fornecedorNome].valor += Number(nfe.valor) || 0;
     acc[fornecedorNome].itens += Number(nfe.itens) || 0;
     return acc;
-  }, {});
+  }, {}) : {};
 
   // Convertendo para array e ordenando por valor
   const fornecedoresOrdenados = Object.entries(volumePorFornecedor)
@@ -85,13 +85,13 @@ const Dashboard = () => {
     navigate(`/nfe/${nfeId}`);
   };
 
-  const formattedNFEs = savedNFEs.map(nfe => ({
+  const formattedNFEs = Array.isArray(savedNFEs) ? savedNFEs.map(nfe => ({
     id: nfe.id,
     numero: nfe.numero,
     fornecedor: nfe.fornecedor,
     dataEmissao: nfe.data,
     quantidadeItens: Array.isArray(nfe.produtos) ? nfe.produtos.length : 0
-  }));
+  })) : [];
 
   return (
     <div className="w-full p-4 space-y-6">
@@ -142,10 +142,11 @@ const Dashboard = () => {
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              <div className="flex items-center mt-2 text-xs">
-                <ArrowUpRight className="w-3 h-3 text-green-500 mr-1" />
-                <span className="text-green-600">+5% em relação ao mês anterior</span>
-              </div>
+              {totalNotas > 0 && (
+                <div className="flex items-center mt-2 text-xs">
+                  <span className="text-gray-600">Baseado em {totalNotas} nota{totalNotas !== 1 ? 's' : ''} processada{totalNotas !== 1 ? 's' : ''}</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -171,10 +172,11 @@ const Dashboard = () => {
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              <div className="flex items-center mt-2 text-xs">
-                <ArrowUpRight className="w-3 h-3 text-green-500 mr-1" />
-                <span className="text-green-600">+12% em relação ao mês anterior</span>
-              </div>
+              {totalProdutos > 0 && (
+                <div className="flex items-center mt-2 text-xs">
+                  <span className="text-gray-600">Distribuídos em {totalNotas} nota{totalNotas !== 1 ? 's' : ''}</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -191,10 +193,11 @@ const Dashboard = () => {
                 <span className="text-2xl font-bold">{quantidadeTotal}</span>
                 <span className="text-xs text-muted-foreground ml-2">Unidades</span>
               </div>
-              <div className="flex items-center mt-2 text-xs">
-                <ArrowDownRight className="w-3 h-3 text-red-500 mr-1" />
-                <span className="text-red-600">-3% em relação ao mês anterior</span>
-              </div>
+              {quantidadeTotal > 0 && (
+                <div className="flex items-center mt-2 text-xs">
+                  <span className="text-gray-600">Média de {(quantidadeTotal / Math.max(totalProdutos, 1)).toFixed(1)} por produto</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -210,10 +213,11 @@ const Dashboard = () => {
                 <DollarSign className="w-4 h-4 text-purple-500 mr-2" />
                 <span className="text-2xl font-bold">{formatCurrency(valorTotal)}</span>
               </div>
-              <div className="flex items-center mt-2 text-xs">
-                <ArrowUpRight className="w-3 h-3 text-green-500 mr-1" />
-                <span className="text-green-600">+8% em relação ao mês anterior</span>
-              </div>
+              {valorTotal > 0 && (
+                <div className="flex items-center mt-2 text-xs">
+                  <span className="text-gray-600">Média de {formatCurrency(valorTotal / Math.max(totalNotas, 1))} por nota</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -227,10 +231,11 @@ const Dashboard = () => {
                 <span className="text-2xl font-bold">{formatCurrency(totalImpostos)}</span>
                 <span className="text-xs text-muted-foreground ml-2">17% do valor</span>
               </div>
-              <div className="flex items-center mt-2 text-xs">
-                <ArrowUpRight className="w-3 h-3 text-green-500 mr-1" />
-                <span className="text-green-600">+8% em relação ao mês anterior</span>
-              </div>
+              {totalImpostos > 0 && (
+                <div className="flex items-center mt-2 text-xs">
+                  <span className="text-gray-600">Estimativa baseada em 17% do valor total</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -243,10 +248,11 @@ const Dashboard = () => {
                 <Bookmark className="w-4 h-4 text-yellow-500 mr-2" />
                 <span className="text-2xl font-bold">{notasFavoritas}</span>
               </div>
-              <div className="flex items-center mt-2 text-xs">
-                <ArrowUpRight className="w-3 h-3 text-green-500 mr-1" />
-                <span className="text-green-600">+2 novas este mês</span>
-              </div>
+              {notasFavoritas > 0 && (
+                <div className="flex items-center mt-2 text-xs">
+                  <span className="text-gray-600">{((notasFavoritas / Math.max(totalNotas, 1)) * 100).toFixed(1)}% das notas marcadas</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -379,19 +385,19 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="bg-white">
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Evolução Mensal</h3>
+            <h3 className="text-lg font-semibold mb-4">Resumo Atual</h3>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span>Valor Total</span>
-                <span className="text-green-600">+8%</span>
+                <span className="font-medium">{formatCurrency(valorTotal)}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span>Quantidade de Notas</span>
-                <span className="text-green-600">+5%</span>
+                <span className="font-medium">{totalNotas}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span>Média por Nota</span>
-                <span className="text-red-600">-3%</span>
+                <span className="font-medium">{totalNotas > 0 ? formatCurrency(valorTotal / totalNotas) : 'R$ 0,00'}</span>
               </div>
             </div>
           </CardContent>
@@ -427,20 +433,46 @@ const Dashboard = () => {
 
         <Card className="bg-white">
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Produtos em Alta</h3>
+            <h3 className="text-lg font-semibold mb-4">Produtos Mais Frequentes</h3>
             <div className="space-y-4">
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <div className="font-medium">Calça Jeans Skinny</div>
-                <div className="text-sm text-gray-600">150 unidades • +25%</div>
-              </div>
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <div className="font-medium">Camiseta Básica</div>
-                <div className="text-sm text-gray-600">200 unidades • +18%</div>
-              </div>
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <div className="font-medium">Vestido Floral</div>
-                <div className="text-sm text-gray-600">80 unidades • +15%</div>
-              </div>
+              {(() => {
+                // Calcular produtos mais frequentes baseado nas NFEs
+                const produtoCount = Array.isArray(savedNFEs) ? savedNFEs.reduce((acc: any, nfe) => {
+                  if (Array.isArray(nfe.produtos)) {
+                    nfe.produtos.forEach(produto => {
+                      const nome = produto.name || produto.description || 'Produto sem nome';
+                      if (!acc[nome]) {
+                        acc[nome] = { count: 0, totalQty: 0 };
+                      }
+                      acc[nome].count += 1;
+                      acc[nome].totalQty += Number(produto.quantity) || 0;
+                    });
+                  }
+                  return acc;
+                }, {}) : {};
+                
+                const topProdutos = Object.entries(produtoCount)
+                  .map(([nome, dados]: [string, any]) => ({ nome, ...dados }))
+                  .sort((a, b) => b.count - a.count)
+                  .slice(0, 3);
+                
+                if (topProdutos.length === 0) {
+                  return (
+                    <div className="text-center text-gray-500 py-4">
+                      Nenhum produto encontrado nas NFEs
+                    </div>
+                  );
+                }
+                
+                return topProdutos.map((produto, index) => (
+                  <div key={index} className="p-3 bg-gray-50 rounded-lg">
+                    <div className="font-medium">{produto.nome}</div>
+                    <div className="text-sm text-gray-600">
+                      {produto.totalQty} unidades • {produto.count} ocorrência{produto.count !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+                ));
+              })()}
             </div>
           </CardContent>
         </Card>
@@ -454,4 +486,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard; 
+export default Dashboard;

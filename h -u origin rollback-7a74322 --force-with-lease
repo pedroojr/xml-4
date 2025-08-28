@@ -1,0 +1,3 @@
+[33mf30ee7e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mrollback-7a74322[m[33m)[m fix(frontend): resolve bug produtos não aparecem após importação XML
+[33m5e9e79d[m fix(frontend): add null safety checks to prevent TypeError on undefined NFE objects
+[33m421e720[m fix(frontend): resolve type conflicts NFE/Product; add debug logs for hiddenItems loading

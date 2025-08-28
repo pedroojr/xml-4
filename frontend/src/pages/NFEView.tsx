@@ -11,7 +11,7 @@ const NFEView = () => {
   const navigate = useNavigate();
   const { savedNFEs } = useNFEStorage();
 
-  const nfe = savedNFEs.find(nfe => nfe.id === id);
+  const nfe = Array.isArray(savedNFEs) ? savedNFEs.find(nfe => nfe.id === id) : undefined;
 
   if (!nfe) {
     return (
@@ -140,4 +140,4 @@ const NFEView = () => {
   );
 };
 
-export default NFEView; 
+export default NFEView;

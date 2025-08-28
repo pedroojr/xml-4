@@ -7,7 +7,7 @@ const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_URL || 'https://seu-dominio.com/api';
   }
   // Se estiver em desenvolvimento, usar local
-  return import.meta.env.VITE_API_URL || 'http://localhost:3003/api';
+  return import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -146,4 +146,4 @@ export const statusAPI = {
   },
 };
 
-export default api; 
+export default api;

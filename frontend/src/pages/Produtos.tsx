@@ -35,7 +35,7 @@ const Produtos = () => {
 
   // Extrair todos os produtos das NFEs
   const allProducts = React.useMemo(() => {
-    return savedNFEs.reduce((acc: any[], nfe) => {
+    return Array.isArray(savedNFEs) ? savedNFEs.reduce((acc: any[], nfe) => {
       const nfeProdutos = nfe.produtos.map(produto => ({
         ...produto,
         nfeId: nfe.id,
@@ -44,7 +44,7 @@ const Produtos = () => {
         impostoEntrada: nfe.impostoEntrada
       }));
       return [...acc, ...nfeProdutos];
-    }, []);
+    }, []) : [];
   }, [savedNFEs]);
 
   // Filtrar produtos baseado na busca e configurações
@@ -258,4 +258,4 @@ const Produtos = () => {
   );
 };
 
-export default Produtos; 
+export default Produtos;

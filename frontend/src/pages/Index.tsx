@@ -182,7 +182,7 @@ const Index = () => {
         {products.length === 0 && (
           <div className="w-full flex gap-8">
             {/* Sidebar com notas importadas */}
-            {savedNFEs.length > 0 && (
+            {Array.isArray(savedNFEs) && savedNFEs.length > 0 && (
               <div className="w-80 flex-shrink-0">
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-8">
                   <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
