@@ -84,6 +84,22 @@ const CellContent: React.FC<{
   );
 };
 
+// Formata quantidade sem separador de milhar e com até 4 casas decimais
+const formatQuantity = (qtd: number): string => {
+  try {
+    // Alguns navegadores não aceitam useGrouping em NumberFormat com TS estrito
+    const fmt = new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 4,
+      // @ts-ignore
+      useGrouping: false,
+    });
+    return fmt.format(Number.isFinite(qtd) ? qtd : 0);
+  } catch {
+    return String(qtd);
+  }
+};
+
 const ColumnFilterButton: React.FC<{
   column: Column;
   values: string[];
@@ -697,6 +713,10 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                     let value: any = column.getValue ? 
                       column.getValue(product) : 
                       product[column.id as keyof Product];
+                    // Quantidade deve aparecer sem separador de milhar
+                    if (column.id === 'quantity') {
+                      value = formatQuantity(Number(value));
+                    }
                     if (column.id === 'xapuriPrice') {
                       const custoExtra = parseFloat(custoExtraMap[product.codigo] || '0') || 0;
                       const custoLiquido = calculateCustoLiquido(product, impostoEntrada);
