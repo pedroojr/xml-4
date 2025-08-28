@@ -31,10 +31,8 @@ jobs:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
           NODE_ENV: production
         run: |
-          cp .env.production .env
-          cat .env
-          npm run build
-          ls -la dist/
+          npm run build -- --mode production
+          find frontend/dist -type f -exec ls -l {} \;
 
       - name: Clean target directory
         uses: appleboy/ssh-action@v1.0.3
@@ -44,7 +42,7 @@ jobs:
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
             rm -rf /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/*
-            ls -la /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/
+            find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -exec ls -l {} \;
 
       - name: Upload files
         uses: appleboy/scp-action@v0.1.7
@@ -64,4 +62,4 @@ jobs:
           username: ${{ secrets.HOSTINGER_USERNAME }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
-            ls -la /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/
+            find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -exec ls -l {} \;
