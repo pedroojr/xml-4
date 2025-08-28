@@ -45,6 +45,20 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Helpers para sanitização de entrada
+const toNumber = (val) => {
+  if (val === null || val === undefined) return 0;
+  if (typeof val === 'number' && Number.isFinite(val)) return val;
+  const str = String(val).replace(/[^\d,.-]/g, '').replace(',', '.');
+  const n = parseFloat(str);
+  return Number.isFinite(n) ? n : 0;
+};
+const toText = (val, fallback = '') => {
+  if (val === null || val === undefined) return fallback;
+  const s = String(val);
+  return s.length ? s : fallback;
+};
+
 // Configuração do upload
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -180,13 +194,46 @@ app.get('/api/nfes/:id', (req, res) => {
 // POST - Criar nova NFE
 app.post('/api/nfes', (req, res) => {
   try {
-    const { id, data, numero, chaveNFE, fornecedor, valor, itens, produtos, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete } = req.body;
+    const { id, data, numero, chaveNFE, fornecedor, valor, itens, produtos, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete, hiddenItems, showHidden } = req.body || {};
+
+    if (!id || !data || !numero || !fornecedor) {
+      return res.status(400).json({ error: 'Campos obrigatórios ausentes (id, data, numero, fornecedor)' });
+    }
+
+    // Sanitiza produtos
+    const safeProdutos = Array.isArray(produtos) ? produtos.map(p => ({
+      codigo: toText(p?.codigo, ''),
+      descricao: toText(p?.descricao, ''),
+      ncm: toText(p?.ncm, ''),
+      cfop: toText(p?.cfop, ''),
+      unidade: toText(p?.unidade, ''),
+      quantidade: toNumber(p?.quantidade),
+      valorUnitario: toNumber(p?.valorUnitario ?? p?.unitPrice),
+      valorTotal: toNumber(p?.valorTotal ?? p?.totalPrice),
+      baseCalculoICMS: toNumber(p?.baseCalculoICMS),
+      valorICMS: toNumber(p?.valorICMS),
+      aliquotaICMS: toNumber(p?.aliquotaICMS),
+      baseCalculoIPI: toNumber(p?.baseCalculoIPI),
+      valorIPI: toNumber(p?.valorIPI),
+      aliquotaIPI: toNumber(p?.aliquotaIPI),
+      ean: toText(p?.ean, ''),
+      reference: toText(p?.reference, ''),
+      brand: toText(p?.brand, ''),
+      imageUrl: toText(p?.imageUrl, ''),
+      descricao_complementar: toText(p?.descricao_complementar, ''),
+      custoExtra: toNumber(p?.custoExtra),
+      freteProporcional: toNumber(p?.freteProporcional),
+    })) : [];
+
+    const safeValor = toNumber(valor);
+    const safeItens = toNumber(itens);
     
     const insertNFE = db.prepare(`
       INSERT OR REPLACE INTO nfes (
         id, data, numero, chaveNFE, fornecedor, valor, itens, 
-        impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete,
+        hiddenItems, showHidden
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
     const insertProduto = db.prepare(`
@@ -203,17 +250,18 @@ app.post('/api/nfes', (req, res) => {
     db.transaction(() => {
       // Inserir/atualizar NFE
       insertNFE.run(
-        id, data, numero, chaveNFE, fornecedor, valor, itens,
+        id, data, numero, chaveNFE ?? null, fornecedor, safeValor, safeItens,
         impostoEntrada || 12, xapuriMarkup || 160, epitaMarkup || 130,
-        roundingType || 'none', valorFrete || 0
+        roundingType || 'none', valorFrete || 0,
+        JSON.stringify(hiddenItems || []), showHidden ? 1 : 0
       );
       
       // Remover produtos antigos
       deleteProdutos.run(id);
       
       // Inserir novos produtos
-      if (produtos && Array.isArray(produtos)) {
-        produtos.forEach(produto => {
+      if (safeProdutos && Array.isArray(safeProdutos)) {
+        safeProdutos.forEach(produto => {
           insertProduto.run(
             id, produto.codigo, produto.descricao, produto.ncm, produto.cfop,
             produto.unidade, produto.quantidade, produto.valorUnitario,
@@ -229,8 +277,8 @@ app.post('/api/nfes', (req, res) => {
     
     res.json({ message: 'NFE salva com sucesso', id });
   } catch (error) {
-    console.error('Erro ao salvar NFE:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('Erro ao salvar NFE:', error?.message || error);
+    res.status(500).json({ error: 'Erro interno do servidor', details: String(error?.message || error) });
   }
 });
 
@@ -238,19 +286,32 @@ app.post('/api/nfes', (req, res) => {
 app.put('/api/nfes/:id', (req, res) => {
   try {
     const { id } = req.params;
-    const { fornecedor, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete } = req.body;
+    const { fornecedor, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete, hiddenItems, showHidden } = req.body || {};
     
     const updateStmt = db.prepare(`
       UPDATE nfes SET 
-        fornecedor = ?, impostoEntrada = ?, xapuriMarkup = ?, 
-        epitaMarkup = ?, roundingType = ?, valorFrete = ?, 
+        fornecedor = COALESCE(?, fornecedor),
+        impostoEntrada = COALESCE(?, impostoEntrada),
+        xapuriMarkup = COALESCE(?, xapuriMarkup), 
+        epitaMarkup = COALESCE(?, epitaMarkup),
+        roundingType = COALESCE(?, roundingType),
+        valorFrete = COALESCE(?, valorFrete),
+        hiddenItems = COALESCE(?, hiddenItems),
+        showHidden = COALESCE(?, showHidden),
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
     
     const result = updateStmt.run(
-      fornecedor, impostoEntrada, xapuriMarkup, epitaMarkup, 
-      roundingType, valorFrete, id
+      fornecedor ?? null,
+      impostoEntrada ?? null,
+      xapuriMarkup ?? null,
+      epitaMarkup ?? null,
+      roundingType ?? null,
+      valorFrete ?? null,
+      JSON.stringify(hiddenItems ?? null),
+      showHidden !== undefined ? (showHidden ? 1 : 0) : null,
+      id
     );
     
     if (result.changes === 0) {
@@ -259,8 +320,8 @@ app.put('/api/nfes/:id', (req, res) => {
     
     res.json({ message: 'NFE atualizada com sucesso' });
   } catch (error) {
-    console.error('Erro ao atualizar NFE:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('Erro ao atualizar NFE:', error?.message || error);
+    res.status(500).json({ error: 'Erro interno do servidor', details: String(error?.message || error) });
   }
 });
 
