@@ -34,15 +34,12 @@ jobs:
           pwd
           echo $PWD
           ls -la
-          rm -f .env.production
-          npm run build -- --mode production
+          vite build --mode production
           ls -la
           ls -la dist/
           cat dist/index.html
           find . -type f -exec file {} \;
           find . -type f -exec stat {} \;
-          find . -type f -exec md5sum {} \;
-          find . -type f -exec sha256sum {} \;
           npm run preview &
           sleep 5
           curl -I http://localhost:4173
@@ -65,8 +62,6 @@ jobs:
             ls -la /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/
             find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -exec file {} \;
             find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -exec stat {} \;
-            find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -exec md5sum {} \;
-            find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -exec sha256sum {} \;
             find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -name "*.html"
             find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -name "*.js"
             find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -name "*.css"
@@ -95,8 +90,6 @@ jobs:
             ls -la /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/
             find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -exec file {} \;
             find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -exec stat {} \;
-            find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -exec md5sum {} \;
-            find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -exec sha256sum {} \;
             find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -name "*.html"
             find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -name "*.js"
             find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -name "*.css"
