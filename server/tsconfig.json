@@ -6,7 +6,10 @@
     "esModuleInterop": true,
     "strict": false,
     "isolatedModules": true,
-    "noEmit": true
+    "rootDir": ".",
+    "outDir": "dist",
+    "allowJs": true
   },
-  "include": ["**/*.ts"]
+  "include": ["**/*.ts", "**/*.js"],
+  "exclude": ["dist", "node_modules", "**/*.test.ts", "**/*.test.js", "__tests__"]
 }
