@@ -34,7 +34,7 @@ jobs:
           pwd
           echo $PWD
           ls -la
-          npm run build
+          vite build --mode production
           ls -la
           ls -la dist/
           cat dist/index.html
