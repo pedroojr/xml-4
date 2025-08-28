@@ -1,48 +1,87 @@
-import axios from 'axios';
+import axios, { AxiosError, AxiosResponse } from 'axios';
 
-// Configuração para diferentes ambientes
-const getApiBaseUrl = () => {
-  // Se estiver em produção (Hostinger), usar API externa
-  if (import.meta.env.PROD) {
-    return import.meta.env.VITE_API_URL || 'https://seu-dominio.com/api';
-  }
-  // Se estiver em desenvolvimento, usar local
-  return import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-};
-
-const API_BASE_URL = getApiBaseUrl();
+// Configuração da API
+const API_BASE_URL = import.meta.env.PROD 
+  ? 'https://your-production-api.com/api' 
+  : 'http://localhost:3010/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Interceptor para logs
+// Tipos para tratamento de erro
+interface ApiError {
+  message: string;
+  status?: number;
+  details?: string[];
+}
+
+// Interceptador de requisição
 api.interceptors.request.use(
   (config) => {
-    console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🚀 Requisição:', config.method?.toUpperCase(), config.url);
+    }
     return config;
   },
-  (error) => {
-    console.error('❌ API Request Error:', error);
+  (error: AxiosError) => {
+    console.error('❌ Erro na requisição:', error);
     return Promise.reject(error);
   }
 );
 
+// Interceptador de resposta
 api.interceptors.response.use(
-  (response) => {
-    console.log(`✅ API Response: ${response.status} ${response.config.url}`);
+  (response: AxiosResponse) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ Resposta:', response.status, response.config.url);
+    }
     return response;
   },
-  (error) => {
-    console.error('❌ API Response Error:', error.response?.data || error.message);
-    return Promise.reject(error);
+  (error: AxiosError<ApiError>) => {
+    let errorMessage = error.response?.data?.message || error.message || 'Erro desconhecido';
+    const errorStatus = error.response?.status;
+    
+    // Mensagens mais específicas baseadas no status
+    if (errorStatus === 404) {
+      errorMessage = 'Recurso não encontrado';
+    } else if (errorStatus === 500) {
+      errorMessage = 'Erro interno do servidor. Tente novamente em alguns instantes.';
+    } else if (errorStatus === 400) {
+      errorMessage = error.response?.data?.message || 'Dados inválidos enviados';
+    } else if (errorStatus === 401) {
+      errorMessage = 'Não autorizado. Verifique suas credenciais.';
+    } else if (errorStatus === 403) {
+      errorMessage = 'Acesso negado';
+    } else if (error.code === 'ECONNABORTED') {
+      errorMessage = 'Tempo limite da requisição excedido';
+    } else if (error.code === 'ERR_NETWORK') {
+      errorMessage = 'Erro de conexão. Verifique sua internet ou se o servidor está funcionando.';
+    }
+    
+    console.error('❌ Erro na resposta:', {
+      status: errorStatus,
+      message: errorMessage,
+      url: error.config?.url,
+      code: error.code
+    });
+    
+    // Criar erro padronizado
+    const apiError: ApiError = {
+      message: errorMessage,
+      status: errorStatus,
+      details: error.response?.data?.details
+    };
+    
+    return Promise.reject(apiError);
   }
 );
 
+// Interfaces
 export interface NFE {
   id: string;
   data: string;
@@ -51,15 +90,17 @@ export interface NFE {
   fornecedor: string;
   valor: number;
   itens: number;
-  produtos: Product[];
-  impostoEntrada: number;
+  impostoEntrada?: number;
   xapuriMarkup?: number;
   epitaMarkup?: number;
-  roundingType?: string;
+  roundingType?: 'none' | 'up' | 'down' | 'nearest';
   valorFrete?: number;
   isFavorite?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  produtos?: Product[];
+  produtosCount?: number;
+  valorTotal?: number;
 }
 
 export interface Product {
@@ -88,62 +129,157 @@ export interface Product {
   freteProporcional?: number;
 }
 
+export interface ApiResponse<T> {
+  data?: T;
+  message?: string;
+  error?: string;
+}
+
+export interface UploadResponse {
+  message: string;
+  filename?: string;
+  size?: number;
+  content?: string;
+}
+
+// Validação de dados
+const validateNFE = (nfe: Partial<NFE>): string[] => {
+  const errors: string[] = [];
+  
+  if (!nfe.id?.trim()) errors.push('ID é obrigatório');
+  if (!nfe.fornecedor?.trim()) errors.push('Fornecedor é obrigatório');
+  if (!nfe.numero?.trim()) errors.push('Número da NFE é obrigatório');
+  if (typeof nfe.valor !== 'number' || nfe.valor < 0) errors.push('Valor deve ser um número positivo');
+  if (typeof nfe.itens !== 'number' || nfe.itens < 0) errors.push('Quantidade de itens deve ser um número positivo');
+  
+  return errors;
+};
+
 // API de NFEs
 export const nfeAPI = {
-  // Listar todas as NFEs
+  // Buscar todas as NFEs
   getAll: async (): Promise<NFE[]> => {
-    const response = await api.get('/nfes');
-    return response.data;
+    try {
+      const response = await api.get<NFE[]>('/nfes');
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar NFEs:', error);
+      throw error;
+    }
   },
 
   // Buscar NFE por ID
   getById: async (id: string): Promise<NFE> => {
-    const response = await api.get(`/nfes/${id}`);
-    return response.data;
+    if (!id?.trim()) {
+      throw new Error('ID é obrigatório');
+    }
+    
+    try {
+      const response = await api.get<NFE>(`/nfes/${encodeURIComponent(id)}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Erro ao buscar NFE ${id}:`, error);
+      throw error;
+    }
   },
 
-  // Criar/atualizar NFE
-  save: async (nfe: NFE): Promise<{ message: string; id: string }> => {
-    const response = await api.post('/nfes', nfe);
-    return response.data;
+  // Salvar nova NFE
+  save: async (nfe: NFE): Promise<ApiResponse<{ id: string }>> => {
+    const validationErrors = validateNFE(nfe);
+    if (validationErrors.length > 0) {
+      throw new Error(`Dados inválidos: ${validationErrors.join(', ')}`);
+    }
+    
+    try {
+      const response = await api.post<ApiResponse<{ id: string }>>('/nfes', nfe);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao salvar NFE:', error);
+      throw error;
+    }
   },
 
   // Atualizar NFE
-  update: async (id: string, data: Partial<NFE>): Promise<{ message: string }> => {
-    const response = await api.put(`/nfes/${id}`, data);
-    return response.data;
+  update: async (id: string, nfe: Partial<NFE>): Promise<ApiResponse<void>> => {
+    if (!id?.trim()) {
+      throw new Error('ID é obrigatório');
+    }
+    
+    try {
+      const response = await api.put<ApiResponse<void>>(`/nfes/${encodeURIComponent(id)}`, nfe);
+      return response.data;
+    } catch (error) {
+      console.error(`Erro ao atualizar NFE ${id}:`, error);
+      throw error;
+    }
   },
 
   // Excluir NFE
-  delete: async (id: string): Promise<{ message: string }> => {
-    const response = await api.delete(`/nfes/${id}`);
-    return response.data;
+  delete: async (id: string): Promise<ApiResponse<void>> => {
+    if (!id?.trim()) {
+      throw new Error('ID é obrigatório');
+    }
+    
+    try {
+      const response = await api.delete<ApiResponse<void>>(`/nfes/${encodeURIComponent(id)}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Erro ao excluir NFE ${id}:`, error);
+      throw error;
+    }
   },
 };
 
 // API de Upload
 export const uploadAPI = {
   // Upload de arquivo XML
-  uploadXML: async (file: File): Promise<{ message: string; content: string }> => {
+  uploadXML: async (file: File): Promise<UploadResponse> => {
+    if (!file) {
+      throw new Error('Arquivo é obrigatório');
+    }
+    
+    // Validar tipo de arquivo
+    const allowedTypes = ['text/xml', 'application/xml', 'text/plain'];
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error('Apenas arquivos XML são permitidos');
+    }
+    
+    // Validar tamanho (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      throw new Error('Arquivo muito grande. Tamanho máximo: 10MB');
+    }
+    
     const formData = new FormData();
     formData.append('xml', file);
     
-    const response = await api.post('/upload-xml', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
+    try {
+      const response = await api.post<UploadResponse>('/upload-xml', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 30000, // 30 segundos para upload
+      });
+      
+      return response.data;
+    } catch (error) {
+      console.error('Erro no upload:', error);
+      throw error;
+    }
   },
 };
 
 // API de Status
 export const statusAPI = {
   // Verificar status do servidor
-  getStatus: async (): Promise<{ status: string; timestamp: string; database: string }> => {
-    const response = await api.get('/status');
-    return response.data;
+  check: async (): Promise<{ status: string; timestamp: string; database: string }> => {
+    try {
+      const response = await api.get('/status');
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao verificar status:', error);
+      throw error;
+    }
   },
 };
 
-export default api; 
+export default api;
