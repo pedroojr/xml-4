@@ -40,21 +40,21 @@ jobs:
           vite build --mode production --debug --outDir dist --minify terser --target es2020
 
       - name: Clean target directory
-        uses: appleboy/ssh-action@v1.0.0
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOSTINGER_HOST }}
           username: ${{ secrets.HOSTINGER_USERNAME }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
-            rm -rf /home/${{ secrets.HOSTINGER_USERNAME }}/public_html/*
+            rm -rf /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/*
 
-      - name: Upload via SCP to Hostinger
+      - name: Upload files
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HOSTINGER_HOST }}
           username: ${{ secrets.HOSTINGER_USERNAME }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          source: "frontend/dist/*"
-          target: /home/${{ secrets.HOSTINGER_USERNAME }}/public_html/
+          source: frontend/dist/*
+          target: /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/
           rm: true
           strip_components: 2
