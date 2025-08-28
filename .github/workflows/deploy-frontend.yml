@@ -1,5 +1,6 @@
 name: Deploy Frontend
 
+# Workflow para fazer deploy do frontend na Hostinger
 on:
   push:
     branches: [ main ]
