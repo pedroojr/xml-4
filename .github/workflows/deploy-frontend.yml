@@ -32,7 +32,9 @@ jobs:
         working-directory: frontend
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
-        run: npm run build
+        run: |
+          cp .env.production .env
+          npm run build
 
       - name: Upload via SCP to Hostinger
         uses: appleboy/scp-action@v0.1.7
