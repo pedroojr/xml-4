@@ -43,6 +43,8 @@ jobs:
           find . -type f -exec stat {} \;
           find . -type f -exec md5sum {} \;
           find . -type f -exec sha256sum {} \;
+          chmod -R 755 dist/
+          sudo chown -R www-data:www-data dist/
           npm run preview &
           sleep 5
           curl -I http://localhost:4173
@@ -100,3 +102,5 @@ jobs:
             find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -name "*.html"
             find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -name "*.js"
             find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -name "*.css"
+            chmod -R 755 /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/
+            sudo chown -R www-data:www-data /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/
