@@ -9,6 +9,7 @@ on:
       - 'frontend/**'
       - 'frontend/src/**'
       - 'frontend/src/services/**'
+      - 'frontend/.env.production'
       - '.github/workflows/deploy-frontend.yml'
 
 jobs:
