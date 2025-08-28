@@ -6,6 +6,7 @@ on:
     paths:
       - 'src/**'
       - 'frontend/**'
+      - 'frontend/src/**'
       - '.github/workflows/deploy-frontend.yml'
 
 jobs:
