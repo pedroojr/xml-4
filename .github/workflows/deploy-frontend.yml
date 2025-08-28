@@ -22,7 +22,8 @@ jobs:
       - name: Install deps
         working-directory: frontend
         run: |
-          npm ci
+          npm install -g npm@latest
+          npm ci --legacy-peer-deps
           npm install -g vite
           npm install -g @vitejs/plugin-react
           npm install -g typescript
@@ -37,7 +38,7 @@ jobs:
         run: |
           cp .env.production .env
           cat .env
-          vite build --mode production --debug --outDir dist --minify terser --target es2020
+          vite build --mode production --debug --outDir dist --minify terser --target es2020 --force
 
       - name: Clean target directory
         uses: appleboy/ssh-action@v1.0.3
