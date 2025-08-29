@@ -13,8 +13,8 @@ const NFEView = () => {
 
   const nfe = Array.isArray(savedNFEs) ? savedNFEs.find(nfe => nfe.id === id) : undefined;
 
-  // Verifica se a NFE existe e tem a propriedade produtos definida
-  if (!nfe || !Array.isArray(nfe.produtos)) {
+  // Verifica se a NFE existe
+  if (!nfe) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <FileText className="w-16 h-16 text-gray-300 mb-4" />
@@ -27,6 +27,9 @@ const NFEView = () => {
       </div>
     );
   }
+  
+  // Garantir que produtos seja sempre um array
+  const produtos = Array.isArray(nfe.produtos) ? nfe.produtos : [];
 
   return (
     <div className="space-y-6">
@@ -36,7 +39,7 @@ const NFEView = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar
           </Button>
-          <h1 className="text-2xl font-bold">Nota Fiscal {nfe.numero}</h1>
+          <h1 className="text-2xl font-bold">Nota Fiscal {nfe.numero || 'Sem número'}</h1>
         </div>
         <Button variant="outline" onClick={() => window.print()}>
           Imprimir / Exportar PDF
@@ -87,12 +90,12 @@ const NFEView = () => {
                   <Package2 className="w-4 h-4 text-gray-500" />
                   <span>Total de Itens:</span>
                 </div>
-                <span className="font-medium">{nfe.produtos?.length || 0}</span>
+                <span className="font-medium">{produtos.length}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span>Valor Médio por Item:</span>
                 <span className="font-medium">
-                  {formatCurrency((nfe.valor || 0) / (nfe.produtos?.length || 1))}
+                  {formatCurrency((nfe.valor || 0) / (produtos.length || 1))}
                 </span>
               </div>
             </div>
@@ -108,16 +111,16 @@ const NFEView = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {nfe.produtos?.map((produto, index) => (
+            {produtos.map((produto, index) => (
               <div
                 key={index}
                 className="p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-medium">{produto.descricao}</h3>
+                    <h3 className="font-medium">{produto.descricao || 'Sem descrição'}</h3>
                     <p className="text-sm text-gray-500">
-                      {produto.codigo} • {produto.ncm}
+                      {produto.codigo || 'Sem código'} • {produto.ncm || 'Sem NCM'}
                     </p>
                     {produto.informacoesAdicionais && (
                       <p className="text-sm text-gray-600 mt-2">
@@ -126,9 +129,9 @@ const NFEView = () => {
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="font-medium">{formatCurrency(produto.valorTotal)}</p>
+                    <p className="font-medium">{formatCurrency(produto.valorTotal || 0)}</p>
                     <p className="text-sm text-gray-500">
-                      {produto.quantidade} x {formatCurrency(produto.valorUnitario)}
+                      {produto.quantidade || 0} x {formatCurrency(produto.valorUnitario || 0)}
                     </p>
                   </div>
                 </div>
