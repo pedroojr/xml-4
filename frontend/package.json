@@ -11,7 +11,8 @@
     "build:prod": "vite build --mode production",
     "preview": "vite preview",
     "deploy:staging": "npm run build:dev && echo 'Build de desenvolvimento criado em dist/'",
-    "deploy:production": "npm run build:prod && echo 'Build de produção criado em dist/'"
+    "deploy:production": "npm run build:prod && echo 'Build de produção criado em dist/'",
+    "deploy:ftp": "npm run build:prod && node deploy-ftp.js"
   },
   "dependencies": {
     "@ant-design/icons": "^6.0.0",
@@ -82,13 +83,17 @@
     "@types/styled-components": "^5.1.34",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.21",
+    "basic-ftp": "^5.0.5",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
+    "ftp": "^0.3.10",
+    "ftp-deploy": "^2.4.7",
     "globals": "^15.9.0",
     "json-server": "^1.0.0-beta.3",
     "lovable-tagger": "^1.1.7",
     "postcss": "^8.5.3",
+    "ssh2-sftp-client": "^12.0.1",
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",
     "terser": "^5.43.1",

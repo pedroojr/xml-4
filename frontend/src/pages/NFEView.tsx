@@ -13,7 +13,8 @@ const NFEView = () => {
 
   const nfe = Array.isArray(savedNFEs) ? savedNFEs.find(nfe => nfe.id === id) : undefined;
 
-  if (!nfe) {
+  // Verifica se a NFE existe e tem a propriedade produtos definida
+  if (!nfe || !Array.isArray(nfe.produtos)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <FileText className="w-16 h-16 text-gray-300 mb-4" />

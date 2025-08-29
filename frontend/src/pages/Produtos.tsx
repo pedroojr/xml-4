@@ -36,6 +36,9 @@ const Produtos = () => {
   // Extrair todos os produtos das NFEs
   const allProducts = React.useMemo(() => {
     return Array.isArray(savedNFEs) ? savedNFEs.reduce((acc: any[], nfe) => {
+      // Verifica se a NFE tem a propriedade produtos definida e é um array
+      if (!Array.isArray(nfe.produtos)) return acc;
+      
       const nfeProdutos = nfe.produtos.map(produto => ({
         ...produto,
         nfeId: nfe.id,
