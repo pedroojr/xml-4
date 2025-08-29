@@ -13,7 +13,12 @@ export const useNFEAPI = () => {
     setError(null);
     try {
       const data = await nfeAPI.getAll();
-      setNfes(data);
+      // Garantir que cada NFE tenha a propriedade produtos como array
+      const nfesWithProducts = data.map(nfe => ({
+        ...nfe,
+        produtos: Array.isArray(nfe.produtos) ? nfe.produtos : []
+      }));
+      setNfes(nfesWithProducts);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar NFEs';
       setError(errorMessage);

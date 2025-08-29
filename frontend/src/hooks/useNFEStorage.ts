@@ -39,8 +39,14 @@ export const useNFEStorage = () => {
         }
       }
 
+      // Garantir que produtos seja sempre um array
+      const nfeWithProducts = {
+        ...nfe,
+        produtos: Array.isArray(nfe.produtos) ? nfe.produtos : []
+      };
+
       // Salva via API
-      await apiSaveNFE(nfe);
+      await apiSaveNFE(nfeWithProducts);
     } catch (error) {
       if (error instanceof Error) {
         throw error;
