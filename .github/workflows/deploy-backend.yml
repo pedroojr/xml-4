@@ -1,4 +1,4 @@
-yesname: Deploy Backend
+name: Deploy Backend
 
 on:
   push:
@@ -84,10 +84,8 @@ jobs:
             # Cria/atualiza .env com CORS e porta
             if [ -n "${FRONT_DOMAIN}" ]; then
               echo "Configurando .env com ALLOWED_ORIGINS..."
-              cat > .env <<EOF
-PORT=3001
-ALLOWED_ORIGINS=https://${FRONT_DOMAIN},https://www.${FRONT_DOMAIN},http://localhost:5173
-EOF
+              echo "PORT=3001" > .env
+              echo "ALLOWED_ORIGINS=https://${FRONT_DOMAIN},https://www.${FRONT_DOMAIN},http://localhost:5173" >> .env
             fi
 
             # Instala dependências (prod)
