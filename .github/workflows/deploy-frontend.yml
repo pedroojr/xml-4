@@ -44,7 +44,6 @@ jobs:
           port: ${{ secrets.SFTP_PORT || '22' }}
           source: "frontend/dist/*"
           target: "/home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/"
-          strip_components: 1
 
       - name: Verify deployment
         uses: appleboy/ssh-action@v1.0.3
@@ -66,5 +65,7 @@ jobs:
               head -10 "$TARGET_DIR/index.html"
             else
               echo "❌ index.html NOT found"
+              echo "Directory contents:"
+              ls -la "$TARGET_DIR"
               exit 1
             fi
