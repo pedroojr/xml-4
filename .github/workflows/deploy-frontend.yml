@@ -1,20 +1,12 @@
 name: Deploy Frontend
 
-# Workflow para fazer deploy do frontend na Hostinger
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/deploy-frontend.yml'
   workflow_dispatch:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref_name == 'main' && 'production' || github.ref_name }}
-  cancel-in-progress: true
-
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,95 +16,23 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Debug Info
-        run: |
-          echo "Node version: $(node --version)"
-          echo "NPM version: $(npm --version)"
-          echo "Working directory: $(pwd)"
-          echo "Frontend directory contents:"
-          ls -la frontend/
 
       - name: Install dependencies
         working-directory: frontend
-        run: |
-          echo "Installing dependencies..."
-          npm ci --legacy-peer-deps
-          echo "Dependencies installed successfully"
+        run: npm ci --legacy-peer-deps
 
-      - name: Build application
+      - name: Build
         working-directory: frontend
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://xml.lojasrealce.shop/api' }}
-          NODE_ENV: production
-        run: |
-          echo "Building application..."
-          echo "VITE_API_URL: $VITE_API_URL"
-          npm run build
-          echo "Build completed successfully"
-          echo "Dist directory contents:"
-          ls -la dist/
+          VITE_API_URL: https://xml.lojasrealce.shop/api
+        run: npm run build
 
-      - name: Validate build output
-        working-directory: frontend
-        run: |
-          echo "Validating build output..."
-          if [ ! -f "dist/index.html" ]; then
-            echo "ERROR: index.html not found in dist directory"
-            exit 1
-          fi
-          if [ ! -d "dist/assets" ]; then
-            echo "ERROR: assets directory not found in dist directory"
-            exit 1
-          fi
-          echo "Build validation passed"
-
-      - name: Deploy to Hostinger
+      - name: Deploy
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
-          key: ${{ secrets.SFTP_SSH_KEY }}
           password: ${{ secrets.SFTP_PASSWORD }}
-          port: ${{ secrets.SFTP_PORT || '22' }}
+          port: ${{ secrets.SFTP_PORT }}
           source: "frontend/dist/*"
           target: "/home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/"
-          strip_components: 1
-
-      - name: Verify deployment
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SFTP_HOST }}
-          username: ${{ secrets.SFTP_USERNAME }}
-          key: ${{ secrets.SFTP_SSH_KEY }}
-          password: ${{ secrets.SFTP_PASSWORD }}
-          port: ${{ secrets.SFTP_PORT || '22' }}
-          script: |
-            echo "Verifying deployment..."
-            TARGET_DIR="/home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html"
-            
-            echo "Files deployed:"
-            ls -la "$TARGET_DIR"
-            
-            # Check if critical files exist
-            if [ ! -f "$TARGET_DIR/index.html" ]; then
-              echo "ERROR: index.html not found after deployment"
-              exit 1
-            fi
-            
-            if [ ! -d "$TARGET_DIR/assets" ]; then
-              echo "ERROR: assets directory not found after deployment"
-              exit 1
-            fi
-            
-            echo "Deployment verification passed successfully!"
-
-      - name: Deployment Summary
-        run: |
-          echo "🚀 Frontend deployment completed successfully!"
-          echo "📍 Domain: ${{ secrets.FRONT_DOMAIN }}"
-          echo "🔗 URL: https://${{ secrets.FRONT_DOMAIN }}/"
-          echo "📅 Deployed at: $(date)"
-          echo "📝 Commit: ${{ github.sha }}"
