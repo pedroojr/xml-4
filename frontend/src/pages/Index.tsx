@@ -157,6 +157,7 @@ const Index = () => {
       setCurrentTab("upload");
     } catch (err) {
       console.error('Falha ao carregar NFE detalhada:', err);
+      alert('Não foi possível carregar os detalhes da nota. Verifique sua conexão e tente novamente.');
       // Fallback: tenta abrir com os dados já listados
       setProducts(Array.isArray(nfe.produtos) ? nfe.produtos : []);
       setHiddenItems(new Set());

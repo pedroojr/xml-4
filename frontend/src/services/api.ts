@@ -1,7 +1,8 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
 
 // Configuração da API
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+// Se VITE_API_URL não estiver definido, usa a URL correta da API
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://xml.lojasrealce.shop/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

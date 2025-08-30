@@ -1,4 +1,4 @@
-name: Deploy Backend
+yesname: Deploy Backend
 
 on:
   push:
@@ -19,6 +19,7 @@ jobs:
       REMOTE_API_PATH: /var/www/api
       API_DOMAIN: ${{ secrets.API_DOMAIN }}
       CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
+      FRONT_DOMAIN: ${{ secrets.FRONT_DOMAIN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -79,6 +80,15 @@ jobs:
               exit 1
             fi
             cd server
+
+            # Cria/atualiza .env com CORS e porta
+            if [ -n "${FRONT_DOMAIN}" ]; then
+              echo "Configurando .env com ALLOWED_ORIGINS..."
+              cat > .env <<EOF
+PORT=3001
+ALLOWED_ORIGINS=https://${FRONT_DOMAIN},https://www.${FRONT_DOMAIN},http://localhost:5173
+EOF
+            fi
 
             # Instala dependências (prod)
             if command -v npm >/dev/null 2>&1; then
