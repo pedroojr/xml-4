@@ -35,6 +35,25 @@ jobs:
           echo "HTML content:"
           head -20 dist/index.html
 
+      - name: Prepare remote directory (clean)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          port: ${{ secrets.SFTP_PORT || '22' }}
+          script: |
+            set -e
+            TARGET_DIR="/home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html"
+            echo "Preparing target directory: $TARGET_DIR"
+            mkdir -p "$TARGET_DIR"
+            if [ -d "$TARGET_DIR" ] && [ "$(ls -A "$TARGET_DIR" || true)" ]; then
+              echo "Cleaning target directory..."
+              rm -rf "$TARGET_DIR"/*
+            fi
+            echo "Directory ready. Contents after clean:"
+            ls -la "$TARGET_DIR"
+
       - name: Deploy via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -42,7 +61,7 @@ jobs:
           username: ${{ secrets.SFTP_USERNAME }}
           password: ${{ secrets.SFTP_PASSWORD }}
           port: ${{ secrets.SFTP_PORT || '22' }}
-          source: "frontend/dist/*"
+          source: "frontend/dist/**"
           target: "/home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/"
 
       - name: Verify deployment
@@ -55,10 +74,8 @@ jobs:
           script: |
             echo "Verifying deployment..."
             TARGET_DIR="/home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html"
-            
             echo "Files deployed:"
             ls -la "$TARGET_DIR"
-            
             if [ -f "$TARGET_DIR/index.html" ]; then
               echo "✅ index.html found"
               echo "Content preview:"
