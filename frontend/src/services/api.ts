@@ -2,8 +2,8 @@ import axios, { AxiosError, AxiosResponse } from 'axios';
 
 // Configuração da API
 const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD 
-  ? 'https://xml.lojasrealce.shop/api' 
-  : 'http://localhost:3010/api');
+  ? 'http://localhost:3011' 
+  : 'http://localhost:3011');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -160,7 +160,7 @@ export const nfeAPI = {
   // Buscar todas as NFEs
   getAll: async (): Promise<NFE[]> => {
     try {
-      const response = await api.get<NFE[]>('/nfes');
+      const response = await api.get<NFE[]>('/api/nfes');
       return response.data;
     } catch (error) {
       console.error('Erro ao buscar NFEs:', error);
@@ -175,7 +175,7 @@ export const nfeAPI = {
     }
     
     try {
-      const response = await api.get<NFE>(`/nfes/${encodeURIComponent(id)}`);
+      const response = await api.get<NFE>(`/api/nfes/${encodeURIComponent(id)}`);
       return response.data;
     } catch (error) {
       console.error(`Erro ao buscar NFE ${id}:`, error);
@@ -191,7 +191,7 @@ export const nfeAPI = {
     }
     
     try {
-      const response = await api.post<ApiResponse<{ id: string }>>('/nfes', nfe);
+      const response = await api.post<ApiResponse<{ id: string }>>('/api/nfes', nfe);
       return response.data;
     } catch (error) {
       console.error('Erro ao salvar NFE:', error);
@@ -206,7 +206,7 @@ export const nfeAPI = {
     }
     
     try {
-      const response = await api.put<ApiResponse<void>>(`/nfes/${encodeURIComponent(id)}`, nfe);
+      const response = await api.put<ApiResponse<void>>(`/api/nfes/${encodeURIComponent(id)}`, nfe);
       return response.data;
     } catch (error) {
       console.error(`Erro ao atualizar NFE ${id}:`, error);
@@ -221,7 +221,7 @@ export const nfeAPI = {
     }
     
     try {
-      const response = await api.delete<ApiResponse<void>>(`/nfes/${encodeURIComponent(id)}`);
+      const response = await api.delete<ApiResponse<void>>(`/api/nfes/${encodeURIComponent(id)}`);
       return response.data;
     } catch (error) {
       console.error(`Erro ao excluir NFE ${id}:`, error);
@@ -253,7 +253,7 @@ export const uploadAPI = {
     formData.append('xml', file);
     
     try {
-      const response = await api.post<UploadResponse>('/upload-xml', formData, {
+      const response = await api.post<UploadResponse>('/api/upload-xml', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -271,9 +271,9 @@ export const uploadAPI = {
 // API de Status
 export const statusAPI = {
   // Verificar status do servidor
-  check: async (): Promise<{ status: string; timestamp: string; database: string }> => {
+  check: async (): Promise<{ status: string }> => {
     try {
-      const response = await api.get('/status');
+      const response = await api.get('/api/status');
       return response.data;
     } catch (error) {
       console.error('Erro ao verificar status:', error);

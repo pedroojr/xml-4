@@ -1,41 +1,54 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, FileText, Building2, Calendar, Package2, Receipt } from 'lucide-react';
 import { useNFEStorage } from '@/hooks/useNFEStorage';
 import { formatCurrency, formatDate } from '@/utils/formatters';
+import { toast } from 'sonner';
 
 const NFEView = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { savedNFEs } = useNFEStorage();
+  const { savedNFEs, loadNFEs } = useNFEStorage();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      await loadNFEs();
+    };
+    fetchData();
+  }, []);
 
   const nfe = Array.isArray(savedNFEs) ? savedNFEs.find(nfe => nfe.id === id) : undefined;
 
-  // Verifica se a NFE existe
+  useEffect(() => {
+    if (!nfe && Array.isArray(savedNFEs) && savedNFEs.length > 0) {
+      toast.error('Nota fiscal não encontrada');
+      navigate(-1);
+    }
+  }, [nfe, savedNFEs, navigate]);
+
   if (!nfe) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <FileText className="w-16 h-16 text-gray-300 mb-4" />
         <h2 className="text-xl font-semibold mb-2">Nota Fiscal não encontrada</h2>
         <p className="text-gray-500 mb-4">A nota fiscal que você está procurando não existe ou foi removida.</p>
-        <Button onClick={() => navigate('/dashboard')}>
+        <Button onClick={() => navigate(-1)}>
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Voltar para o Dashboard
+          Voltar
         </Button>
       </div>
     );
   }
   
-  // Garantir que produtos seja sempre um array
   const produtos = Array.isArray(nfe.produtos) ? nfe.produtos : [];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => navigate('/dashboard')}>
+          <Button variant="outline" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar
           </Button>
@@ -122,9 +135,9 @@ const NFEView = () => {
                     <p className="text-sm text-gray-500">
                       {produto.codigo || 'Sem código'} • {produto.ncm || 'Sem NCM'}
                     </p>
-                    {produto.informacoesAdicionais && (
+                    {(produto as any).informacoesAdicionais && (
                       <p className="text-sm text-gray-600 mt-2">
-                        {produto.informacoesAdicionais}
+                        {(produto as any).informacoesAdicionais}
                       </p>
                     )}
                   </div>

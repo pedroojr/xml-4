@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Produtos from "./pages/Produtos";
 import NotFound from "./pages/NotFound";
 import NFEView from "./pages/NFEView";
+import NotasEmAberto from "./pages/NotasEmAberto";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -64,6 +65,7 @@ const App = () => {
                 <Route path="/" element={<Index />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/produtos" element={<Produtos />} />
+                <Route path="/notas-em-aberto" element={<NotasEmAberto />} />
                 <Route path="/nfe/:id" element={<NFEView />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

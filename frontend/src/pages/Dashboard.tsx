@@ -9,8 +9,6 @@ import {
   Receipt, 
   Bookmark,
   Trophy,
-  Settings,
-  TrendingUp,
   Info,
   ArrowUpRight,
   ArrowDownRight
@@ -108,14 +106,6 @@ const Dashboard = () => {
             <option value="trimestre">Último Trimestre</option>
             <option value="ano">Último Ano</option>
           </select>
-          <Button variant="outline" size="sm">
-            <Settings className="w-4 h-4 mr-2" />
-            Filtros
-          </Button>
-          <Button variant="outline" size="sm">
-            <TrendingUp className="w-4 h-4 mr-2" />
-            Atualizar
-          </Button>
         </div>
       </div>
 

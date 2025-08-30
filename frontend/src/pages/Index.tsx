@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Info, History, Edit2, Trash2 } from "lucide-react";
+import { Info, Edit2, Trash2, History } from "lucide-react";
 import FileUpload from "@/components/FileUpload";
-import { SefazIntegration } from "@/components/SefazIntegration";
+import { XmlIntegration } from "@/components/XmlIntegration";
 import FileUploadPDF from "@/components/FileUploadPDF";
 import ProductPreview from "@/components/product-preview/ProductPreview";
 import { useNFEStorage } from "@/hooks/useNFEStorage";
@@ -15,6 +16,7 @@ import { RoundingType } from "@/components/product-preview/productCalculations";
 import { parseNFeXML } from "@/utils/nfeParser";
 
 const Index = () => {
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [currentNFeId, setCurrentNFeId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -106,14 +108,17 @@ const Index = () => {
       setXmlContentForDataSystem(text);
       
       // Salvar NFE
-      const nfe = {
+      const nfe: NFE = {
         id: nfeId,
         data: nfeInfo.dataEmissao,
         numero: nfeInfo.numero,
         chaveNFE: nfeInfo.chaveNFE,
         fornecedor: nfeInfo.emitNome,
-        valor: extractedProducts.reduce((sum, p) => sum + p.totalPrice, 0),
-        itens: extractedProducts.length,
+        cnpjFornecedor: nfeInfo.emitCNPJ,
+        valorTotal: extractedProducts.reduce((sum, p) => sum + p.totalPrice, 0),
+        totalImpostos: 0,
+        quantidadeTotal: extractedProducts.length,
+        dataEmissao: nfeInfo.dataEmissao,
         produtos: extractedProducts,
         impostoEntrada: impostoEntrada
       };
@@ -128,16 +133,8 @@ const Index = () => {
     }
   };
 
-  const handleXmlFromSefaz = (xmlContent: string) => {
+  const handleXmlFromIntegration = (xmlContent: string) => {
     handleFileSelect(new File([xmlContent], 'nfe.xml', { type: 'text/xml' }));
-  };
-
-  const extractInvoiceNumber = (xmlDoc: Document): string => {
-    const ideNode = xmlDoc.querySelector('ide');
-    if (!ideNode) return '';
-    
-    const numero = ideNode.querySelector('nNF')?.textContent || '';
-    return numero;
   };
 
   const handleLoadNFe = (nfe: NFE) => {
@@ -186,15 +183,15 @@ const Index = () => {
               <div className="w-80 flex-shrink-0">
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-8">
                   <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                    <History size={20} />
+                    <History size={20} className="h-5 w-5" />
                     Notas Importadas
                   </h3>
                   <div className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto">
                     {savedNFEs.map((nfe) => (
-                      <button
+                      <div
                         key={nfe.id}
                         onClick={() => handleLoadNFe(nfe)}
-                        className="w-full text-left p-3 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-colors group"
+                        className="w-full text-left p-3 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-colors group cursor-pointer"
                       >
                         <div className="font-medium text-slate-900 group-hover:text-blue-700 truncate">
                           {nfe.fornecedor}
@@ -202,10 +199,10 @@ const Index = () => {
                         <div className="text-sm text-slate-600 flex items-center justify-between">
                           <span>NF-e {nfe.numero}</span>
                           <span className="text-xs bg-slate-100 px-2 py-1 rounded">
-                            {nfe.itens} itens
+                            {nfe.produtos.length} itens
                           </span>
                         </div>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -221,25 +218,25 @@ const Index = () => {
                 </div>
                 <h1 className="text-3xl font-bold text-slate-900 mb-2">Importação de Produtos via XML</h1>
                 <p className="text-slate-600 w-full max-w-2xl">
-                  Faça upload do arquivo XML da NF-e ou consulte diretamente na SEFAZ para importar automaticamente os produtos
+                  Faça upload do arquivo XML da NF-e ou utilize a integração XML para importar automaticamente os produtos
                 </p>
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
                 <div className="w-full">
                   <Tabs defaultValue="upload" value={currentTab} onValueChange={setCurrentTab} className="w-full">
-                                      <TabsList className="grid w-full grid-cols-3 mb-6">
-                    <TabsTrigger value="upload">Upload de XML</TabsTrigger>
-                    <TabsTrigger value="sefaz">Consulta SEFAZ</TabsTrigger>
-                    <TabsTrigger value="pdf">Upload de PDF</TabsTrigger>
-                  </TabsList>
+                    <TabsList className="grid w-full grid-cols-3 mb-6">
+                      <TabsTrigger value="upload">Upload de XML</TabsTrigger>
+                      <TabsTrigger value="xml">Integração XML</TabsTrigger>
+                      <TabsTrigger value="pdf">Upload de PDF</TabsTrigger>
+                    </TabsList>
                     
                     <TabsContent value="upload">
                       <FileUpload onFileSelect={handleFileSelect} />
                     </TabsContent>
                     
-                    <TabsContent value="sefaz">
-                      <SefazIntegration onXmlReceived={handleXmlFromSefaz} />
+                    <TabsContent value="xml">
+                      <XmlIntegration onXmlReceived={handleXmlFromIntegration} />
                     </TabsContent>
 
                     <TabsContent value="pdf">

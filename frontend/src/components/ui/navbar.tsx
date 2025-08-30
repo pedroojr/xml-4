@@ -1,15 +1,25 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { ServerStatus } from '@/components/ServerStatus';
 
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const menuItems = [
     { path: '/', label: 'Início' },
     { path: '/dashboard', label: 'Dashboard' },
-    { path: '/produtos', label: 'Produtos' },
+    { path: '/notas-em-aberto', label: 'Notas em Aberto' },
   ];
+
+  const handleNavigation = (path: string) => {
+    if (location.pathname !== path) {
+      // Usando navigate sem replace para preservar o histórico e forçar a remontagem
+      navigate(path);
+      // Forçando a atualização da página para garantir que o conteúdo seja recarregado
+      window.location.href = path;
+    }
+  };
 
   return (
     <nav className="border-b bg-white">
@@ -24,9 +34,9 @@ const Navbar = () => {
           <div className="hidden md:block">
             <div className="flex items-center space-x-4">
               {menuItems.map((item) => (
-                <Link
+                <button
                   key={item.path}
-                  to={item.path}
+                  onClick={() => handleNavigation(item.path)}
                   className={cn(
                     'px-3 py-2 text-sm font-medium rounded-md transition-colors',
                     location.pathname === item.path
@@ -35,7 +45,7 @@ const Navbar = () => {
                   )}
                 >
                   {item.label}
-                </Link>
+                </button>
               ))}
             </div>
           </div>
@@ -49,4 +59,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar; 
+export default Navbar;
