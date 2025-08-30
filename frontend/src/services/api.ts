@@ -1,9 +1,7 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
 
 // Configuração da API
-const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD 
-  ? 'http://localhost:3011' 
-  : 'http://localhost:3011');
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -273,8 +271,15 @@ export const statusAPI = {
   // Verificar status do servidor
   check: async (): Promise<{ status: string }> => {
     try {
-      const response = await api.get('/api/status');
-      return response.data;
+      // Tenta endpoint de produção primeiro
+      try {
+        const resApi = await api.get<{ status: string }>('/api/status');
+        return resApi.data;
+      } catch (e) {
+        // Fallback para endpoint usado no dev
+        const resRoot = await api.get<{ status: string }>('/status');
+        return resRoot.data;
+      }
     } catch (error) {
       console.error('Erro ao verificar status:', error);
       throw error;

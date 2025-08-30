@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+// Removed unused imports
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Info, Edit2, Trash2, History } from "lucide-react";
 import FileUpload from "@/components/FileUpload";
@@ -11,17 +11,18 @@ import { XmlIntegration } from "@/components/XmlIntegration";
 import FileUploadPDF from "@/components/FileUploadPDF";
 import ProductPreview from "@/components/product-preview/ProductPreview";
 import { useNFEStorage } from "@/hooks/useNFEStorage";
+import { nfeAPI } from "@/services/api";
 import { Product, NFE } from "@/types/nfe";
 import { RoundingType } from "@/components/product-preview/productCalculations";
 import { parseNFeXML } from "@/utils/nfeParser";
 
 const Index = () => {
-  const navigate = useNavigate();
+// Remove unused navigate since it's not being used anywhere in the component
   const [products, setProducts] = useState<Product[]>([]);
   const [currentNFeId, setCurrentNFeId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentTab, setCurrentTab] = useState("upload");
-  const [xmlContentForDataSystem, setXmlContentForDataSystem] = useState<string | null>(null);
+// Removed unused state variable xmlContentForDataSystem
   const [pdfItems, setPdfItems] = useState<any[]>([]);
   const [hiddenItems, setHiddenItems] = useState<Set<number>>(new Set());
   const [xapuriMarkup, setXapuriMarkup] = useState(() => {
@@ -81,7 +82,7 @@ const Index = () => {
       setInvoiceNumber("");
       setBrandName("");
       setIsEditingBrand(false);
-      setXmlContentForDataSystem(null);
+// Remove this line since xmlContentForDataSystem state was removed
       setCurrentTab("upload");
     }
   };
@@ -105,7 +106,7 @@ const Index = () => {
       setCurrentNFeId(nfeId);
       setInvoiceNumber(nfeInfo.numero);
       setBrandName(nfeInfo.emitNome);
-      setXmlContentForDataSystem(text);
+// Removed setXmlContentForDataSystem since the state was removed
       
       // Salvar NFE
       const nfe: NFE = {
@@ -115,7 +116,7 @@ const Index = () => {
         chaveNFE: nfeInfo.chaveNFE,
         fornecedor: nfeInfo.emitNome,
         cnpjFornecedor: nfeInfo.emitCNPJ,
-        valorTotal: extractedProducts.reduce((sum, p) => sum + p.totalPrice, 0),
+        valorTotal: extractedProducts.reduce((sum, p) => sum + (p.totalPrice ?? 0), 0),
         totalImpostos: 0,
         quantidadeTotal: extractedProducts.length,
         dataEmissao: nfeInfo.dataEmissao,
@@ -123,7 +124,11 @@ const Index = () => {
         impostoEntrada: impostoEntrada
       };
       
-      saveNFE(nfe);
+      saveNFE({
+        ...nfe,
+        valor: nfe.valorTotal ?? 0,
+        itens: nfe.produtos.length // Add required itens property
+      });
       setCurrentTab("upload");
     } catch (error) {
       console.error('Erro ao processar arquivo:', error);
@@ -137,15 +142,30 @@ const Index = () => {
     handleFileSelect(new File([xmlContent], 'nfe.xml', { type: 'text/xml' }));
   };
 
-  const handleLoadNFe = (nfe: NFE) => {
-    setProducts(nfe.produtos);
-    setHiddenItems(new Set());
-    setCurrentNFeId(nfe.id);
-    setInvoiceNumber(nfe.numero);
-    setBrandName(nfe.fornecedor);
-    setIsEditingBrand(false);
-    setXmlContentForDataSystem(null);
-    setCurrentTab("upload");
+  const handleLoadNFe = async (nfe: NFE) => {
+    try {
+      // Busca detalhes da NFE (inclui produtos) antes de abrir
+      const detailed = await nfeAPI.getById(nfe.id);
+      const produtos = Array.isArray(detailed.produtos) ? detailed.produtos : [];
+
+      setProducts(produtos);
+      setHiddenItems(new Set());
+      setCurrentNFeId(detailed.id);
+      setInvoiceNumber(detailed.numero);
+      setBrandName(detailed.fornecedor);
+      setIsEditingBrand(false);
+      setCurrentTab("upload");
+    } catch (err) {
+      console.error('Falha ao carregar NFE detalhada:', err);
+      // Fallback: tenta abrir com os dados já listados
+      setProducts(Array.isArray(nfe.produtos) ? nfe.produtos : []);
+      setHiddenItems(new Set());
+      setCurrentNFeId(nfe.id);
+      setInvoiceNumber(nfe.numero);
+      setBrandName(nfe.fornecedor);
+      setIsEditingBrand(false);
+      setCurrentTab("upload");
+    }
   };
 
   const handleXapuriMarkupChange = (value: number) => {
@@ -159,6 +179,7 @@ const Index = () => {
   };
 
   const handleImpostoEntradaChange = (value: number) => {
+
     setImpostoEntrada(value);
     localStorage.setItem('impostoEntrada', value.toString());
   };
@@ -199,7 +220,7 @@ const Index = () => {
                         <div className="text-sm text-slate-600 flex items-center justify-between">
                           <span>NF-e {nfe.numero}</span>
                           <span className="text-xs bg-slate-100 px-2 py-1 rounded">
-                            {nfe.produtos.length} itens
+                            {nfe.produtos?.length || 0} itens
                           </span>
                         </div>
                       </div>
@@ -367,7 +388,7 @@ const Index = () => {
                 setInvoiceNumber("");
                 setBrandName("");
                 setIsEditingBrand(false);
-                setXmlContentForDataSystem(null);
+// Removed setXmlContentForDataSystem call since the state no longer exists
                 setCurrentTab("upload");
               }}
               xapuriMarkup={xapuriMarkup}

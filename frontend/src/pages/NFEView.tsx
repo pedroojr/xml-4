@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, FileText, Building2, Calendar, Package2, Receipt } from 'lucide-react';
 import { useNFEStorage } from '@/hooks/useNFEStorage';
+import { nfeAPI } from '@/services/api';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 import { toast } from 'sonner';
 
@@ -11,15 +12,25 @@ const NFEView = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { savedNFEs, loadNFEs } = useNFEStorage();
+  const [nfeDetail, setNfeDetail] = useState<any | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      await loadNFEs();
+      try {
+        await loadNFEs();
+        if (id) {
+          const detail = await nfeAPI.getById(id);
+          setNfeDetail(detail);
+        }
+      } catch (err) {
+        // Silencia erros aqui; tratamento visual abaixo
+        console.error('Erro ao carregar NFE detalhada:', err);
+      }
     };
     fetchData();
-  }, []);
+  }, [id, loadNFEs]);
 
-  const nfe = Array.isArray(savedNFEs) ? savedNFEs.find(nfe => nfe.id === id) : undefined;
+  const nfe = nfeDetail || (Array.isArray(savedNFEs) ? savedNFEs.find(nfe => nfe.id === id) : undefined);
 
   useEffect(() => {
     if (!nfe && Array.isArray(savedNFEs) && savedNFEs.length > 0) {

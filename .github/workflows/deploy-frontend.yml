@@ -4,6 +4,11 @@ name: Deploy Frontend
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name == 'main' && 'production' || github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
@@ -16,14 +21,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18.x
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install deps
         working-directory: frontend
         run: |
-          npm install -g npm@latest
-          npm cache clean --force
           npm ci --legacy-peer-deps
-          npm ls
 
       - name: Build
         working-directory: frontend
@@ -31,24 +35,7 @@ jobs:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
           NODE_ENV: production
         run: |
-          pwd
-          echo $PWD
-          ls -la
-          rm -f .env.production
           npm run build -- --mode production
-          ls -la
-          ls -la dist/
-          cat dist/index.html
-          find . -type f -exec file {} \;
-          find . -type f -exec stat {} \;
-          find . -type f -exec md5sum {} \;
-          find . -type f -exec sha256sum {} \;
-          npm run preview &
-          sleep 5
-          curl -I http://localhost:4173
-          find . -type f -name "*.html"
-          find . -type f -name "*.js"
-          find . -type f -name "*.css"
 
       - name: Clean target directory
         uses: appleboy/ssh-action@v1.0.3
@@ -57,19 +44,11 @@ jobs:
           username: ${{ secrets.HOSTINGER_USERNAME }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
-            pwd
-            echo $PWD
-            ls -la
-            rm -rf /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/*
-            ls -la
-            ls -la /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/
-            find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -exec file {} \;
-            find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -exec stat {} \;
-            find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -exec md5sum {} \;
-            find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -exec sha256sum {} \;
-            find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -name "*.html"
-            find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -name "*.js"
-            find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -name "*.css"
+            set -e
+            TARGET_DIR="/home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html"
+            mkdir -p "$TARGET_DIR"
+            rm -rf "$TARGET_DIR"/*
+            ls -la "$TARGET_DIR"
 
       - name: Upload files
         uses: appleboy/scp-action@v0.1.7
@@ -77,10 +56,8 @@ jobs:
           host: ${{ secrets.HOSTINGER_HOST }}
           username: ${{ secrets.HOSTINGER_USERNAME }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          source: frontend/dist/*
+          source: frontend/dist/**
           target: /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/
-          rm: true
-          strip_components: 2
 
       - name: Verify files
         uses: appleboy/ssh-action@v1.0.3
@@ -89,14 +66,5 @@ jobs:
           username: ${{ secrets.HOSTINGER_USERNAME }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
-            pwd
-            echo $PWD
-            ls -la
-            ls -la /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/
-            find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -exec file {} \;
-            find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -exec stat {} \;
-            find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -exec md5sum {} \;
-            find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -exec sha256sum {} \;
-            find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -name "*.html"
-            find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -name "*.js"
-            find /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html -type f -name "*.css"
+            TARGET_DIR="/home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html"
+            ls -la "$TARGET_DIR"
