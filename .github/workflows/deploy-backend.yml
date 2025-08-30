@@ -26,141 +26,34 @@ jobs:
       - name: Zip server folder
         run: zip -r server.zip server -x "server/node_modules/*"
 
-      - name: Prepare remote dir (SSH key)
-        if: ${{ secrets.SFTP_SSH_KEY != '' }}
+      - name: Prepare remote dir
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
           key: ${{ secrets.SFTP_SSH_KEY }}
-          port: ${{ secrets.SFTP_PORT }}
-          script: |
-            mkdir -p "${{ env.REMOTE_API_PATH }}"
-
-      - name: Prepare remote dir (password)
-        if: ${{ secrets.SFTP_SSH_KEY == '' }}
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SFTP_HOST }}
-          username: ${{ secrets.SFTP_USERNAME }}
           password: ${{ secrets.SFTP_PASSWORD }}
           port: ${{ secrets.SFTP_PORT }}
           script: |
             mkdir -p "${{ env.REMOTE_API_PATH }}"
 
-      - name: Upload server.zip via SCP (SSH key)
-        if: ${{ secrets.SFTP_SSH_KEY != '' }}
+      - name: Upload server.zip via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
           key: ${{ secrets.SFTP_SSH_KEY }}
-          port: ${{ secrets.SFTP_PORT }}
-          source: server.zip
-          target: ${{ env.REMOTE_API_PATH }}/
-
-      - name: Upload server.zip via SCP (password)
-        if: ${{ secrets.SFTP_SSH_KEY == '' }}
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SFTP_HOST }}
-          username: ${{ secrets.SFTP_USERNAME }}
           password: ${{ secrets.SFTP_PASSWORD }}
           port: ${{ secrets.SFTP_PORT }}
           source: server.zip
           target: ${{ env.REMOTE_API_PATH }}/
 
-      - name: Remote deploy over SSH (SSH key)
-        if: ${{ secrets.SFTP_SSH_KEY != '' }}
+      - name: Remote deploy over SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
           key: ${{ secrets.SFTP_SSH_KEY }}
-          port: ${{ secrets.SFTP_PORT }}
-          script: |
-            set -e
-            # Garante diretório remoto
-            mkdir -p "${{ env.REMOTE_API_PATH }}"
-            cd "${{ env.REMOTE_API_PATH }}"
-
-            # Garante unzip se disponível (instala apenas quando root)
-            if ! command -v unzip >/dev/null 2>&1; then
-              if [ "$(id -u)" -eq 0 ] && command -v apt-get >/dev/null 2>&1; then
-                apt-get update -y && apt-get install -y unzip || true
-              else
-                echo "Aviso: unzip não encontrado e sem permissão para instalar."
-              fi
-            fi
-
-            # Extrai pacote
-            if command -v unzip >/dev/null 2>&1; then
-              unzip -o server.zip
-            else
-              echo "Erro: unzip indisponível para extrair server.zip" >&2
-              exit 1
-            fi
-            cd server
-
-            # Instala dependências (prod)
-            if command -v npm >/dev/null 2>&1; then
-              npm ci --omit=dev || npm install --omit=dev
-            else
-              echo "Erro: npm não encontrado no servidor remoto" >&2
-              exit 1
-            fi
-
-            # Garante PM2 disponível (tenta instalar globalmente)
-            if ! command -v pm2 >/dev/null 2>&1; then
-              npm i -g pm2 || true
-            fi
-
-            # Inicia/reinicia aplicação
-            if command -v pm2 >/dev/null 2>&1; then
-              pm2 describe xml-importer-api || pm2 start server-production.js --name xml-importer-api
-              pm2 restart xml-importer-api || true
-              pm2 save || true
-            else
-              echo "Aviso: PM2 não disponível; iniciando via node em background"
-              nohup node server-production.js >"${{ env.REMOTE_API_PATH }}/xml-importer-api.log" 2>&1 &
-            fi
-            
-            # --- HTTPS reverse proxy via Nginx ---
-            if [ -n "${API_DOMAIN}" ]; then
-              if [ "$(id -u)" -eq 0 ]; then
-                apt-get update -y && apt-get install -y nginx certbot python3-certbot-nginx || true
-                cfg="/etc/nginx/sites-available/${API_DOMAIN}"
-                echo "server {"                                   >  "$cfg"
-                echo "    listen 80;"                              >> "$cfg"
-                echo "    server_name ${API_DOMAIN};"              >> "$cfg"
-                echo "    location /api/ {"                        >> "$cfg"
-                echo "        proxy_pass http://127.0.0.1:3001/;" >> "$cfg"
-                echo "        proxy_set_header Host \$host;"      >> "$cfg"
-                echo "        proxy_set_header X-Real-IP \$remote_addr;" >> "$cfg"
-                echo "        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;" >> "$cfg"
-                echo "        proxy_set_header X-Forwarded-Proto \$scheme;" >> "$cfg"
-                echo "    }"                                        >> "$cfg"
-                echo "    location / {"                            >> "$cfg"
-                echo "        return 200 'xml importer backend online';" >> "$cfg"
-                echo "    }"                                        >> "$cfg"
-                echo "}"                                            >> "$cfg"
-                ln -sfn "$cfg" "/etc/nginx/sites-enabled/${API_DOMAIN}"
-                nginx -t && systemctl reload nginx || systemctl restart nginx || true
-                if [ -n "${CERTBOT_EMAIL}" ]; then
-                  certbot --nginx -d ${API_DOMAIN} --non-interactive --agree-tos -m ${CERTBOT_EMAIL} --redirect || true
-                  nginx -t && systemctl reload nginx || true
-                fi
-              else
-                echo "Sem privilégios de root; pulando configuração do Nginx/certbot."
-              fi
-            fi
-
-      - name: Remote deploy over SSH (password)
-        if: ${{ secrets.SFTP_SSH_KEY == '' }}
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SFTP_HOST }}
-          username: ${{ secrets.SFTP_USERNAME }}
           password: ${{ secrets.SFTP_PASSWORD }}
           port: ${{ secrets.SFTP_PORT }}
           script: |
