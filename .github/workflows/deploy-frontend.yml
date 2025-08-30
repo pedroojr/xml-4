@@ -4,6 +4,9 @@ name: Deploy Frontend
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-frontend.yml'
   workflow_dispatch:
 
 concurrency:
@@ -16,65 +19,96 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18.x
-          cache: npm
+          node-version: '18'
+          cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install deps
+      - name: Debug Info
+        run: |
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "Working directory: $(pwd)"
+          echo "Frontend directory contents:"
+          ls -la frontend/
+          echo "Package.json contents:"
+          cat frontend/package.json
+
+      - name: Install dependencies
         working-directory: frontend
         run: |
+          echo "Installing dependencies..."
           npm ci --legacy-peer-deps
+          echo "Dependencies installed successfully"
+          echo "Node modules size: $(du -sh node_modules)"
 
-      - name: Build
+      - name: Build application
         working-directory: frontend
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://xml.lojasrealce.shop/api' }}
           NODE_ENV: production
         run: |
-          npm run build -- --mode production
-          echo "=== BUILD COMPLETED ==="
+          echo "Building application..."
+          echo "VITE_API_URL: $VITE_API_URL"
+          echo "NODE_ENV: $NODE_ENV"
+          npm run build
+          echo "Build completed successfully"
+          echo "Dist directory contents:"
           ls -la dist/
-          echo "=== INDEX.HTML CONTENT ==="
-          cat dist/index.html
+          echo "Dist directory size: $(du -sh dist)"
 
-      - name: Verify build files
+      - name: Validate build output
         working-directory: frontend
         run: |
-          echo "=== VERIFYING BUILD FILES ==="
+          echo "Validating build output..."
           if [ ! -f "dist/index.html" ]; then
-            echo "❌ ERROR: index.html not found!"
+            echo "ERROR: index.html not found in dist directory"
             exit 1
           fi
           if [ ! -d "dist/assets" ]; then
-            echo "❌ ERROR: assets directory not found!"
+            echo "ERROR: assets directory not found in dist directory"
             exit 1
           fi
-          echo "✅ Build files verified successfully"
-          echo "📁 Files in dist/:"
-          find dist/ -type f | head -20
+          echo "Build validation passed"
 
-      - name: Clean target directory
+      - name: Prepare remote directory
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
           key: ${{ secrets.SFTP_SSH_KEY }}
           password: ${{ secrets.SFTP_PASSWORD }}
+          port: ${{ secrets.SFTP_PORT || '22' }}
           script: |
             set -e
-            echo "=== CLEANING TARGET DIRECTORY ==="
+            echo "Preparing remote directory..."
             TARGET_DIR="/home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html"
             echo "Target directory: $TARGET_DIR"
+            
+            # Create directory if it doesn't exist
             mkdir -p "$TARGET_DIR"
-            echo "Current files:"
-            ls -la "$TARGET_DIR" || echo "Directory empty or not accessible"
-            echo "Removing old files..."
+            echo "Directory created/verified"
+            
+            # Backup existing files
+            if [ -d "$TARGET_DIR" ] && [ "$(ls -A $TARGET_DIR)" ]; then
+              BACKUP_DIR="$TARGET_DIR/backup_$(date +%Y%m%d_%H%M%S)"
+              echo "Creating backup at: $BACKUP_DIR"
+              cp -r "$TARGET_DIR" "$BACKUP_DIR"
+              echo "Backup created successfully"
+            fi
+            
+            # Clean directory
+            echo "Cleaning target directory..."
             rm -rf "$TARGET_DIR"/*
-            echo "Directory cleaned. Current status:"
+            echo "Directory cleaned"
+            
+            # Show directory status
+            echo "Target directory status:"
             ls -la "$TARGET_DIR"
 
       - name: Upload files
@@ -84,54 +118,59 @@ jobs:
           username: ${{ secrets.SFTP_USERNAME }}
           key: ${{ secrets.SFTP_SSH_KEY }}
           password: ${{ secrets.SFTP_PASSWORD }}
-          source: frontend/dist/**
-          target: /home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/
+          port: ${{ secrets.SFTP_PORT || '22' }}
+          source: "frontend/dist/*"
+          target: "/home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/"
+          strip_components: 1
 
-      - name: Verify uploaded files
+      - name: Verify deployment
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
           key: ${{ secrets.SFTP_SSH_KEY }}
           password: ${{ secrets.SFTP_PASSWORD }}
+          port: ${{ secrets.SFTP_PORT || '22' }}
           script: |
-            echo "=== VERIFYING UPLOADED FILES ==="
+            set -e
+            echo "Verifying deployment..."
             TARGET_DIR="/home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html"
-            echo "Target directory: $TARGET_DIR"
-            echo "Files uploaded:"
+            
+            echo "Files deployed:"
             ls -la "$TARGET_DIR"
-            echo "=== INDEX.HTML CONTENT ON SERVER ==="
-            if [ -f "$TARGET_DIR/index.html" ]; then
-              cat "$TARGET_DIR/index.html"
-            else
-              echo "❌ ERROR: index.html not found on server!"
+            
+            echo "Directory size:"
+            du -sh "$TARGET_DIR"
+            
+            # Check if critical files exist
+            if [ ! -f "$TARGET_DIR/index.html" ]; then
+              echo "ERROR: index.html not found after deployment"
               exit 1
             fi
-            echo "=== ASSETS DIRECTORY ==="
-            if [ -d "$TARGET_DIR/assets" ]; then
-              ls -la "$TARGET_DIR/assets/"
-              echo "JS files:"
-              ls -la "$TARGET_DIR/assets/js/" || echo "No JS directory"
-              echo "CSS files:"
-              ls -la "$TARGET_DIR/assets/css/" || echo "No CSS directory"
-            else
-              echo "❌ ERROR: assets directory not found on server!"
+            
+            if [ ! -d "$TARGET_DIR/assets" ]; then
+              echo "ERROR: assets directory not found after deployment"
               exit 1
             fi
+            
+            echo "Deployment verification passed successfully!"
 
-      - name: Test website accessibility
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SFTP_HOST }}
-          username: ${{ secrets.SFTP_USERNAME }}
-          key: ${{ secrets.SFTP_SSH_KEY }}
-          password: ${{ secrets.SFTP_PASSWORD }}
-          script: |
-            echo "=== TESTING WEBSITE ACCESSIBILITY ==="
-            echo "Testing local access..."
-            if command -v curl >/dev/null 2>&1; then
-              curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" http://localhost/ || echo "Local access failed"
-            else
-              echo "curl not available for testing"
-            fi
-            echo "=== DEPLOY VERIFICATION COMPLETE ==="
+      - name: Health check
+        run: |
+          echo "Waiting for deployment to propagate..."
+          sleep 30
+          
+          echo "Performing health check..."
+          if curl -f -s "https://${{ secrets.FRONT_DOMAIN }}/" > /dev/null; then
+            echo "✅ Health check passed - site is accessible"
+          else
+            echo "⚠️ Health check failed - site may not be accessible yet"
+          fi
+
+      - name: Deployment Summary
+        run: |
+          echo "🚀 Frontend deployment completed successfully!"
+          echo "📍 Domain: ${{ secrets.FRONT_DOMAIN }}"
+          echo "🔗 URL: https://${{ secrets.FRONT_DOMAIN }}/"
+          echo "📅 Deployed at: $(date)"
+          echo "📝 Commit: ${{ github.sha }}"
