@@ -27,12 +27,44 @@ jobs:
           VITE_API_URL: https://xml.lojasrealce.shop/api
         run: npm run build
 
-      - name: Deploy
+      - name: Debug build output
+        working-directory: frontend
+        run: |
+          echo "Build output:"
+          ls -la dist/
+          echo "HTML content:"
+          head -20 dist/index.html
+
+      - name: Deploy via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
           password: ${{ secrets.SFTP_PASSWORD }}
-          port: ${{ secrets.SFTP_PORT }}
+          port: ${{ secrets.SFTP_PORT || '22' }}
           source: "frontend/dist/*"
           target: "/home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/"
+          strip_components: 1
+
+      - name: Verify deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          port: ${{ secrets.SFTP_PORT || '22' }}
+          script: |
+            echo "Verifying deployment..."
+            TARGET_DIR="/home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html"
+            
+            echo "Files deployed:"
+            ls -la "$TARGET_DIR"
+            
+            if [ -f "$TARGET_DIR/index.html" ]; then
+              echo "✅ index.html found"
+              echo "Content preview:"
+              head -10 "$TARGET_DIR/index.html"
+            else
+              echo "❌ index.html NOT found"
+              exit 1
+            fi
