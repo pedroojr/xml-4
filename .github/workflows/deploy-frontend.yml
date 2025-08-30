@@ -40,12 +40,13 @@ jobs:
       - name: Clean target directory
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.HOSTINGER_HOST }}
-          username: ${{ secrets.HOSTINGER_USERNAME }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          key: ${{ secrets.SFTP_SSH_KEY }}
+          password: ${{ secrets.SFTP_PASSWORD }}
           script: |
             set -e
-            TARGET_DIR="/home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html"
+            TARGET_DIR="/home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html"
             mkdir -p "$TARGET_DIR"
             rm -rf "$TARGET_DIR"/*
             ls -la "$TARGET_DIR"
@@ -53,18 +54,20 @@ jobs:
       - name: Upload files
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.HOSTINGER_HOST }}
-          username: ${{ secrets.HOSTINGER_USERNAME }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          key: ${{ secrets.SFTP_SSH_KEY }}
+          password: ${{ secrets.SFTP_PASSWORD }}
           source: frontend/dist/**
-          target: /home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/
+          target: /home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/
 
       - name: Verify files
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.HOSTINGER_HOST }}
-          username: ${{ secrets.HOSTINGER_USERNAME }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          key: ${{ secrets.SFTP_SSH_KEY }}
+          password: ${{ secrets.SFTP_PASSWORD }}
           script: |
-            TARGET_DIR="/home/${{ secrets.HOSTINGER_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html"
+            TARGET_DIR="/home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html"
             ls -la "$TARGET_DIR"
