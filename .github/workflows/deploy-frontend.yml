@@ -19,8 +19,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -36,8 +34,6 @@ jobs:
           echo "Working directory: $(pwd)"
           echo "Frontend directory contents:"
           ls -la frontend/
-          echo "Package.json contents:"
-          cat frontend/package.json
 
       - name: Install dependencies
         working-directory: frontend
@@ -45,7 +41,6 @@ jobs:
           echo "Installing dependencies..."
           npm ci --legacy-peer-deps
           echo "Dependencies installed successfully"
-          echo "Node modules size: $(du -sh node_modules)"
 
       - name: Build application
         working-directory: frontend
@@ -55,12 +50,10 @@ jobs:
         run: |
           echo "Building application..."
           echo "VITE_API_URL: $VITE_API_URL"
-          echo "NODE_ENV: $NODE_ENV"
           npm run build
           echo "Build completed successfully"
           echo "Dist directory contents:"
           ls -la dist/
-          echo "Dist directory size: $(du -sh dist)"
 
       - name: Validate build output
         working-directory: frontend
@@ -76,44 +69,7 @@ jobs:
           fi
           echo "Build validation passed"
 
-      - name: Prepare remote directory
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SFTP_HOST }}
-          username: ${{ secrets.SFTP_USERNAME }}
-          key: ${{ secrets.SFTP_SSH_KEY }}
-          password: ${{ secrets.SFTP_PASSWORD }}
-          port: ${{ secrets.SFTP_PORT || '22' }}
-          script: |
-            set -e
-            echo "Preparing remote directory..."
-            TARGET_DIR="/home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html"
-            BACKUP_BASE="/home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}"
-            echo "Target directory: $TARGET_DIR"
-            echo "Backup base: $BACKUP_BASE"
-            
-            # Create directory if it doesn't exist
-            mkdir -p "$TARGET_DIR"
-            echo "Directory created/verified"
-            
-            # Backup existing files (to parent directory to avoid self-copy)
-            if [ -d "$TARGET_DIR" ] && [ "$(ls -A $TARGET_DIR)" ]; then
-              BACKUP_DIR="$BACKUP_BASE/backup_public_html_$(date +%Y%m%d_%H%M%S)"
-              echo "Creating backup at: $BACKUP_DIR"
-              cp -r "$TARGET_DIR" "$BACKUP_DIR"
-              echo "Backup created successfully"
-            fi
-            
-            # Clean directory
-            echo "Cleaning target directory..."
-            rm -rf "$TARGET_DIR"/*
-            echo "Directory cleaned"
-            
-            # Show directory status
-            echo "Target directory status:"
-            ls -la "$TARGET_DIR"
-
-      - name: Upload files
+      - name: Deploy to Hostinger
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SFTP_HOST }}
@@ -134,15 +90,11 @@ jobs:
           password: ${{ secrets.SFTP_PASSWORD }}
           port: ${{ secrets.SFTP_PORT || '22' }}
           script: |
-            set -e
             echo "Verifying deployment..."
             TARGET_DIR="/home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html"
             
             echo "Files deployed:"
             ls -la "$TARGET_DIR"
-            
-            echo "Directory size:"
-            du -sh "$TARGET_DIR"
             
             # Check if critical files exist
             if [ ! -f "$TARGET_DIR/index.html" ]; then
@@ -156,18 +108,6 @@ jobs:
             fi
             
             echo "Deployment verification passed successfully!"
-
-      - name: Health check
-        run: |
-          echo "Waiting for deployment to propagate..."
-          sleep 30
-          
-          echo "Performing health check..."
-          if curl -f -s "https://${{ secrets.FRONT_DOMAIN }}/" > /dev/null; then
-            echo "✅ Health check passed - site is accessible"
-          else
-            echo "⚠️ Health check failed - site may not be accessible yet"
-          fi
 
       - name: Deployment Summary
         run: |
