@@ -36,6 +36,26 @@ jobs:
           NODE_ENV: production
         run: |
           npm run build -- --mode production
+          echo "=== BUILD COMPLETED ==="
+          ls -la dist/
+          echo "=== INDEX.HTML CONTENT ==="
+          cat dist/index.html
+
+      - name: Verify build files
+        working-directory: frontend
+        run: |
+          echo "=== VERIFYING BUILD FILES ==="
+          if [ ! -f "dist/index.html" ]; then
+            echo "❌ ERROR: index.html not found!"
+            exit 1
+          fi
+          if [ ! -d "dist/assets" ]; then
+            echo "❌ ERROR: assets directory not found!"
+            exit 1
+          fi
+          echo "✅ Build files verified successfully"
+          echo "📁 Files in dist/:"
+          find dist/ -type f | head -20
 
       - name: Clean target directory
         uses: appleboy/ssh-action@v1.0.3
@@ -46,9 +66,15 @@ jobs:
           password: ${{ secrets.SFTP_PASSWORD }}
           script: |
             set -e
+            echo "=== CLEANING TARGET DIRECTORY ==="
             TARGET_DIR="/home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html"
+            echo "Target directory: $TARGET_DIR"
             mkdir -p "$TARGET_DIR"
+            echo "Current files:"
+            ls -la "$TARGET_DIR" || echo "Directory empty or not accessible"
+            echo "Removing old files..."
             rm -rf "$TARGET_DIR"/*
+            echo "Directory cleaned. Current status:"
             ls -la "$TARGET_DIR"
 
       - name: Upload files
@@ -61,7 +87,7 @@ jobs:
           source: frontend/dist/**
           target: /home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html/
 
-      - name: Verify files
+      - name: Verify uploaded files
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SFTP_HOST }}
@@ -69,5 +95,43 @@ jobs:
           key: ${{ secrets.SFTP_SSH_KEY }}
           password: ${{ secrets.SFTP_PASSWORD }}
           script: |
+            echo "=== VERIFYING UPLOADED FILES ==="
             TARGET_DIR="/home/${{ secrets.SFTP_USERNAME }}/domains/${{ secrets.FRONT_DOMAIN }}/public_html"
+            echo "Target directory: $TARGET_DIR"
+            echo "Files uploaded:"
             ls -la "$TARGET_DIR"
+            echo "=== INDEX.HTML CONTENT ON SERVER ==="
+            if [ -f "$TARGET_DIR/index.html" ]; then
+              cat "$TARGET_DIR/index.html"
+            else
+              echo "❌ ERROR: index.html not found on server!"
+              exit 1
+            fi
+            echo "=== ASSETS DIRECTORY ==="
+            if [ -d "$TARGET_DIR/assets" ]; then
+              ls -la "$TARGET_DIR/assets/"
+              echo "JS files:"
+              ls -la "$TARGET_DIR/assets/js/" || echo "No JS directory"
+              echo "CSS files:"
+              ls -la "$TARGET_DIR/assets/css/" || echo "No CSS directory"
+            else
+              echo "❌ ERROR: assets directory not found on server!"
+              exit 1
+            fi
+
+      - name: Test website accessibility
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          key: ${{ secrets.SFTP_SSH_KEY }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          script: |
+            echo "=== TESTING WEBSITE ACCESSIBILITY ==="
+            echo "Testing local access..."
+            if command -v curl >/dev/null 2>&1; then
+              curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" http://localhost/ || echo "Local access failed"
+            else
+              echo "curl not available for testing"
+            fi
+            echo "=== DEPLOY VERIFICATION COMPLETE ==="
