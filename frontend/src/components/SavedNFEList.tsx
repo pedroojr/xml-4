@@ -21,7 +21,8 @@ interface NFE {
   id: string;
   numero: string;
   fornecedor: string;
-  dataEmissao: string;
+  dataEmissao?: string;
+  data?: string;
   quantidadeItens: number;
 }
 
@@ -98,7 +99,7 @@ const SavedNFEList: React.FC<SavedNFEListProps> = ({ nfes, onNFESelect }) => {
               <AccordionContent>
                 <div className="space-y-2 p-2">
                   {nfeList
-                    .sort((a, b) => new Date(b.dataEmissao).getTime() - new Date(a.dataEmissao).getTime())
+                    .sort((a, b) => new Date(b.dataEmissao || b.data || '').getTime() - new Date(a.dataEmissao || a.data || '').getTime())
                     .map((nfe) => (
                       <div
                         key={nfe.id}
@@ -111,7 +112,7 @@ const SavedNFEList: React.FC<SavedNFEListProps> = ({ nfes, onNFESelect }) => {
                             <div className="font-medium">NF-e {nfe.numero}</div>
                             <div className="text-sm text-muted-foreground flex items-center gap-2">
                               <Calendar className="h-3 w-3" />
-                              {formatDate(new Date(nfe.dataEmissao))}
+                              {formatDate(new Date(nfe.dataEmissao || nfe.data || ''))}
                               <Package2 className="h-3 w-3 ml-2" />
                               {nfe.quantidadeItens} {nfe.quantidadeItens === 1 ? 'item' : 'itens'}
                             </div>
@@ -139,4 +140,4 @@ const SavedNFEList: React.FC<SavedNFEListProps> = ({ nfes, onNFESelect }) => {
   );
 };
 
-export default SavedNFEList; 
+export default SavedNFEList;

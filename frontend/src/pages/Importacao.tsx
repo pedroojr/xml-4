@@ -67,7 +67,7 @@ const NFECard = ({ info }: { info: any }) => {
           </div>
           <div>
             <h4 className="font-medium text-sm text-gray-500">Datas</h4>
-            <p className="text-sm">Emissão: {formatDate(info.dataEmissao)}</p>
+            <p className="text-sm">Emissão: {formatDate(info.dataEmissao || info.data)}</p>
             <p className="text-sm">Entrada: {formatDate(info.dataEntrada)}</p>
           </div>
           <div>
@@ -251,4 +251,4 @@ const Importacao = () => {
   );
 };
 
-export default Importacao; 
+export default Importacao;

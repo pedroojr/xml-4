@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 import { History, FileText, Calendar, Package } from "lucide-react";
@@ -67,7 +66,7 @@ const NotasEmAberto = () => {
                     
                     <div className="flex items-center gap-2 text-sm text-slate-600">
                       <Calendar className="w-4 h-4" />
-                      <span>{formatDate(nfe.dataEmissao || nfe.data)}</span>
+                      <span>{formatDate(nfe.data)}</span>
                     </div>
 
                     <div className="flex items-center gap-2 text-sm text-slate-600">

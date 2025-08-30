@@ -11,10 +11,22 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3012,
+    port: 3018,
     host: 'localhost',
     strictPort: true,
-    cors: true
+    cors: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3011',
+        changeOrigin: true,
+        secure: false
+      },
+      '/status': {
+        target: 'http://localhost:3011',
+        changeOrigin: true,
+        secure: false
+      }
+    }
   },
   preview: {
     port: 4173,

@@ -67,7 +67,7 @@ const NFEPreview: React.FC<NFEPreviewProps> = ({ nfe, onClose }) => {
             </div>
             <div className="space-y-2">
               <Label>Data de Emissão</Label>
-              <p className="text-sm">{new Date(nfe.dataEmissao).toLocaleDateString('pt-BR')}</p>
+              <p className="text-sm">{new Date(nfe.dataEmissao || nfe.data || '').toLocaleDateString('pt-BR')}</p>
             </div>
           </div>
 
@@ -80,7 +80,7 @@ const NFEPreview: React.FC<NFEPreviewProps> = ({ nfe, onClose }) => {
               </div>
               <div>
                 <Label>Quantidade de Itens</Label>
-                <p className="text-lg font-semibold">{formatNumber(nfe.quantidadeTotal)}</p>
+                <p className="text-lg font-semibold">{formatNumber(nfe.quantidadeTotal || 0)}</p>
               </div>
             </div>
           </div>
@@ -104,4 +104,4 @@ const NFEPreview: React.FC<NFEPreviewProps> = ({ nfe, onClose }) => {
   );
 };
 
-export default NFEPreview; 
+export default NFEPreview;
