@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Columns, FileText } from "lucide-react";
+import { Columns, FileText, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +28,7 @@ interface ProductToolbarProps {
   visibleColumns: Set<string>;
   onToggleColumn: (columnId: string) => void;
   onNewFileRequest: () => void;
+  onDeleteRequest?: () => void;
   xapuriSuggestedMarkup?: number;
   epitaSuggestedMarkup?: number;
   totalItems: number;
@@ -51,6 +52,7 @@ export const ProductToolbar: React.FC<ProductToolbarProps> = ({
   visibleColumns,
   onToggleColumn,
   onNewFileRequest,
+  onDeleteRequest,
   xapuriSuggestedMarkup,
   epitaSuggestedMarkup,
   totalItems,
@@ -95,6 +97,17 @@ export const ProductToolbar: React.FC<ProductToolbarProps> = ({
             <FileText className="h-4 w-4 mr-2" />
             Nova Nota
           </Button>
+          {onDeleteRequest && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={onDeleteRequest}
+              className="flex-1 lg:flex-none"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Excluir NFE
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"

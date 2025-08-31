@@ -18,6 +18,7 @@ interface ProductPreviewProps {
   editable?: boolean;
   onConfigurationUpdate?: (xapuriMarkup: number, epitaMarkup: number, roundingType: string) => void;
   onNewFile?: (products: Product[]) => void;
+  onDeleteRequest?: () => void;
   hiddenItems?: Set<number>;
   onToggleVisibility?: (index: number) => void;
   xapuriMarkup: number;
@@ -34,6 +35,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   editable = false,
   onConfigurationUpdate,
   onNewFile,
+  onDeleteRequest,
   hiddenItems = new Set(),
   onToggleVisibility,
   xapuriMarkup,
@@ -183,18 +185,13 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   // Adiciona o campo nfeId para cada produto (usando invoiceNumber ou um valor fixo se não houver)
   const nfeId = invoiceNumber || 'nfe-id-unico';
   // Atualizar produtos com frete proporcional
-  const productsWithFrete = products.map((p, idx) => {
-    const netPrice = isNaN(p.netPrice) ? 0 : (p.netPrice || 0);
-    const freteProporcional = isNaN(fretesProporcionais[idx]) ? 0 : (fretesProporcionais[idx] || 0);
-    
-    return {
-      ...p,
-      nfeId,
-      freteProporcional,
-      // Custo final unitário: custo líquido unitário + frete proporcional unitário
-      netPrice: netPrice + freteProporcional
-    };
-  });
+  const productsWithFrete = products.map((p, idx) => ({
+    ...p,
+    nfeId,
+    freteProporcional: fretesProporcionais[idx] || 0,
+    // Custo final unitário: custo líquido unitário + frete proporcional unitário
+    netPrice: (p.netPrice || 0) + (fretesProporcionais[idx] || 0)
+  }));
 
   return (
     <div className="w-full max-w-full flex-1">
@@ -223,6 +220,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
               visibleColumns={visibleColumns}
               onToggleColumn={toggleColumn}
               onNewFileRequest={handleNewFileRequest}
+              onDeleteRequest={onDeleteRequest}
               xapuriSuggestedMarkup={xapuriSuggestedMarkup}
               epitaSuggestedMarkup={epitaSuggestedMarkup}
               totalItems={products.length}

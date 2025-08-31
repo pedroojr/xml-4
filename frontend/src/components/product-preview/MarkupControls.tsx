@@ -61,7 +61,7 @@ export const MarkupControls: React.FC<MarkupControlsProps> = ({
               id="xapuri-markup"
               type="number"
               value={xapuriMarkup}
-              onChange={(e) => onXapuriMarkupChange(Number(e.target.value))}
+              onChange={(e) => onXapuriMarkupChange(Number(e.target.value) || 0)}
               className="w-full min-w-[80px] border-blue-200 focus:border-blue-400 pr-16 px-2 py-1 rounded text-sm"
               step="5"
               placeholder="Ex: 120"
@@ -85,7 +85,7 @@ export const MarkupControls: React.FC<MarkupControlsProps> = ({
               id="epita-markup"
               type="number"
               value={epitaMarkup}
-              onChange={(e) => onEpitaMarkupChange(Number(e.target.value))}
+              onChange={(e) => onEpitaMarkupChange(Number(e.target.value) || 0)}
               className="w-full min-w-[80px] border-emerald-200 focus:border-emerald-400 pr-16 px-2 py-1 rounded text-sm"
               step="5"
               placeholder="Ex: 130"
@@ -121,7 +121,7 @@ export const MarkupControls: React.FC<MarkupControlsProps> = ({
               id="imposto-entrada"
               type="number"
               value={impostoEntrada}
-              onChange={(e) => onImpostoEntradaChange(Number(e.target.value))}
+              onChange={(e) => onImpostoEntradaChange(Number(e.target.value) || 0)}
               className="w-full min-w-[80px] border-amber-200 focus:border-amber-400 px-2 py-1 rounded text-sm"
               min="0"
               max="100"
@@ -162,7 +162,7 @@ export const MarkupControls: React.FC<MarkupControlsProps> = ({
             id="valor-frete"
             type="number"
             value={valorFrete}
-            onChange={e => onValorFreteChange(Number(e.target.value))}
+            onChange={e => onValorFreteChange(Number(e.target.value) || 0)}
             className="w-full min-w-[80px] border-indigo-200 focus:border-indigo-400 px-2 py-1 rounded text-sm"
             min="0"
             step="0.01"

@@ -39,7 +39,7 @@ export const CostInputs: React.FC<CostInputsProps> = ({
               id="monthly-fixed-costs"
               type="number"
               value={monthlyFixedCosts}
-              onChange={(e) => onMonthlyCostsChange(Number(e.target.value))}
+              onChange={(e) => onMonthlyCostsChange(Number(e.target.value) || 0)}
               className="w-full"
               placeholder="Ex: 10000"
             />
@@ -56,7 +56,7 @@ export const CostInputs: React.FC<CostInputsProps> = ({
               id="tax-rate"
               type="number"
               value={taxRate}
-              onChange={(e) => onTaxRateChange(Number(e.target.value))}
+              onChange={(e) => onTaxRateChange(Number(e.target.value) || 0)}
               className="w-full"
               placeholder="Ex: 9.25"
               step="0.01"
@@ -74,7 +74,7 @@ export const CostInputs: React.FC<CostInputsProps> = ({
               id="freight-cost"
               type="number"
               value={freightCostPercentage}
-              onChange={(e) => onFreightCostChange(Number(e.target.value))}
+              onChange={(e) => onFreightCostChange(Number(e.target.value) || 0)}
               className="w-full"
               placeholder="Ex: 5"
               step="0.5"

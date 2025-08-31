@@ -24,23 +24,17 @@ const NotasEmAberto = () => {
   const [hiddenItems, setHiddenItems] = useState<Set<number>>(new Set());
   
   // Configurações (carregadas do localStorage)
-  const [xapuriMarkup, setXapuriMarkup] = useState(() => {
+  const [xapuriMarkup, setXapuriMarkup] = useState<number>(() => {
     const saved = localStorage.getItem('xapuriMarkup');
-    if (!saved) return 160;
-    const parsed = parseFloat(saved);
-    return isNaN(parsed) ? 160 : parsed;
+    return saved ? parseFloat(saved) || 0 : 0;
   });
-  const [epitaMarkup, setEpitaMarkup] = useState(() => {
+  const [epitaMarkup, setEpitaMarkup] = useState<number>(() => {
     const saved = localStorage.getItem('epitaMarkup');
-    if (!saved) return 130;
-    const parsed = parseFloat(saved);
-    return isNaN(parsed) ? 130 : parsed;
+    return saved ? parseFloat(saved) || 0 : 0;
   });
-  const [impostoEntrada, setImpostoEntrada] = useState(() => {
+  const [impostoEntrada, setImpostoEntrada] = useState<number>(() => {
     const saved = localStorage.getItem('impostoEntrada');
-    if (!saved) return 12;
-    const parsed = parseFloat(saved);
-    return isNaN(parsed) ? 12 : parsed;
+    return saved ? parseFloat(saved) || 0 : 0;
   });
   const [roundingType, setRoundingType] = useState<RoundingType>(() => {
     const saved = localStorage.getItem('roundingType');
@@ -87,6 +81,20 @@ const NotasEmAberto = () => {
       setInvoiceNumber(detailed.numero);
       setBrandName(detailed.fornecedor);
       setIsEditingBrand(false);
+      
+      // Restaurar valores salvos da NFE ou usar valores padrão do localStorage
+      if (detailed.xapuriMarkup !== undefined && detailed.xapuriMarkup !== null) {
+        setXapuriMarkup(parseFloat(detailed.xapuriMarkup.toString()) || 0);
+      }
+      if (detailed.epitaMarkup !== undefined && detailed.epitaMarkup !== null) {
+        setEpitaMarkup(parseFloat(detailed.epitaMarkup.toString()) || 0);
+      }
+      if (detailed.impostoEntrada !== undefined && detailed.impostoEntrada !== null) {
+        setImpostoEntrada(parseFloat(detailed.impostoEntrada.toString()) || 0);
+      }
+      if (detailed.roundingType) {
+        setRoundingType(detailed.roundingType);
+      }
     } catch (err) {
       console.error('Falha ao carregar NFE detalhada:', err);
       setProducts(Array.isArray(nfe.produtos) ? nfe.produtos : []);
@@ -95,6 +103,20 @@ const NotasEmAberto = () => {
       setInvoiceNumber(nfe.numero);
       setBrandName(nfe.fornecedor);
       setIsEditingBrand(false);
+      
+      // Em caso de erro, restaurar valores salvos da NFE básica ou usar valores padrão do localStorage
+      if (nfe.xapuriMarkup !== undefined && nfe.xapuriMarkup !== null) {
+        setXapuriMarkup(parseFloat(nfe.xapuriMarkup.toString()) || 0);
+      }
+      if (nfe.epitaMarkup !== undefined && nfe.epitaMarkup !== null) {
+        setEpitaMarkup(parseFloat(nfe.epitaMarkup.toString()) || 0);
+      }
+      if (nfe.impostoEntrada !== undefined && nfe.impostoEntrada !== null) {
+        setImpostoEntrada(parseFloat(nfe.impostoEntrada.toString()) || 0);
+      }
+      if (nfe.roundingType) {
+        setRoundingType(nfe.roundingType);
+      }
     } finally {
       setIsLoadingProducts(false);
     }
