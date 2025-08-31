@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { History, FileText, Calendar, Package, ArrowLeft } from "lucide-react";
 import { useNFEStorage } from "@/hooks/useNFEStorage";
+import { useAutoSave } from "@/hooks/useAutoSave";
 import { NFE, Product } from "@/types/nfe";
 import { nfeAPI } from "@/services/api";
 import ProductPreview from "@/components/product-preview/ProductPreview";
@@ -39,6 +40,24 @@ const NotasEmAberto = () => {
     const saved = localStorage.getItem('roundingType');
     return (saved as RoundingType) || 'none';
   });
+
+  // Criar objeto NFE atual para auto-save
+  const currentNFE: NFE | null = currentNFeId ? {
+    id: currentNFeId,
+    data: new Date().toISOString().split('T')[0],
+    numero: invoiceNumber,
+    fornecedor: brandName,
+    valor: products.reduce((sum, p) => sum + (p.totalPrice ?? 0), 0),
+    itens: products.length,
+    produtos: products,
+    impostoEntrada: impostoEntrada,
+    xapuriMarkup: xapuriMarkup,
+    epitaMarkup: epitaMarkup,
+    roundingType: roundingType
+  } : null;
+
+  // Configurar auto-save
+  useAutoSave(currentNFE, { enabled: currentNFeId !== null });
 
   // Carregar NFE específica se ID for fornecido na URL
   useEffect(() => {

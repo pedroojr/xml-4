@@ -28,6 +28,7 @@ import { XmlIntegration } from "@/components/XmlIntegration";
 import FileUploadPDF from "@/components/FileUploadPDF";
 import ProductPreview from "@/components/product-preview/ProductPreview";
 import { useNFEStorage } from "@/hooks/useNFEStorage";
+import { useAutoSave } from "@/hooks/useAutoSave";
 import { nfeAPI } from "@/services/api";
 import { Product, NFE } from "@/types/nfe";
 import { RoundingType } from "@/components/product-preview/productCalculations";
@@ -68,6 +69,24 @@ const Index = () => {
   const [isEditingBrand, setIsEditingBrand] = useState(false);
 
   const { savedNFEs, saveNFE, removeNFE, loadNFEs } = useNFEStorage();
+
+  // Criar objeto NFE atual para auto-save
+  const currentNFE: NFE | null = currentNFeId ? {
+    id: currentNFeId,
+    data: new Date().toISOString().split('T')[0],
+    numero: invoiceNumber,
+    fornecedor: brandName,
+    valor: products.reduce((sum, p) => sum + (p.totalPrice ?? 0), 0),
+    itens: products.length,
+    produtos: products,
+    impostoEntrada: impostoEntrada,
+    xapuriMarkup: xapuriMarkup,
+    epitaMarkup: epitaMarkup,
+    roundingType: roundingType
+  } : null;
+
+  // Configurar auto-save
+  useAutoSave(currentNFE, { enabled: currentNFeId !== null });
 
   // Carregar NFEs ao montar o componente
   useEffect(() => {
