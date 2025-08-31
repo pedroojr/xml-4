@@ -77,7 +77,7 @@ const Dashboard = () => {
 
 
   const handleNFESelect = (nfeId: string) => {
-    navigate(`/nfe/${nfeId}`);
+    window.open(`/notas-em-aberto/${nfeId}`, '_blank');
   };
 
   const formattedNFEs = Array.isArray(savedNFEs) ? savedNFEs.map(nfe => ({

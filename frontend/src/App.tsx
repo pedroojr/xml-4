@@ -66,6 +66,7 @@ const App = () => {
                 <Route path="/dashboard" element={<Dashboard />} />
 
                 <Route path="/notas-em-aberto" element={<NotasEmAberto />} />
+                <Route path="/notas-em-aberto/:id" element={<NotasEmAberto />} />
                 <Route path="/nfe/:id" element={<NFEView />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

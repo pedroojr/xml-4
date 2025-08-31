@@ -166,6 +166,16 @@ const Index = () => {
         impostoEntrada: impostoEntrada
       };
       
+      console.log('🔍 Debug NFE antes do salvamento:', {
+        id: nfe.id,
+        fornecedor: nfe.fornecedor,
+        numero: nfe.numero,
+        valorTotal: nfe.valorTotal,
+        produtosLength: nfe.produtos.length,
+        valor: nfe.valorTotal ?? 0,
+        itens: nfe.produtos.length
+      });
+      
       saveNFE({
         ...nfe,
         valor: nfe.valorTotal ?? 0,
@@ -353,7 +363,7 @@ const Index = () => {
                     <Card 
                         key={nfe.id}
                       className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-blue-500"
-                        onClick={() => handleLoadNFe(nfe)}
+                        onClick={() => window.open(`/notas-em-aberto/${nfe.id}`, '_blank')}
                     >
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
@@ -503,7 +513,7 @@ const Index = () => {
                     <Card 
                       key={nfe.id} 
                       className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-blue-500"
-                      onClick={() => handleLoadNFe(nfe)}
+                      onClick={() => window.open(`/notas-em-aberto/${nfe.id}`, '_blank')}
                     >
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">

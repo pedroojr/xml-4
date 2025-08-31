@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, Building2, Calendar, Package2, Receipt } from 'lucide-react';
+import { ArrowLeft, FileText, Building2, Calendar, Package2, Receipt, Trash2 } from 'lucide-react';
 import { useNFEStorage } from '@/hooks/useNFEStorage';
 import { nfeAPI } from '@/services/api';
 import { formatCurrency, formatDate } from '@/utils/formatters';
@@ -11,8 +11,27 @@ import { toast } from 'sonner';
 const NFEView = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { savedNFEs, loadNFEs } = useNFEStorage();
+  const { savedNFEs, loadNFEs, removeNFE } = useNFEStorage();
   const [nfeDetail, setNfeDetail] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!id || !nfe) return;
+    
+    if (window.confirm('Tem certeza que deseja excluir esta NFE? Esta ação não pode ser desfeita.')) {
+      setIsDeleting(true);
+      try {
+        await removeNFE(id);
+        toast.success('NFE excluída com sucesso!');
+        navigate('/');
+      } catch (error) {
+        toast.error('Erro ao excluir NFE');
+        console.error('Erro ao excluir NFE:', error);
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -65,9 +84,19 @@ const NFEView = () => {
           </Button>
           <h1 className="text-2xl font-bold">Nota Fiscal {nfe.numero || 'Sem número'}</h1>
         </div>
-        <Button variant="outline" onClick={() => window.print()}>
-          Imprimir / Exportar PDF
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => window.print()}>
+            Imprimir / Exportar PDF
+          </Button>
+          <Button 
+            variant="destructive" 
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            {isDeleting ? 'Excluindo...' : 'Excluir NFE'}
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

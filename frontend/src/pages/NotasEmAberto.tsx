@@ -1,15 +1,109 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { History, FileText, Calendar, Package } from "lucide-react";
+import { History, FileText, Calendar, Package, ArrowLeft } from "lucide-react";
 import { useNFEStorage } from "@/hooks/useNFEStorage";
-import { NFE } from "@/types/nfe";
+import { NFE, Product } from "@/types/nfe";
+import { nfeAPI } from "@/services/api";
+import ProductPreview from "@/components/product-preview/ProductPreview";
+import { RoundingType } from "@/components/product-preview/productCalculations";
 
 const NotasEmAberto = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const { savedNFEs } = useNFEStorage();
+  
+  // Estados para edição de produtos
+  const [products, setProducts] = useState<Product[]>([]);
+  const [currentNFeId, setCurrentNFeId] = useState<string | null>(null);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [invoiceNumber, setInvoiceNumber] = useState<string>("");
+  const [brandName, setBrandName] = useState<string>("");
+  const [isEditingBrand, setIsEditingBrand] = useState(false);
+  const [hiddenItems, setHiddenItems] = useState<Set<number>>(new Set());
+  
+  // Configurações (carregadas do localStorage)
+  const [xapuriMarkup, setXapuriMarkup] = useState(() => {
+    const saved = localStorage.getItem('xapuriMarkup');
+    return saved ? parseInt(saved) : 160;
+  });
+  const [epitaMarkup, setEpitaMarkup] = useState(() => {
+    const saved = localStorage.getItem('epitaMarkup');
+    return saved ? parseInt(saved) : 130;
+  });
+  const [impostoEntrada, setImpostoEntrada] = useState(() => {
+    const saved = localStorage.getItem('impostoEntrada');
+    return saved ? parseInt(saved) : 12;
+  });
+  const [roundingType, setRoundingType] = useState<RoundingType>(() => {
+    const saved = localStorage.getItem('roundingType');
+    return (saved as RoundingType) || 'none';
+  });
+
+  // Carregar NFE específica se ID for fornecido na URL
+  useEffect(() => {
+    if (id && Array.isArray(savedNFEs)) {
+      const nfe = savedNFEs.find(n => n.id === id);
+      if (nfe) {
+        handleLoadNFe(nfe);
+      }
+    }
+  }, [id, savedNFEs]);
+
+  const handleLoadNFe = async (nfe: NFE) => {
+    setIsLoadingProducts(true);
+    try {
+      const detailed = await nfeAPI.getById(nfe.id);
+      const produtos = Array.isArray(detailed.produtos) ? detailed.produtos : [];
+
+      setProducts(produtos);
+      setHiddenItems(new Set());
+      setCurrentNFeId(detailed.id);
+      setInvoiceNumber(detailed.numero);
+      setBrandName(detailed.fornecedor);
+      setIsEditingBrand(false);
+    } catch (err) {
+      console.error('Falha ao carregar NFE detalhada:', err);
+      setProducts(Array.isArray(nfe.produtos) ? nfe.produtos : []);
+      setHiddenItems(new Set());
+      setCurrentNFeId(nfe.id);
+      setInvoiceNumber(nfe.numero);
+      setBrandName(nfe.fornecedor);
+      setIsEditingBrand(false);
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  };
 
   const handleNFESelect = (nfe: NFE) => {
-    navigate(`/nfe/${nfe.id}`);
+    // Abrir em nova aba direcionando para esta mesma página com o ID da NFE
+    window.open(`/notas-em-aberto/${nfe.id}`, '_blank');
+  };
+
+  const handleXapuriMarkupChange = (value: number) => {
+    setXapuriMarkup(value);
+    localStorage.setItem('xapuriMarkup', value.toString());
+  };
+
+  const handleEpitaMarkupChange = (value: number) => {
+    setEpitaMarkup(value);
+    localStorage.setItem('epitaMarkup', value.toString());
+  };
+
+  const handleImpostoEntradaChange = (value: number) => {
+    setImpostoEntrada(value);
+    localStorage.setItem('impostoEntrada', value.toString());
+  };
+
+  const handleRoundingTypeChange = (value: RoundingType) => {
+    setRoundingType(value);
+    localStorage.setItem('roundingType', value);
+  };
+
+  const handleBackToList = () => {
+    setProducts([]);
+    setCurrentNFeId(null);
+    navigate('/notas-em-aberto');
   };
 
   const formatDate = (dateString: string) => {
@@ -20,6 +114,62 @@ const NotasEmAberto = () => {
       return dateString;
     }
   };
+
+  // Se há produtos carregados, mostrar interface de edição
+  if (products.length > 0 && currentNFeId) {
+    return (
+      <div className="w-full p-4 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleBackToList}
+              className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
+            </button>
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <FileText className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">{brandName}</h1>
+              <p className="text-slate-600">NF-e {invoiceNumber} - Editando produtos</p>
+            </div>
+          </div>
+        </div>
+
+        {isLoadingProducts ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-slate-600">Carregando produtos...</p>
+            </div>
+          </div>
+        ) : (
+          <ProductPreview
+            products={products}
+            onProductsChange={setProducts}
+            xapuriMarkup={xapuriMarkup}
+            epitaMarkup={epitaMarkup}
+            impostoEntrada={impostoEntrada}
+            roundingType={roundingType}
+            onXapuriMarkupChange={handleXapuriMarkupChange}
+            onEpitaMarkupChange={handleEpitaMarkupChange}
+            onImpostoEntradaChange={handleImpostoEntradaChange}
+            onRoundingTypeChange={handleRoundingTypeChange}
+            hiddenItems={hiddenItems}
+            onHiddenItemsChange={setHiddenItems}
+            invoiceNumber={invoiceNumber}
+            onInvoiceNumberChange={setInvoiceNumber}
+            brandName={brandName}
+            onBrandNameChange={setBrandName}
+            isEditingBrand={isEditingBrand}
+            onEditingBrandChange={setIsEditingBrand}
+            currentNFeId={currentNFeId}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="w-full p-4 space-y-6">

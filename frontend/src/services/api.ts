@@ -145,12 +145,23 @@ export interface UploadResponse {
 const validateNFE = (nfe: Partial<NFE>): string[] => {
   const errors: string[] = [];
   
+  console.log('🔍 Validando NFE:', {
+    id: nfe.id,
+    fornecedor: nfe.fornecedor,
+    numero: nfe.numero,
+    valor: nfe.valor,
+    valorType: typeof nfe.valor,
+    itens: nfe.itens,
+    itensType: typeof nfe.itens
+  });
+  
   if (!nfe.id?.trim()) errors.push('ID é obrigatório');
   if (!nfe.fornecedor?.trim()) errors.push('Fornecedor é obrigatório');
   if (!nfe.numero?.trim()) errors.push('Número da NFE é obrigatório');
   if (typeof nfe.valor !== 'number' || nfe.valor < 0) errors.push('Valor deve ser um número positivo');
   if (typeof nfe.itens !== 'number' || nfe.itens < 0) errors.push('Quantidade de itens deve ser um número positivo');
   
+  console.log('🔍 Erros de validação:', errors);
   return errors;
 };
 
@@ -159,7 +170,7 @@ export const nfeAPI = {
   // Buscar todas as NFEs
   getAll: async (): Promise<NFE[]> => {
     try {
-      const response = await api.get<NFE[]>('/api/nfes');
+      const response = await api.get<NFE[]>('/nfes');
       return response.data;
     } catch (error) {
       console.error('Erro ao buscar NFEs:', error);
@@ -174,7 +185,7 @@ export const nfeAPI = {
     }
     
     try {
-      const response = await api.get<NFE>(`/api/nfes/${encodeURIComponent(id)}`);
+      const response = await api.get<NFE>(`/nfes/${encodeURIComponent(id)}`);
       return response.data;
     } catch (error) {
       console.error(`Erro ao buscar NFE ${id}:`, error);
@@ -190,7 +201,7 @@ export const nfeAPI = {
     }
     
     try {
-      const response = await api.post<ApiResponse<{ id: string }>>('/api/nfes', nfe);
+      const response = await api.post<ApiResponse<{ id: string }>>('/nfes', nfe);
       return response.data;
     } catch (error) {
       console.error('Erro ao salvar NFE:', error);
@@ -205,7 +216,7 @@ export const nfeAPI = {
     }
     
     try {
-      const response = await api.put<ApiResponse<void>>(`/api/nfes/${encodeURIComponent(id)}`, nfe);
+      const response = await api.put<ApiResponse<void>>(`/nfes/${encodeURIComponent(id)}`, nfe);
       return response.data;
     } catch (error) {
       console.error(`Erro ao atualizar NFE ${id}:`, error);
@@ -220,7 +231,7 @@ export const nfeAPI = {
     }
     
     try {
-      const response = await api.delete<ApiResponse<void>>(`/api/nfes/${encodeURIComponent(id)}`);
+      const response = await api.delete<ApiResponse<void>>(`/nfes/${encodeURIComponent(id)}`);
       return response.data;
     } catch (error) {
       console.error(`Erro ao excluir NFE ${id}:`, error);
@@ -252,7 +263,7 @@ export const uploadAPI = {
     formData.append('xml', file);
     
     try {
-      const response = await api.post<UploadResponse>('/api/upload-xml', formData, {
+      const response = await api.post<UploadResponse>('/upload-xml', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -274,7 +285,7 @@ export const statusAPI = {
     try {
       // Tenta endpoint de produção primeiro
       try {
-        const resApi = await api.get<{ status: string }>('/api/status');
+        const resApi = await api.get<{ status: string }>('/status');
         return resApi.data;
       } catch (e) {
         // Fallback para endpoint usado no dev
