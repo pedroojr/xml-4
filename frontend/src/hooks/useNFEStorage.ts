@@ -30,11 +30,14 @@ export const useNFEStorage = () => {
 
   const saveNFE = async (nfe: NFE) => {
     try {
+      console.log('🔄 Iniciando salvamento da NFE:', nfe.id);
+      
       // Verifica se já existe uma nota com a mesma chave
       if (nfe.chaveNFE && checkDuplicateNFE(nfe.chaveNFE)) {
         // Se for uma atualização da mesma nota (mesmo ID), permite
         const existingNFE = Array.isArray(savedNFEs) ? savedNFEs.find(saved => saved.id === nfe.id) : undefined;
         if (!existingNFE) {
+          console.error('❌ NFE duplicada encontrada:', nfe.chaveNFE);
           throw new Error('Esta nota fiscal já foi cadastrada anteriormente');
         }
       }
@@ -45,9 +48,25 @@ export const useNFEStorage = () => {
         produtos: Array.isArray(nfe.produtos) ? nfe.produtos : []
       };
 
+      console.log('📤 Enviando NFE para API:', {
+        id: nfeWithProducts.id,
+        fornecedor: nfeWithProducts.fornecedor,
+        valor: nfeWithProducts.valor,
+        itens: nfeWithProducts.itens,
+        produtosCount: nfeWithProducts.produtos.length
+      });
+
       // Salva via API
       await apiSaveNFE(nfeWithProducts);
+      console.log('✅ NFE salva com sucesso:', nfe.id);
     } catch (error) {
+      console.error('❌ Erro detalhado ao salvar NFE:', {
+        nfeId: nfe.id,
+        error: error,
+        errorMessage: error instanceof Error ? error.message : 'Erro desconhecido',
+        errorStack: error instanceof Error ? error.stack : undefined
+      });
+      
       if (error instanceof Error) {
         throw error;
       }

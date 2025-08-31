@@ -60,7 +60,7 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3006', 'http://localhost:3007', 'http://localhost:3008', 'http://localhost:3012', 'http://localhost:3013', 'http://localhost:3014', 'http://localhost:3015'],
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3006', 'http://localhost:3007', 'http://localhost:3008', 'http://localhost:3012', 'http://localhost:3013', 'http://localhost:3014', 'http://localhost:3015', 'http://localhost:3018'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -336,6 +336,11 @@ app.delete('/api/nfes/:id', (req, res) => {
 
 // Rota de status
 app.get('/status', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+// Rota de status da API
+app.get('/api/status', (req, res) => {
   res.json({ status: 'ok' });
 });
 

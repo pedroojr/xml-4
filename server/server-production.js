@@ -24,7 +24,7 @@ app.use(helmet({
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:"],
       scriptSrc: ["'self'"],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", "https://xml.lojasrealce.shop"],
     },
   },
   crossOriginEmbedderPolicy: false,

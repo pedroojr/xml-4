@@ -30,26 +30,46 @@ export const useNFEAPI = () => {
 
   // Salvar NFE
   const saveNFE = useCallback(async (nfe: NFE) => {
+    console.log('🚀 useNFEAPI.saveNFE iniciado para:', nfe.id);
     setLoading(true);
     setError(null);
     try {
+      console.log('📡 Chamando nfeAPI.save com dados:', {
+        id: nfe.id,
+        fornecedor: nfe.fornecedor,
+        valor: nfe.valor,
+        itens: nfe.itens
+      });
+      
       const result = await nfeAPI.save(nfe);
+      console.log('✅ nfeAPI.save retornou:', result);
+      
       // Adicionar NFE à lista local em vez de recarregar tudo
       if (result.nfe) {
         setNfes(prev => [...prev, result.nfe]);
+        console.log('📝 NFE adicionada à lista local');
       } else {
         // Fallback: recarregar apenas se não tiver a NFE no resultado
+        console.log('🔄 Recarregando lista de NFEs (fallback)');
         await loadNFEs();
       }
       toast.success(result.message);
       return result;
     } catch (err) {
+      console.error('❌ Erro em useNFEAPI.saveNFE:', {
+        nfeId: nfe.id,
+        error: err,
+        errorType: typeof err,
+        errorMessage: err instanceof Error ? err.message : 'Erro desconhecido'
+      });
+      
       const errorMessage = err instanceof Error ? err.message : 'Erro ao salvar NFE';
       setError(errorMessage);
       toast.error(errorMessage);
       throw err;
     } finally {
       setLoading(false);
+      console.log('🏁 useNFEAPI.saveNFE finalizado para:', nfe.id);
     }
   }, [loadNFEs]);
 
