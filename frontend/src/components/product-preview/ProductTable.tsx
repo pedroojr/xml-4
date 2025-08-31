@@ -696,7 +696,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                             onChange={e => {
                               setCustoExtraMap(prev => ({ ...prev, [product.codigo]: e.target.value }));
                               // Persistir o valor no armazenamento da nota
-                              const valor = parseFloat(e.target.value) || 0;
+                              const valor = isNaN(parseFloat(e.target.value)) ? 0 : parseFloat(e.target.value);
                               if (product.nfeId) {
                                 updateProdutoCustoExtra(product.nfeId, product.codigo, valor);
                               }
@@ -716,13 +716,15 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                       value = formatQuantity(Number(value));
                     }
                     if (column.id === 'xapuriPrice') {
-                      const custoExtra = parseFloat(custoExtraMap[product.codigo] || '0') || 0;
+                      const custoExtraValue = custoExtraMap[product.codigo] || '0';
+                      const custoExtra = isNaN(parseFloat(custoExtraValue)) ? 0 : parseFloat(custoExtraValue);
                       const custoLiquido = calculateCustoLiquido(product, impostoEntrada);
                       const custoLiquidoComFrete = custoLiquido + (product.freteProporcional || 0);
                       value = roundPrice(calculateSalePrice({ ...product, netPrice: custoLiquidoComFrete }, xapuriMarkup), roundingType) + custoExtra;
                     }
                     if (column.id === 'epitaPrice') {
-                      const custoExtra = parseFloat(custoExtraMap[product.codigo] || '0') || 0;
+                      const custoExtraValue = custoExtraMap[product.codigo] || '0';
+                      const custoExtra = isNaN(parseFloat(custoExtraValue)) ? 0 : parseFloat(custoExtraValue);
                       const custoLiquido = calculateCustoLiquido(product, impostoEntrada);
                       const custoLiquidoComFrete = custoLiquido + (product.freteProporcional || 0);
                       value = roundPrice(calculateSalePrice({ ...product, netPrice: custoLiquidoComFrete }, epitaMarkup), roundingType) + custoExtra;

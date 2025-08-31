@@ -49,15 +49,21 @@ const Index = () => {
   // Configurações
   const [xapuriMarkup, setXapuriMarkup] = useState(() => {
     const saved = localStorage.getItem('xapuriMarkup');
-    return saved ? parseInt(saved) : 160;
+    if (!saved) return 160;
+    const parsed = parseFloat(saved);
+    return isNaN(parsed) ? 160 : parsed;
   });
   const [epitaMarkup, setEpitaMarkup] = useState(() => {
     const saved = localStorage.getItem('epitaMarkup');
-    return saved ? parseInt(saved) : 130;
+    if (!saved) return 130;
+    const parsed = parseFloat(saved);
+    return isNaN(parsed) ? 130 : parsed;
   });
   const [impostoEntrada, setImpostoEntrada] = useState(() => {
     const saved = localStorage.getItem('impostoEntrada');
-    return saved ? parseInt(saved) : 12;
+    if (!saved) return 12;
+    const parsed = parseFloat(saved);
+    return isNaN(parsed) ? 12 : parsed;
   });
   const [roundingType, setRoundingType] = useState<RoundingType>(() => {
     const saved = localStorage.getItem('roundingType');
@@ -238,18 +244,21 @@ const Index = () => {
   };
 
   const handleXapuriMarkupChange = (value: number) => {
-    setXapuriMarkup(value);
-    localStorage.setItem('xapuriMarkup', value.toString());
+    const validValue = isNaN(value) ? 160 : value;
+    setXapuriMarkup(validValue);
+    localStorage.setItem('xapuriMarkup', validValue.toString());
   };
 
   const handleEpitaMarkupChange = (value: number) => {
-    setEpitaMarkup(value);
-    localStorage.setItem('epitaMarkup', value.toString());
+    const validValue = isNaN(value) ? 130 : value;
+    setEpitaMarkup(validValue);
+    localStorage.setItem('epitaMarkup', validValue.toString());
   };
 
   const handleImpostoEntradaChange = (value: number) => {
-    setImpostoEntrada(value);
-    localStorage.setItem('impostoEntrada', value.toString());
+    const validValue = isNaN(value) ? 12 : value;
+    setImpostoEntrada(validValue);
+    localStorage.setItem('impostoEntrada', validValue.toString());
   };
 
   const handleRoundingTypeChange = (value: RoundingType) => {
@@ -631,7 +640,7 @@ const Index = () => {
                   <input
                     type="number"
                     value={xapuriMarkup}
-                    onChange={(e) => handleXapuriMarkupChange(parseInt(e.target.value) || 0)}
+                    onChange={(e) => handleXapuriMarkupChange(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -642,7 +651,7 @@ const Index = () => {
                   <input
                     type="number"
                     value={epitaMarkup}
-                    onChange={(e) => handleEpitaMarkupChange(parseInt(e.target.value) || 0)}
+                    onChange={(e) => handleEpitaMarkupChange(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -653,7 +662,7 @@ const Index = () => {
                   <input
                     type="number"
                     value={impostoEntrada}
-                    onChange={(e) => handleImpostoEntradaChange(parseInt(e.target.value) || 0)}
+                    onChange={(e) => handleImpostoEntradaChange(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>

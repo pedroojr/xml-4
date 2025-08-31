@@ -26,15 +26,21 @@ const NotasEmAberto = () => {
   // Configurações (carregadas do localStorage)
   const [xapuriMarkup, setXapuriMarkup] = useState(() => {
     const saved = localStorage.getItem('xapuriMarkup');
-    return saved ? parseInt(saved) : 160;
+    if (!saved) return 160;
+    const parsed = parseFloat(saved);
+    return isNaN(parsed) ? 160 : parsed;
   });
   const [epitaMarkup, setEpitaMarkup] = useState(() => {
     const saved = localStorage.getItem('epitaMarkup');
-    return saved ? parseInt(saved) : 130;
+    if (!saved) return 130;
+    const parsed = parseFloat(saved);
+    return isNaN(parsed) ? 130 : parsed;
   });
   const [impostoEntrada, setImpostoEntrada] = useState(() => {
     const saved = localStorage.getItem('impostoEntrada');
-    return saved ? parseInt(saved) : 12;
+    if (!saved) return 12;
+    const parsed = parseFloat(saved);
+    return isNaN(parsed) ? 12 : parsed;
   });
   const [roundingType, setRoundingType] = useState<RoundingType>(() => {
     const saved = localStorage.getItem('roundingType');

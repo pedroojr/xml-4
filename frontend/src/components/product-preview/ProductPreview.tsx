@@ -183,13 +183,18 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   // Adiciona o campo nfeId para cada produto (usando invoiceNumber ou um valor fixo se não houver)
   const nfeId = invoiceNumber || 'nfe-id-unico';
   // Atualizar produtos com frete proporcional
-  const productsWithFrete = products.map((p, idx) => ({
-    ...p,
-    nfeId,
-    freteProporcional: fretesProporcionais[idx] || 0,
-    // Custo final unitário: custo líquido unitário + frete proporcional unitário
-    netPrice: (p.netPrice || 0) + (fretesProporcionais[idx] || 0)
-  }));
+  const productsWithFrete = products.map((p, idx) => {
+    const netPrice = isNaN(p.netPrice) ? 0 : (p.netPrice || 0);
+    const freteProporcional = isNaN(fretesProporcionais[idx]) ? 0 : (fretesProporcionais[idx] || 0);
+    
+    return {
+      ...p,
+      nfeId,
+      freteProporcional,
+      // Custo final unitário: custo líquido unitário + frete proporcional unitário
+      netPrice: netPrice + freteProporcional
+    };
+  });
 
   return (
     <div className="w-full max-w-full flex-1">
