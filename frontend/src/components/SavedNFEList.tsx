@@ -126,7 +126,7 @@ const SavedNFEList: React.FC<SavedNFEListProps> = ({ nfes, onNFESelect }) => {
                             onNFESelect(nfe.id);
                           }}
                         >
-                          Visualizar
+                          Editar
                         </Button>
                       </div>
                     ))}

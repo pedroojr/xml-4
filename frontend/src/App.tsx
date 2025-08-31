@@ -9,7 +9,6 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 
 import NotFound from "./pages/NotFound";
-import NFEView from "./pages/NFEView";
 import NotasEmAberto from "./pages/NotasEmAberto";
 
 // Create a client
@@ -67,7 +66,6 @@ const App = () => {
 
                 <Route path="/notas-em-aberto" element={<NotasEmAberto />} />
                 <Route path="/notas-em-aberto/:id" element={<NotasEmAberto />} />
-                <Route path="/nfe/:id" element={<NFEView />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BaseLayout>
