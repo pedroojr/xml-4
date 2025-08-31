@@ -235,7 +235,7 @@ const Index = () => {
 
   // Renderizar tela de boas-vindas
   if (currentView === "welcome") {
-    return (
+  return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
         <div className="max-w-7xl mx-auto px-4 py-12">
           {/* Header Hero */}
@@ -351,16 +351,16 @@ const Index = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredNFEs.slice(0, 6).map((nfe) => (
                     <Card 
-                      key={nfe.id} 
+                        key={nfe.id}
                       className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-blue-500"
-                      onClick={() => handleLoadNFe(nfe)}
+                        onClick={() => handleLoadNFe(nfe)}
                     >
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
                             <h4 className="font-semibold text-slate-900 truncate">{nfe.fornecedor}</h4>
                             <p className="text-sm text-slate-600">NF-e {nfe.numero}</p>
-                          </div>
+                        </div>
                           <Badge variant="secondary" className="text-xs">
                             {nfe.itens} itens
                           </Badge>
@@ -368,11 +368,11 @@ const Index = () => {
                         <div className="flex items-center justify-between text-sm text-slate-500">
                           <span>{formatDate(new Date(nfe.data))}</span>
                           <span className="font-medium">{formatCurrency(nfe.valor)}</span>
-                        </div>
+                      </div>
                       </CardContent>
                     </Card>
-                  ))}
-                </div>
+                    ))}
+                  </div>
               </CardContent>
             </Card>
           )}
@@ -405,7 +405,7 @@ const Index = () => {
             </div>
           </div>
         </div>
-      </div>
+                </div>
     );
   }
 
@@ -426,8 +426,8 @@ const Index = () => {
             <h1 className="text-4xl font-bold text-slate-900 mb-4">Importar Nota Fiscal</h1>
             <p className="text-lg text-slate-600">
               Escolha uma das opções abaixo para importar sua NF-e
-            </p>
-          </div>
+                </p>
+              </div>
 
           {/* Opções de Upload */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
@@ -442,7 +442,7 @@ const Index = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <FileUpload onFileSelect={handleFileSelect} />
+                      <FileUpload onFileSelect={handleFileSelect} />
               </CardContent>
             </Card>
 
@@ -451,13 +451,13 @@ const Index = () => {
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Download className="w-8 h-8 text-green-600" />
                 </div>
-                <CardTitle className="text-2xl">Integração de Sistema</CardTitle>
+                <CardTitle className="text-2xl">Download de XML</CardTitle>
                 <CardDescription>
-                  Conecte com sistemas externos para importação automática
+                  Faça download de arquivos XML de URLs externas
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <XmlIntegration onXmlContent={handleXmlFromIntegration} />
+                <XmlIntegration onXmlReceived={handleXmlFromIntegration} />
               </CardContent>
             </Card>
           </div>
@@ -494,8 +494,8 @@ const Index = () => {
                         <option key={fornecedor} value={fornecedor}>{fornecedor}</option>
                       ))}
                     </select>
-                  </div>
-                </div>
+                          </div>
+                        </div>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -510,34 +510,34 @@ const Index = () => {
                           <div className="flex-1">
                             <h4 className="font-semibold text-slate-900 truncate">{nfe.fornecedor}</h4>
                             <p className="text-sm text-slate-600">NF-e {nfe.numero}</p>
-                          </div>
+                </div>
                           <Badge variant="secondary" className="text-xs">
                             {nfe.itens} itens
                           </Badge>
-                        </div>
+              </div>
                         <div className="flex items-center justify-between text-sm text-slate-500">
                           <span>{formatDate(new Date(nfe.data))}</span>
                           <span className="font-medium">{formatCurrency(nfe.valor)}</span>
-                        </div>
+            </div>
                       </CardContent>
                     </Card>
                   ))}
-                </div>
+          </div>
               </CardContent>
             </Card>
-          )}
+        )}
 
           {/* Loading */}
-          {isProcessing && (
+        {isProcessing && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <Card className="bg-white p-8 text-center">
                 <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
                 <h3 className="text-xl font-semibold mb-2">Processando NF-e...</h3>
                 <p className="text-slate-600">Aguarde enquanto processamos seu arquivo XML</p>
               </Card>
-            </div>
-          )}
-        </div>
+                  </div>
+                )}
+              </div>
       </div>
     );
   }
@@ -550,7 +550,7 @@ const Index = () => {
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
-              <Button 
+                    <Button
                 variant="ghost" 
                 onClick={() => setCurrentView("upload")}
               >
@@ -578,9 +578,9 @@ const Index = () => {
               <Button variant="outline" onClick={() => navigate('/dashboard')}>
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Dashboard
-              </Button>
+                    </Button>
+              </div>
             </div>
-          </div>
 
           {/* Configurações */}
           <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg mb-8">
@@ -633,37 +633,37 @@ const Index = () => {
           </Card>
 
           {/* Preview dos Produtos */}
-          <ProductPreview
-            products={products}
-            hiddenItems={hiddenItems}
-            onToggleVisibility={(index) => {
-              const newHiddenItems = new Set(hiddenItems);
-              if (newHiddenItems.has(index)) {
-                newHiddenItems.delete(index);
-              } else {
-                newHiddenItems.add(index);
-              }
-              setHiddenItems(newHiddenItems);
-            }}
-            onNewFile={() => {
-              setProducts([]);
-              setHiddenItems(new Set());
-              setCurrentNFeId(null);
-              setInvoiceNumber("");
-              setBrandName("");
-              setIsEditingBrand(false);
+            <ProductPreview
+              products={products}
+              hiddenItems={hiddenItems}
+              onToggleVisibility={(index) => {
+                const newHiddenItems = new Set(hiddenItems);
+                if (newHiddenItems.has(index)) {
+                  newHiddenItems.delete(index);
+                } else {
+                  newHiddenItems.add(index);
+                }
+                setHiddenItems(newHiddenItems);
+              }}
+              onNewFile={() => {
+                setProducts([]);
+                setHiddenItems(new Set());
+                setCurrentNFeId(null);
+                setInvoiceNumber("");
+                setBrandName("");
+                setIsEditingBrand(false);
               setCurrentView("upload");
-            }}
-            xapuriMarkup={xapuriMarkup}
-            epitaMarkup={epitaMarkup}
-            roundingType={roundingType}
-            onXapuriMarkupChange={handleXapuriMarkupChange}
-            onEpitaMarkupChange={handleEpitaMarkupChange}
-            onRoundingTypeChange={handleRoundingTypeChange}
-          />
-        </div>
+              }}
+              xapuriMarkup={xapuriMarkup}
+              epitaMarkup={epitaMarkup}
+              roundingType={roundingType}
+              onXapuriMarkupChange={handleXapuriMarkupChange}
+              onEpitaMarkupChange={handleEpitaMarkupChange}
+              onRoundingTypeChange={handleRoundingTypeChange}
+            />
       </div>
-    );
+    </div>
+  );
   }
 
   return null;

@@ -34,7 +34,7 @@ const Dashboard = () => {
   const totalNotas = Array.isArray(savedNFEs) ? savedNFEs.length : 0;
   const totalProdutos = Array.isArray(savedNFEs) ? savedNFEs.reduce((acc, nfe) => acc + (Array.isArray(nfe.produtos) ? nfe.produtos.length : 0), 0) : 0;
   const quantidadeTotal = Array.isArray(savedNFEs) ? savedNFEs.reduce((acc, nfe) => 
-    acc + (Array.isArray(nfe.produtos) ? nfe.produtos.reduce((sum, prod) => sum + (Number(prod.quantity) || 0), 0) : 0), 0) : 0;
+    acc + (Array.isArray(nfe.produtos) ? nfe.produtos.reduce((sum, prod) => sum + (Number(prod.quantidade) || 0), 0) : 0), 0) : 0;
   const valorTotal = Array.isArray(savedNFEs) ? savedNFEs.reduce((acc, nfe) => acc + (Number(nfe.valor) || 0), 0) : 0;
   const totalImpostos = valorTotal * 0.17; // 17% de impostos
   const notasFavoritas = Array.isArray(savedNFEs) ? savedNFEs.filter(nfe => nfe.isFavorite).length : 0;
@@ -74,10 +74,7 @@ const Dashboard = () => {
     crescimento: 0
   };
 
-  // Função para navegar para a página de produtos com filtros
-  const navegarParaProdutos = (filtro?: string) => {
-    navigate('/produtos', { state: { filtro } });
-  };
+
 
   const handleNFESelect = (nfeId: string) => {
     navigate(`/nfe/${nfeId}`);
@@ -112,8 +109,7 @@ const Dashboard = () => {
       {/* Cards de Métricas */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card 
-          className="bg-white hover:bg-gray-50 cursor-pointer transition-colors"
-          onClick={() => navegarParaProdutos('notas')}
+          className="bg-white hover:bg-gray-50 transition-colors"
         >
           <CardContent className="p-4">
             <div className="flex flex-col">
@@ -127,7 +123,7 @@ const Dashboard = () => {
                       <Info className="w-4 h-4 ml-2 text-gray-400" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Clique para ver todas as notas</p>
+                      <p>Total de notas fiscais importadas</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -142,8 +138,7 @@ const Dashboard = () => {
         </Card>
 
         <Card 
-          className="bg-white hover:bg-gray-50 cursor-pointer transition-colors"
-          onClick={() => navegarParaProdutos('produtos')}
+          className="bg-white hover:bg-gray-50 transition-colors"
         >
           <CardContent className="p-4">
             <div className="flex flex-col">
@@ -157,7 +152,7 @@ const Dashboard = () => {
                       <Info className="w-4 h-4 ml-2 text-gray-400" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Clique para ver todos os produtos</p>
+                      <p>Total de produtos nas notas fiscais</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -172,8 +167,7 @@ const Dashboard = () => {
         </Card>
 
         <Card 
-          className="bg-white hover:bg-gray-50 cursor-pointer transition-colors"
-          onClick={() => navegarParaProdutos('quantidade')}
+          className="bg-white hover:bg-gray-50 transition-colors"
         >
           <CardContent className="p-4">
             <div className="flex flex-col">
@@ -193,8 +187,7 @@ const Dashboard = () => {
         </Card>
 
         <Card 
-          className="bg-white hover:bg-gray-50 cursor-pointer transition-colors"
-          onClick={() => navegarParaProdutos('valor')}
+          className="bg-white hover:bg-gray-50 transition-colors"
         >
           <CardContent className="p-4">
             <div className="flex flex-col">
@@ -347,7 +340,7 @@ const Dashboard = () => {
                         <div 
                           className="w-full bg-gradient-to-t from-yellow-500 to-yellow-400 rounded-t group-hover:from-yellow-600 group-hover:to-yellow-500 transition-colors"
                           style={{ 
-                            height: `${(item.value / fornecedoresOrdenados[0].value) * 300}px`,
+                            height: `${(item.value / (fornecedoresOrdenados[0]?.value || 1)) * 300}px`,
                           }}
                         />
                         <span className="text-xs mt-2 font-medium truncate w-full text-center">
@@ -421,51 +414,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-white">
-          <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Produtos Mais Frequentes</h3>
-            <div className="space-y-4">
-              {(() => {
-                // Calcular produtos mais frequentes baseado nas NFEs
-                const produtoCount = Array.isArray(savedNFEs) ? savedNFEs.reduce((acc: any, nfe) => {
-                  if (Array.isArray(nfe.produtos)) {
-                    nfe.produtos.forEach(produto => {
-                      const nome = produto.name || produto.description || 'Produto sem nome';
-                      if (!acc[nome]) {
-                        acc[nome] = { count: 0, totalQty: 0 };
-                      }
-                      acc[nome].count += 1;
-                      acc[nome].totalQty += Number(produto.quantity) || 0;
-                    });
-                  }
-                  return acc;
-                }, {}) : {};
-                
-                const topProdutos = Object.entries(produtoCount)
-                  .map(([nome, dados]: [string, any]) => ({ nome, ...dados }))
-                  .sort((a, b) => b.count - a.count)
-                  .slice(0, 3);
-                
-                if (topProdutos.length === 0) {
-                  return (
-                    <div className="text-center text-gray-500 py-4">
-                      Nenhum produto encontrado nas NFEs
-                    </div>
-                  );
-                }
-                
-                return topProdutos.map((produto, index) => (
-                  <div key={index} className="p-3 bg-gray-50 rounded-lg">
-                    <div className="font-medium">{produto.nome}</div>
-                    <div className="text-sm text-gray-600">
-                      {produto.totalQty} unidades • {produto.count} ocorrência{produto.count !== 1 ? 's' : ''}
-                    </div>
-                  </div>
-                ));
-              })()}
-            </div>
-          </CardContent>
-        </Card>
+
       </div>
 
       <SavedNFEList
