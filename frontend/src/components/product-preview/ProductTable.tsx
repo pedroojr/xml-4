@@ -469,21 +469,36 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   const calculateAverageDiscountPercent = () => {
     if (products.length === 0) return 0;
     
-    const totalOriginalPrice = products.reduce((acc, p) => acc + p.totalPrice, 0);
-    const totalDiscount = products.reduce((acc, p) => acc + p.discount, 0);
+    const totalOriginalPrice = products.reduce((acc, p) => {
+      const price = p.totalPrice || p.valorTotal || 0;
+      return acc + (isNaN(price) ? 0 : price);
+    }, 0);
+    const totalDiscount = products.reduce((acc, p) => {
+      const discount = p.discount || 0;
+      return acc + (isNaN(discount) ? 0 : discount);
+    }, 0);
     
     return totalOriginalPrice > 0 ? (totalDiscount / totalOriginalPrice) * 100 : 0;
   };
 
   // Calcular a quantidade total de unidades
   const calculateTotalQuantity = (prods: Product[]) => {
-    return prods.reduce((acc, p) => acc + p.quantity, 0);
+    return prods.reduce((acc, p) => {
+      const quantity = p.quantity || p.quantidade || 0;
+      return acc + (isNaN(quantity) ? 0 : quantity);
+    }, 0);
   };
 
   // Função para calcular o valor líquido total (Valor Total - Desconto Total)
   const calculateTotalNetValue = (prods: Product[]) => {
-    const totalValue = prods.reduce((acc, p) => acc + p.totalPrice, 0);
-    const totalDiscount = prods.reduce((acc, p) => acc + p.discount, 0);
+    const totalValue = prods.reduce((acc, p) => {
+      const price = p.totalPrice || p.valorTotal || 0;
+      return acc + (isNaN(price) ? 0 : price);
+    }, 0);
+    const totalDiscount = prods.reduce((acc, p) => {
+      const discount = p.discount || 0;
+      return acc + (isNaN(discount) ? 0 : discount);
+    }, 0);
     return totalValue - totalDiscount;
   };
 
@@ -576,7 +591,10 @@ export const ProductTable: React.FC<ProductTableProps> = ({
               <CardContent className="p-3">
                 <div className="text-xs font-medium text-muted-foreground">Valor Total</div>
                 <div className="text-sm font-medium tabular-nums">
-                  {sortedFilteredProducts.reduce((acc, p) => acc + p.totalPrice, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  {sortedFilteredProducts.reduce((acc, p) => {
+                    const price = p.totalPrice || p.valorTotal || 0;
+                    return acc + (isNaN(price) ? 0 : price);
+                  }, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </div>
               </CardContent>
             </Card>
