@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-09-01T22:45:16.423Z",
+  "chaveNFe1": {
+    "found": true,
+    "value": "NFe42250282698085000198550060007416701569277904"
+  },
+  "chaveNFe2": {
+    "found": false,
+    "value": null
+  },
+  "chaveNFe3": {
+    "found": true,
+    "value": "NFe42250282698085000198550060007416701569277904"
+  }
+}

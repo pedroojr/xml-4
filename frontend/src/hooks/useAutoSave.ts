@@ -26,10 +26,16 @@ export const useAutoSave = (nfe: NFE | null, options: UseAutoSaveOptions = {}) =
     // Cria novo timeout para salvar
     timeoutRef.current = setTimeout(async () => {
       try {
+        // Verifica se já está salvo antes de iniciar
+        const snapshot = JSON.stringify(nfeToSave);
+        if (snapshot === lastSavedRef.current) {
+          return;
+        }
+
         isSavingRef.current = true;
         console.log('🔄 Auto-save iniciado para NFE:', nfeToSave.id);
         await saveNFE(nfeToSave);
-        lastSavedRef.current = JSON.stringify(nfeToSave);
+        lastSavedRef.current = snapshot;
         console.log('✅ Auto-save concluído para NFE:', nfeToSave.id);
       } catch (error) {
         console.error('❌ Erro no auto-save:', error);

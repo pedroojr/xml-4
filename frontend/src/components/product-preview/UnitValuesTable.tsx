@@ -54,12 +54,16 @@ export const UnitValuesTable: React.FC<UnitValuesTableProps> = ({
       </TableHeader>
       <TableBody>
         {products.map((product, index) => {
-          const unitNetPrice = product.quantity > 0 ? product.netPrice / product.quantity : 0;
-          const unitDiscount = product.quantity > 0 ? product.discount / product.quantity : 0;
-          const xapuriPrice = product.quantity > 0 ? 
-            roundPrice(calculateSalePrice({ ...product, netPrice: unitNetPrice }, xapuriMarkup), roundingType) : 0;
-          const epitaPrice = product.quantity > 0 ? 
-            roundPrice(calculateSalePrice({ ...product, netPrice: unitNetPrice }, epitaMarkup), roundingType) : 0;
+          const quantidade = (product.quantidade ?? product.quantity ?? 0) as number;
+          const valorUnitario = (product.valorUnitario ?? product.unitPrice ?? 0) as number;
+          const descontoTotal = product.discount || 0;
+          const descontoUnitario = quantidade > 0 ? (descontoTotal / quantidade) : 0;
+          const valorLiquidoUnitario = valorUnitario - descontoUnitario;
+
+          const xapuriPrice = quantidade > 0 ? 
+            roundPrice(calculateSalePrice({ ...product, netPrice: valorLiquidoUnitario }, xapuriMarkup), roundingType) : 0;
+          const epitaPrice = quantidade > 0 ? 
+            roundPrice(calculateSalePrice({ ...product, netPrice: valorLiquidoUnitario }, epitaMarkup), roundingType) : 0;
           const isConfirmed = confirmedItems.has(index);
           const isHidden = hiddenItems.has(index);
 
@@ -69,17 +73,17 @@ export const UnitValuesTable: React.FC<UnitValuesTableProps> = ({
 
           return (
             <TableRow 
-              key={product.code} 
+              key={product.code}
               className={cn(
                 "hover:bg-slate-50 transition-colors",
                 isConfirmed && "bg-slate-100"
               )}
             >
               <TableCell>{product.ean || '-'}</TableCell>
-              <TableCell>{product.name}</TableCell>
-              <TableCell className="text-right">{formatCurrency(product.unitPrice)}</TableCell>
-              <TableCell className="text-right">{formatCurrency(unitDiscount)}</TableCell>
-              <TableCell className="text-right">{formatCurrency(unitNetPrice)}</TableCell>
+              <TableCell>{product.descricao || product.name || '-'}</TableCell>
+              <TableCell className="text-right">{formatCurrency(valorUnitario)}</TableCell>
+              <TableCell className="text-right">{formatCurrency(descontoUnitario)}</TableCell>
+              <TableCell className="text-right">{formatCurrency(valorLiquidoUnitario)}</TableCell>
               <TableCell className="text-right">{formatCurrency(xapuriPrice)}</TableCell>
               <TableCell className="text-right bg-emerald-50 text-emerald-700 font-medium">
                 {formatCurrency(epitaPrice)}

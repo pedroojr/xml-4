@@ -1,8 +1,10 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
 
 // Configuração da API
-// Se VITE_API_URL não estiver definido, usa a URL correta da API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://xml.lojasrealce.shop/api';
+// Em desenvolvimento, usa proxy do Vite. Em produção, usa a URL da API
+const API_BASE_URL = import.meta.env.NODE_ENV === 'development' 
+  ? '' // Usa proxy do Vite em desenvolvimento
+  : (import.meta.env.VITE_API_URL || 'https://xml.lojasrealce.shop/api');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -15,8 +17,8 @@ const api = axios.create({
 // Tipos para tratamento de erro
 interface ApiError {
   message: string;
-  status?: number;
-  details?: string[];
+  status?: number | undefined;
+  details?: string[] | undefined;
 }
 
 // Interceptador de requisição
@@ -41,9 +43,22 @@ api.interceptors.response.use(
     }
     return response;
   },
-  (error: AxiosError<ApiError>) => {
-    let errorMessage = error.response?.data?.message || error.message || 'Erro desconhecido';
+  (error: AxiosError<any>) => {
     const errorStatus = error.response?.status;
+    
+    // Para erros 409 (duplicatas), preservar os dados originais
+    if (errorStatus === 409 && error.response?.data?.isDuplicate) {
+      console.error('❌ Erro 409 - Duplicata detectada:', {
+        status: errorStatus,
+        data: error.response.data,
+        url: error.config?.url
+      });
+      
+      // Retornar o erro original com todos os dados da duplicata
+      return Promise.reject(error);
+    }
+    
+    let errorMessage = error.response?.data?.message || error.message || 'Erro desconhecido';
     
     // Mensagens mais específicas baseadas no status
     if (errorStatus === 404) {
@@ -56,6 +71,9 @@ api.interceptors.response.use(
       errorMessage = 'Não autorizado. Verifique suas credenciais.';
     } else if (errorStatus === 403) {
       errorMessage = 'Acesso negado';
+    } else if (errorStatus === 409) {
+      // Para outros conflitos (não duplicatas)
+      errorMessage = error.response?.data?.message || 'Conflito detectado';
     } else if (error.code === 'ECONNABORTED') {
       errorMessage = 'Tempo limite da requisição excedido';
     } else if (error.code === 'ERR_NETWORK') {
@@ -141,6 +159,48 @@ export interface UploadResponse {
   content?: string;
 }
 
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export interface XMLValidationResponse {
+  success: boolean;
+  validation: ValidationResult;
+  info?: {
+    nfeNumber?: string;
+    issuer?: string;
+    totalValue?: number;
+    issueDate?: string;
+  };
+  filename?: string;
+  size?: number;
+  content?: string;
+  error?: string;
+  // Indica se houve duplicidade e é necessária confirmação
+  isDuplicate?: boolean;
+  confirmationRequired?: boolean;
+  existingNfe?: {
+    id: string;
+    numero: string;
+    fornecedor: string;
+    valor: number;
+  };
+  newNfe?: {
+    numero: string;
+    fornecedor: string;
+    valor: number;
+  };
+  question?: string;
+  options?: {
+    replace: string;
+    cancel: string;
+  };
+  // Novo: id salvo pelo servidor ao processar o upload
+  id?: string;
+}
+
 // Validação de dados
 const validateNFE = (nfe: Partial<NFE>): string[] => {
   const errors: string[] = [];
@@ -170,8 +230,8 @@ export const nfeAPI = {
   // Buscar todas as NFEs
   getAll: async (): Promise<NFE[]> => {
     try {
-      const response = await api.get<NFE[]>('/nfes');
-      return response.data;
+      const response = await api.get<{data: NFE[], pagination: any}>('/api/nfes');
+      return Array.isArray(response.data.data) ? response.data.data : [];
     } catch (error) {
       console.error('Erro ao buscar NFEs:', error);
       throw error;
@@ -185,7 +245,7 @@ export const nfeAPI = {
     }
     
     try {
-      const response = await api.get<NFE>(`/nfes/${encodeURIComponent(id)}`);
+      const response = await api.get<NFE>(`/api/nfes/${encodeURIComponent(id)}`);
       return response.data;
     } catch (error) {
       console.error(`Erro ao buscar NFE ${id}:`, error);
@@ -201,7 +261,7 @@ export const nfeAPI = {
     }
     
     try {
-      const response = await api.post<ApiResponse<{ id: string }>>('/nfes', nfe);
+      const response = await api.post<ApiResponse<{ id: string }>>('/api/nfes', nfe);
       return response.data;
     } catch (error) {
       console.error('Erro ao salvar NFE:', error);
@@ -216,7 +276,7 @@ export const nfeAPI = {
     }
     
     try {
-      const response = await api.put<ApiResponse<void>>(`/nfes/${encodeURIComponent(id)}`, nfe);
+      const response = await api.put<ApiResponse<void>>(`/api/nfes/${encodeURIComponent(id)}`, nfe);
       return response.data;
     } catch (error) {
       console.error(`Erro ao atualizar NFE ${id}:`, error);
@@ -231,10 +291,21 @@ export const nfeAPI = {
     }
     
     try {
-      const response = await api.delete<ApiResponse<void>>(`/nfes/${encodeURIComponent(id)}`);
+      const response = await api.delete<ApiResponse<void>>(`/api/nfes/${encodeURIComponent(id)}`);
       return response.data;
     } catch (error) {
       console.error(`Erro ao excluir NFE ${id}:`, error);
+      throw error;
+    }
+  },
+
+  // Excluir todas as NFEs
+  deleteAll: async (): Promise<ApiResponse<{ count: number }>> => {
+    try {
+      const response = await api.delete<ApiResponse<{ count: number }>>('/api/nfes');
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao excluir todas as NFEs:', error);
       throw error;
     }
   },
@@ -244,35 +315,118 @@ export const nfeAPI = {
 export const uploadAPI = {
   // Upload de arquivo XML
   uploadXML: async (file: File): Promise<UploadResponse> => {
-    if (!file) {
-      throw new Error('Arquivo é obrigatório');
-    }
-    
-    // Validar tipo de arquivo
-    const allowedTypes = ['text/xml', 'application/xml', 'text/plain'];
-    if (!allowedTypes.includes(file.type)) {
-      throw new Error('Apenas arquivos XML são permitidos');
-    }
-    
-    // Validar tamanho (10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      throw new Error('Arquivo muito grande. Tamanho máximo: 10MB');
-    }
-    
-    const formData = new FormData();
-    formData.append('xml', file);
-    
     try {
-      const response = await api.post<UploadResponse>('/upload-xml', formData, {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      console.log('📤 Enviando arquivo XML:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
+      
+      const response = await api.post<UploadResponse>('/api/upload-xml', formData, {
+        timeout: 30000, // 30 segundos para upload
+        headers: {
+          // Não definir Content-Type, deixar o browser definir automaticamente
+        },
+      });
+      
+      console.log('✅ Upload realizado com sucesso:', response.data);
+      return response.data;
+      
+    } catch (error) {
+      console.error('❌ Erro no upload:', error);
+      throw error;
+    }
+  },
+
+  // Validação de arquivo XML
+  validateXML: async (file: File): Promise<XMLValidationResponse> => {
+    try {
+      const formData = new FormData();
+      formData.append('xmlFile', file);
+      
+      console.log('🔍 Validando arquivo XML:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
+      
+      const response = await api.post<XMLValidationResponse>('/api/validate-xml', formData, {
+        timeout: 15000, // 15 segundos para validação
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 30000, // 30 segundos para upload
       });
       
+      console.log('✅ Validação concluída:', response.data);
       return response.data;
+      
     } catch (error) {
-      console.error('Erro no upload:', error);
+      console.error('❌ Erro na validação:', error);
+      throw error;
+    }
+  },
+
+  // Upload com validação integrada
+  uploadWithValidation: async (file: File): Promise<XMLValidationResponse> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      console.log('📤🔍 Enviando e validando arquivo XML:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
+      
+      const response = await api.post<XMLValidationResponse>('/api/upload-xml', formData, {
+        timeout: 30000, // 30 segundos para upload e validação
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      console.log('✅ Upload e validação concluídos:', response.data);
+      return response.data;
+      
+    } catch (error) {
+      console.error('❌ Erro no upload com validação:', error);
+      throw error;
+    }
+  },
+
+  // Upload com confirmação de substituição para NFes duplicadas
+  uploadWithConfirmation: async (file: File, confirmReplace: boolean = false): Promise<XMLValidationResponse> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      if (confirmReplace) {
+        formData.append('confirmReplace', 'true');
+      }
+      
+      console.log('📤 Enviando arquivo XML com confirmação:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        confirmReplace
+      });
+      
+      const endpoint = confirmReplace ? '/api/upload-xml/confirm-replace' : '/api/upload-xml';
+      const response = await api.post<XMLValidationResponse>(endpoint, formData, {
+        timeout: 30000,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      console.log('✅ Upload com confirmação concluído:', response.data);
+      return response.data;
+      
+    } catch (error) {
+      console.error('❌ Erro no upload com confirmação:', error);
       throw error;
     }
   },
@@ -285,7 +439,7 @@ export const statusAPI = {
     try {
       // Tenta endpoint de produção primeiro
       try {
-        const resApi = await api.get<{ status: string }>('/status');
+        const resApi = await api.get<{ status: string }>('/api/status');
         return resApi.data;
       } catch (e) {
         // Fallback para endpoint usado no dev

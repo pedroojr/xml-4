@@ -16,7 +16,7 @@ export interface NFE {
   impostoEntrada: number;
   xapuriMarkup?: number;
   epitaMarkup?: number;
-  roundingType?: string;
+  roundingType?: 'none' | 'up' | 'down' | 'nearest';
   valorFrete?: number;
 }
 
@@ -32,15 +32,8 @@ export const useNFEStorage = () => {
     try {
       console.log('🔄 Iniciando salvamento da NFE:', nfe.id);
       
-      // Verifica se já existe uma nota com a mesma chave
-      if (nfe.chaveNFE && checkDuplicateNFE(nfe.chaveNFE)) {
-        // Se for uma atualização da mesma nota (mesmo ID), permite
-        const existingNFE = Array.isArray(savedNFEs) ? savedNFEs.find(saved => saved.id === nfe.id) : undefined;
-        if (!existingNFE) {
-          console.error('❌ NFE duplicada encontrada:', nfe.chaveNFE);
-          throw new Error('Esta nota fiscal já foi cadastrada anteriormente');
-        }
-      }
+      // Verificação simplificada: apenas salva a NFE sem verificar duplicação por chaveNFE
+      // O servidor já lida com a lógica de insert/update baseado no ID
 
       // Garantir que produtos seja sempre um array
       const nfeWithProducts = {
@@ -56,7 +49,7 @@ export const useNFEStorage = () => {
         produtosCount: nfeWithProducts.produtos.length
       });
 
-      // Salva via API
+      // Salva via API - o servidor lida com insert/update automaticamente
       await apiSaveNFE(nfeWithProducts);
       console.log('✅ NFE salva com sucesso:', nfe.id);
     } catch (error) {
@@ -113,7 +106,7 @@ export const useNFEStorage = () => {
   const updateProdutoCustoExtra = async (nfeId: string, produtoCodigo: string, custoExtra: number) => {
     try {
       const nfe = Array.isArray(savedNFEs) ? savedNFEs.find(n => n.id === nfeId) : undefined;
-      if (nfe) {
+      if (nfe && nfe.produtos) {
         const updatedProdutos = nfe.produtos.map(produto =>
           produto.codigo === produtoCodigo
             ? { ...produto, custoExtra }
@@ -132,7 +125,7 @@ export const useNFEStorage = () => {
   const updateProdutoFreteProporcional = async (nfeId: string, produtoCodigo: string, freteProporcional: number) => {
     try {
       const nfe = Array.isArray(savedNFEs) ? savedNFEs.find(n => n.id === nfeId) : undefined;
-      if (nfe) {
+      if (nfe && nfe.produtos) {
         const updatedProdutos = nfe.produtos.map(produto =>
           produto.codigo === produtoCodigo
             ? { ...produto, freteProporcional }

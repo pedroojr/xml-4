@@ -12,8 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { extrairTamanhoDaDescricao, extrairTamanhoDaReferencia } from '../../utils/sizeParser';
-import { ResizableBox } from 'react-resizable';
-import 'react-resizable/css/styles.css';
+// import { ResizableBox } from 'react-resizable';
+// import 'react-resizable/css/styles.css';
 import { ProductFilter, ProductFilters } from './ProductFilter';
 import { copyNumberToClipboard, copyToClipboard } from '@/utils/clipboard';
 import {
@@ -209,8 +209,11 @@ const ColumnFilterButton: React.FC<{
   );
 };
 
-const renderColumnHeader = (column: Column, products: Product[], visibleColumns: Set<string>, handleDragStart: (columnId: string) => void, handleDragOver: (columnId: string) => void, handleDragEnd: () => void, draggedColumn: string | null, dragOverColumn: string | null, columnFilters: Record<string, Set<string>>, handleFilter: (columnId: string, selectedValues: Set<string>) => void) => {
-  const uniqueValues = Array.from(new Set(products.map(p => String(p[column.id] || ''))));
+const renderColumnHeader = (column: Column, products: Product[], visibleColumns: Set<string>, handleDragStart: (columnId: string) => void, handleDragOver: (columnId: string) => void, handleDragEnd: () => void, draggedColumn: string | null, dragOverColumn: string | null, columnFilters: Record<string, Set<string>>, handleFilter: (columnId: string, selectedValues: Set<string>) => void, columnWidths: Record<string, number>, handleColumnResize: (columnId: string, width: number) => void) => {
+  const uniqueValues = Array.from(new Set(products.map(p => {
+    const value = (p as any)[column.id];
+    return String(value || '');
+  }).filter(Boolean)));
   const selectedValues = columnFilters[column.id] || new Set(uniqueValues);
 
   return (
@@ -245,7 +248,7 @@ const renderColumnHeader = (column: Column, products: Product[], visibleColumns:
             onMouseDown={(e) => {
               e.preventDefault();
               const startX = e.pageX;
-              const startWidth = columnWidths[column.id] || column.minWidth || getMinWidth(column.id);
+              const startWidth = columnWidths[column.id] || getMinWidth(column.id);
               
               const handleMouseMove = (e: MouseEvent) => {
                 const width = Math.max(
@@ -447,7 +450,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     // Column filters
     const passesColumnFilters = Object.entries(columnFilters).every(([columnId, selectedValues]) => {
       if (selectedValues.size === 0) return true;
-      const value = String(product[columnId] || '');
+      const value = String((product as any)[columnId] || '');
       return selectedValues.has(value);
     });
 
@@ -466,19 +469,21 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     : filteredProducts;
 
   // Calcular a média de desconto em percentual
-  const calculateAverageDiscountPercent = () => {
-    if (products.length === 0) return 0;
-    
-    const totalOriginalPrice = products.reduce((acc, p) => {
-      const price = p.totalPrice || p.valorTotal || 0;
+  const calculateAverageDiscountPercent = (prods: Product[]) => {
+    if (!prods || prods.length === 0) return 0;
+
+    const totalProductsValue = prods.reduce((acc, p) => {
+      const price = (p.totalPrice ?? p.valorTotal ?? 0);
       return acc + (isNaN(price) ? 0 : price);
     }, 0);
-    const totalDiscount = products.reduce((acc, p) => {
-      const discount = p.discount || 0;
-      return acc + (isNaN(discount) ? 0 : discount);
+
+    const totalDiscount = prods.reduce((acc, p) => {
+      const d = p.discount ?? 0;
+      return acc + (isNaN(d) ? 0 : d);
     }, 0);
-    
-    return totalOriginalPrice > 0 ? (totalDiscount / totalOriginalPrice) * 100 : 0;
+
+    if (totalProductsValue <= 0) return 0;
+    return (totalDiscount / totalProductsValue) * 100;
   };
 
   // Calcular a quantidade total de unidades
@@ -502,7 +507,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     return totalValue - totalDiscount;
   };
 
-  const averageDiscountPercent = calculateAverageDiscountPercent();
+  const averageDiscountPercent = calculateAverageDiscountPercent(sortedFilteredProducts);
   const totalQuantity = calculateTotalQuantity(products);
   const filteredTotalQuantity = calculateTotalQuantity(filteredProducts);
 
@@ -646,7 +651,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                       handleDragEnd();
                     }}
                   >
-                    {renderColumnHeader(column, products, visibleColumns, handleDragStart, handleDragOver, handleDragEnd, draggedColumn, dragOverColumn, columnFilters, handleFilter)}
+                    {renderColumnHeader(column, products, visibleColumns, handleDragStart, handleDragOver, handleDragEnd, draggedColumn, dragOverColumn, columnFilters, handleFilter, columnWidths, handleColumnResize)}
                   </TableHead>
                 )
               ))}
@@ -672,8 +677,8 @@ export const ProductTable: React.FC<ProductTableProps> = ({
               const xapuriPrice = roundPrice(calculateSalePrice({ ...product, netPrice: custoLiquidoComFrete }, xapuriMarkup), roundingType);
               const epitaPrice = roundPrice(calculateSalePrice({ ...product, netPrice: custoLiquidoComFrete }, epitaMarkup), roundingType);
               
-              const tamanhoReferencia = extrairTamanhoDaReferencia(product.reference);
-              const tamanhoDescricao = extrairTamanhoDaDescricao(product.name);
+              const tamanhoReferencia = extrairTamanhoDaReferencia(product.reference || '');
+                      const tamanhoDescricao = extrairTamanhoDaDescricao(product.name || product.descricao || '');
               const tamanho = tamanhoReferencia || tamanhoDescricao || '';
 
               return (

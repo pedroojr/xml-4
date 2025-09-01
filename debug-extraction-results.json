@@ -1,0 +1,28 @@
+{
+  "timestamp": "2025-09-01T08:56:05.520Z",
+  "totalProdutos": 2,
+  "valorTotal": 484,
+  "quantidadeTotal": 15,
+  "produtos": [
+    {
+      "codigo": "PROD001",
+      "descricao": "PRODUTO EXEMPLO 1",
+      "ncm": "12345678",
+      "cfop": "5102",
+      "unidade": "UN",
+      "quantidade": 10,
+      "valorUnitario": 25.5,
+      "valorTotal": 255
+    },
+    {
+      "codigo": "PROD002",
+      "descricao": "PRODUTO EXEMPLO 2",
+      "ncm": "87654321",
+      "cfop": "5102",
+      "unidade": "UN",
+      "quantidade": 5,
+      "valorUnitario": 45.8,
+      "valorTotal": 229
+    }
+  ]
+}

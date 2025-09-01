@@ -2,8 +2,9 @@ import React, { useCallback, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useDropzone } from 'react-dropzone';
-import { Upload, FileText, X, CheckCircle, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Upload, FileText, X, CheckCircle, AlertCircle, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { xmlService } from '@/services/xmlService';
+import { uploadAPI } from '@/services/api';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -102,9 +103,32 @@ const NFECard = ({ info }: { info: any }) => {
   );
 };
 
+interface DuplicateConfirmation {
+  file: File;
+  duplicateInfo: {
+    existingNfe: {
+      id: string;
+      numero: string;
+      fornecedor: string;
+      valor: number;
+    };
+    newNfe: {
+      numero: string;
+      fornecedor: string;
+      valor: number;
+    };
+    question: string;
+    options: {
+      replace: string;
+      cancel: string;
+    };
+  };
+}
+
 const Importacao = () => {
   const [files, setFiles] = useState<FileWithStatus[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [duplicateConfirmation, setDuplicateConfirmation] = useState<DuplicateConfirmation | null>(null);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const xmlFiles = acceptedFiles.filter(file => file.type === 'text/xml' || file.name.endsWith('.xml'));
@@ -143,19 +167,83 @@ const Importacao = () => {
 
     setIsUploading(true);
     try {
-      const result = await xmlService.processXMLFiles(files);
-      
-      if (result.success) {
-        toast.success('Arquivos processados com sucesso!');
-        setFiles([]);
-      } else {
-        toast.error(result.message);
+      for (const file of files) {
+        if (file.status !== 'valid') continue;
+        
+        try {
+          const result = await uploadAPI.uploadWithConfirmation(file, false);
+          
+          if (result.success) {
+            toast.success(`Arquivo ${file.name} processado com sucesso!`);
+          } else if (result.isDuplicate && result.confirmationRequired) {
+            // Mostrar diálogo de confirmação para duplicata
+            setDuplicateConfirmation({
+              file,
+              duplicateInfo: {
+                existingNfe: result.existingNfe!,
+                newNfe: result.newNfe!,
+                question: result.question!,
+                options: result.options!
+              }
+            });
+            setIsUploading(false);
+            return; // Parar o processamento até a confirmação
+          } else {
+            toast.error(result.error || 'Erro ao processar arquivo');
+          }
+        } catch (error: any) {
+          if (error.response?.status === 409 && error.response?.data?.isDuplicate) {
+            // Duplicata detectada
+            const duplicateData = error.response.data;
+            setDuplicateConfirmation({
+              file,
+              duplicateInfo: {
+                existingNfe: duplicateData.existingNfe,
+                newNfe: duplicateData.newNfe,
+                question: duplicateData.question,
+                options: duplicateData.options
+              }
+            });
+            setIsUploading(false);
+            return;
+          } else {
+            toast.error(`Erro ao processar ${file.name}: ${error.message}`);
+          }
+        }
       }
+      
+      setFiles([]);
     } catch (error) {
       toast.error('Erro ao processar arquivos. Por favor, tente novamente.');
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleConfirmReplace = async () => {
+    if (!duplicateConfirmation) return;
+    
+    setIsUploading(true);
+    try {
+      const result = await uploadAPI.uploadWithConfirmation(duplicateConfirmation.file, true);
+      
+      if (result.success) {
+        toast.success(`Arquivo ${duplicateConfirmation.file.name} substituído com sucesso!`);
+        setFiles(prev => prev.filter(f => f.name !== duplicateConfirmation.file.name));
+      } else {
+        toast.error(result.error || 'Erro ao substituir arquivo');
+      }
+    } catch (error: any) {
+      toast.error(`Erro ao substituir arquivo: ${error.message}`);
+    } finally {
+      setDuplicateConfirmation(null);
+      setIsUploading(false);
+    }
+  };
+
+  const handleCancelReplace = () => {
+    setDuplicateConfirmation(null);
+    toast.info('Substituição cancelada');
   };
 
   return (
@@ -247,6 +335,63 @@ const Importacao = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Diálogo de Confirmação de Duplicata */}
+      {duplicateConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-orange-600">
+                <AlertTriangle className="h-5 w-5" />
+                NFe Duplicada Detectada
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-gray-600">
+                {duplicateConfirmation.duplicateInfo.question}
+              </p>
+              
+              <div className="space-y-3">
+                <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                  <h4 className="font-medium text-red-800 mb-2">NFe Existente:</h4>
+                  <div className="text-sm text-red-700">
+                    <p>Número: {duplicateConfirmation.duplicateInfo.existingNfe.numero}</p>
+                    <p>Fornecedor: {duplicateConfirmation.duplicateInfo.existingNfe.fornecedor}</p>
+                    <p>Valor: R$ {duplicateConfirmation.duplicateInfo.existingNfe.valor.toFixed(2)}</p>
+                  </div>
+                </div>
+                
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <h4 className="font-medium text-blue-800 mb-2">Nova NFe:</h4>
+                  <div className="text-sm text-blue-700">
+                    <p>Número: {duplicateConfirmation.duplicateInfo.newNfe.numero}</p>
+                    <p>Fornecedor: {duplicateConfirmation.duplicateInfo.newNfe.fornecedor}</p>
+                    <p>Valor: R$ {duplicateConfirmation.duplicateInfo.newNfe.valor.toFixed(2)}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex gap-2 pt-4">
+                <Button 
+                  onClick={handleConfirmReplace}
+                  disabled={isUploading}
+                  className="flex-1 bg-orange-600 hover:bg-orange-700"
+                >
+                  {duplicateConfirmation.duplicateInfo.options.replace}
+                </Button>
+                <Button 
+                  onClick={handleCancelReplace}
+                  variant="outline"
+                  disabled={isUploading}
+                  className="flex-1"
+                >
+                  {duplicateConfirmation.duplicateInfo.options.cancel}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

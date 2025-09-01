@@ -14,7 +14,7 @@ const formatarDescricaoComplementar = (texto: string): string => {
 
   if (!match) return textoNormalizado;
 
-  const [, inicio, codigo, descricaoFinal] = match;
+  const [, inicio = '', codigo = '', descricaoFinal = ''] = match;
 
   // Formatar a primeira parte (até o tam: XX)
   const parteInicial = inicio
@@ -70,6 +70,8 @@ export const parseNFeXML = (xmlText: string): Product[] => {
     }
   }
 
+  // vProd = Valor total dos produtos; vNF = Valor total da nota
+  // Regra: desconto total = vProd - vNF (se positivo)
   const totalDiscount = totalProductsValue - totalInvoiceValue;
   const discountPercentage = totalDiscount > 0 ? (totalDiscount / totalProductsValue) * 100 : 0;
   
@@ -78,7 +80,7 @@ export const parseNFeXML = (xmlText: string): Product[] => {
   console.log('Desconto Total:', totalDiscount);
   console.log('Porcentagem de Desconto:', discountPercentage.toFixed(2) + '%');
   
-  const getICMSInfo = (element: Element) => {
+  const getICMSInfo = (element?: Element) => {
     if (!element) return { cst: "", orig: "" };
     
     const icmsGroups = ['00', '10', '20', '30', '40', '51', '60', '70', '90'];
@@ -106,6 +108,7 @@ export const parseNFeXML = (xmlText: string): Product[] => {
 
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
+    if (!item) continue;
     const prod = item.getElementsByTagNameNS(ns, "prod")[0];
     const icms = item.getElementsByTagNameNS(ns, "ICMS")[0];
     

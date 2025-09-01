@@ -35,7 +35,8 @@ export const getDefaultColumns = (): Column[] => [
     initiallyVisible: true,
     width: 'w-fit',
     minWidth: 300,
-    order: 2
+    order: 2,
+    getValue: (product: Product) => product.descricao || product.name || ''
   },
   { 
     id: 'size', 
@@ -101,7 +102,8 @@ export const getDefaultColumns = (): Column[] => [
     width: 'w-fit',
     minWidth: 80,
     order: 10,
-    format: (value: number) => value.toLocaleString()
+    format: (value: number) => value.toLocaleString(),
+    getValue: (product: Product) => (product.quantidade ?? product.quantity ?? 0)
   },
   { 
     id: 'unitPrice', 
@@ -111,7 +113,8 @@ export const getDefaultColumns = (): Column[] => [
     width: 'w-fit',
     minWidth: 112,
     order: 11,
-    format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+    getValue: (product: Product) => (product.valorUnitario ?? product.unitPrice ?? 0)
   },
   { 
     id: 'unitPriceWithDiscount', 
@@ -123,8 +126,10 @@ export const getDefaultColumns = (): Column[] => [
     order: 12,
     format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
     getValue: (product: Product) => {
-      const unitDiscount = product.quantity > 0 ? product.discount / product.quantity : 0;
-      return product.unitPrice - unitDiscount;
+      const quantidade = (product.quantidade ?? product.quantity ?? 0);
+      const unitDiscount = quantidade > 0 ? (product.discount || 0) / quantidade : 0;
+      const unitPrice = (product.valorUnitario ?? product.unitPrice ?? 0);
+      return unitPrice - unitDiscount;
     }
   },
   { 
@@ -135,7 +140,8 @@ export const getDefaultColumns = (): Column[] => [
     width: 'w-fit',
     minWidth: 112,
     order: 13,
-    format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+    getValue: (product: Product) => (product.valorTotal ?? product.totalPrice ?? 0)
   },
   { 
     id: 'netPrice', 
@@ -147,11 +153,11 @@ export const getDefaultColumns = (): Column[] => [
     order: 14,
     format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
     getValue: (product: Product) => {
-      const unitDiscount = product.quantity > 0 ? product.discount / product.quantity : 0;
-      const custoComDesconto = product.unitPrice - unitDiscount;
-      // Aqui assumimos que o impostoEntrada está disponível globalmente ou é passado como parâmetro
-      // O valor real será calculado no ProductTable.tsx
-      return custoComDesconto; // O valor real com imposto será calculado no ProductTable
+      const quantidade = (product.quantidade ?? product.quantity ?? 0);
+      const unitDiscount = quantidade > 0 ? (product.discount || 0) / quantidade : 0;
+      const unitPrice = (product.valorUnitario ?? product.unitPrice ?? 0);
+      // O valor real com imposto será calculado no ProductTable
+      return unitPrice - unitDiscount;
     }
   },
   { 
@@ -185,7 +191,10 @@ export const getDefaultColumns = (): Column[] => [
     minWidth: 112,
     order: 15,
     format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-    getValue: (product: Product) => product.quantity > 0 ? product.discount / product.quantity : 0
+    getValue: (product: Product) => {
+      const quantidade = (product.quantidade ?? product.quantity ?? 0);
+      return quantidade > 0 ? (product.discount || 0) / quantidade : 0;
+    }
   },
   { 
     id: 'xapuriPrice', 

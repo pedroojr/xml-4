@@ -1,18 +1,22 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { History, FileText, Calendar, Package, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { History, FileText, Calendar, Package, ArrowLeft, Trash2 } from "lucide-react";
 import { useNFEStorage } from "@/hooks/useNFEStorage";
+import { useNFEAPI } from "@/hooks/useNFEAPI";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { NFE, Product } from "@/types/nfe";
 import { nfeAPI } from "@/services/api";
 import ProductPreview from "@/components/product-preview/ProductPreview";
 import { RoundingType } from "@/components/product-preview/productCalculations";
+import { toast } from 'sonner';
 
 const NotasEmAberto = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { savedNFEs } = useNFEStorage();
+  const { deleteAllNFEs } = useNFEAPI();
   
   // Estados para edição de produtos
   const [products, setProducts] = useState<Product[]>([]);
@@ -45,19 +49,19 @@ const NotasEmAberto = () => {
   const currentNFE: NFE | null = currentNFeId ? {
     id: currentNFeId,
     data: new Date().toISOString().split('T')[0],
-    numero: invoiceNumber,
-    fornecedor: brandName,
+    numero: invoiceNumber || '',
+    fornecedor: brandName || '',
     valor: products.reduce((sum, p) => sum + (p.totalPrice ?? 0), 0),
     itens: products.length,
     produtos: products,
     impostoEntrada: impostoEntrada,
     xapuriMarkup: xapuriMarkup,
     epitaMarkup: epitaMarkup,
-    roundingType: roundingType
+    roundingType: roundingType as RoundingType
   } : null;
 
   // Configurar auto-save
-  useAutoSave(currentNFE, { enabled: currentNFeId !== null });
+  // useAutoSave(currentNFE, { enabled: currentNFeId !== null });
 
   // Carregar NFE específica se ID for fornecido na URL
   useEffect(() => {
@@ -93,7 +97,7 @@ const NotasEmAberto = () => {
         setImpostoEntrada(parseFloat(detailed.impostoEntrada.toString()) || 0);
       }
       if (detailed.roundingType) {
-        setRoundingType(detailed.roundingType);
+        setRoundingType(detailed.roundingType as RoundingType);
       }
     } catch (err) {
       console.error('Falha ao carregar NFE detalhada:', err);
@@ -115,7 +119,7 @@ const NotasEmAberto = () => {
         setImpostoEntrada(parseFloat(nfe.impostoEntrada.toString()) || 0);
       }
       if (nfe.roundingType) {
-        setRoundingType(nfe.roundingType);
+        setRoundingType(nfe.roundingType as RoundingType);
       }
     } finally {
       setIsLoadingProducts(false);
@@ -145,6 +149,31 @@ const NotasEmAberto = () => {
   const handleRoundingTypeChange = (value: RoundingType) => {
     setRoundingType(value);
     localStorage.setItem('roundingType', value);
+  };
+
+  const handleDeleteAllNFEs = async () => {
+    if (!Array.isArray(savedNFEs) || savedNFEs.length === 0) {
+      toast.error('Não há notas para excluir');
+      return;
+    }
+
+    const confirmDelete = window.confirm(
+      `Tem certeza que deseja excluir todas as ${savedNFEs.length} notas fiscais? Esta ação não pode ser desfeita.`
+    );
+
+    if (confirmDelete) {
+      try {
+        await deleteAllNFEs();
+        // Limpar estado local se houver NFE sendo editada
+        setCurrentNFeId(null);
+        setProducts([]);
+        setInvoiceNumber('');
+        setBrandName('');
+        setHiddenItems(new Set());
+      } catch (error) {
+        console.error('Erro ao excluir todas as NFEs:', error);
+      }
+    }
   };
 
   const handleBackToList = () => {
@@ -194,24 +223,22 @@ const NotasEmAberto = () => {
         ) : (
           <ProductPreview
             products={products}
-            onProductsChange={setProducts}
             xapuriMarkup={xapuriMarkup}
             epitaMarkup={epitaMarkup}
-            impostoEntrada={impostoEntrada}
             roundingType={roundingType}
             onXapuriMarkupChange={handleXapuriMarkupChange}
             onEpitaMarkupChange={handleEpitaMarkupChange}
-            onImpostoEntradaChange={handleImpostoEntradaChange}
             onRoundingTypeChange={handleRoundingTypeChange}
             hiddenItems={hiddenItems}
-            onHiddenItemsChange={setHiddenItems}
-            invoiceNumber={invoiceNumber}
-            onInvoiceNumberChange={setInvoiceNumber}
-            brandName={brandName}
-            onBrandNameChange={setBrandName}
-            isEditingBrand={isEditingBrand}
-            onEditingBrandChange={setIsEditingBrand}
-            currentNFeId={currentNFeId}
+            onToggleVisibility={(index) => {
+              const newHiddenItems = new Set(hiddenItems);
+              if (newHiddenItems.has(index)) {
+                newHiddenItems.delete(index);
+              } else {
+                newHiddenItems.add(index);
+              }
+              setHiddenItems(newHiddenItems);
+            }}
           />
         )}
       </div>
@@ -230,8 +257,21 @@ const NotasEmAberto = () => {
             <p className="text-slate-600">Gerencie suas notas fiscais importadas</p>
           </div>
         </div>
-        <div className="text-sm text-slate-500">
-          {Array.isArray(savedNFEs) ? savedNFEs.length : 0} nota(s) salva(s)
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-slate-500">
+            {Array.isArray(savedNFEs) ? savedNFEs.length : 0} nota(s) salva(s)
+          </div>
+          {Array.isArray(savedNFEs) && savedNFEs.length > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDeleteAllNFEs}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Excluir Todas
+            </Button>
+          )}
         </div>
       </div>
 

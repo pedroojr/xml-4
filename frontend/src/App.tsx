@@ -1,13 +1,14 @@
 import React, { useEffect } from 'react';
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+// import { Toaster } from "@/components/ui/toaster";
+// import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navbar from "@/components/ui/navbar";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
-
+import AnalyticsDashboard from "./components/Analytics/AnalyticsDashboard";
+import ExportManager from "./components/Export/ExportManager";
 import NotFound from "./pages/NotFound";
 import NotasEmAberto from "./pages/NotasEmAberto";
 
@@ -39,8 +40,8 @@ const App = () => {
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <Toaster />
-          <Sonner />
+          {/* <Toaster /> */}
+          {/* <Sonner /> */}
           <BrowserRouter
             future={{
               v7_startTransition: true,
@@ -51,7 +52,8 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/dashboard" element={<Dashboard />} />
-
+                <Route path="/analytics" element={<AnalyticsDashboard />} />
+            <Route path="/export" element={<ExportManager />} />
                 <Route path="/notas-em-aberto" element={<NotasEmAberto />} />
                 <Route path="/notas-em-aberto/:id" element={<NotasEmAberto />} />
                 <Route path="*" element={<NotFound />} />

@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { ServerStatus } from '@/components/ServerStatus';
+import SimpleNotifications from '@/components/Notifications/SimpleNotifications';
 
 const Navbar = () => {
   const location = useLocation();
@@ -9,6 +10,8 @@ const Navbar = () => {
   const menuItems = [
     { path: '/', label: 'Início' },
     { path: '/dashboard', label: 'Dashboard' },
+    { path: '/analytics', label: 'Analytics' },
+    { path: '/export', label: 'Export' },
     { path: '/notas-em-aberto', label: 'Notas em Aberto' },
   ];
 
@@ -51,6 +54,7 @@ const Navbar = () => {
           </div>
           
           <div className="flex items-center space-x-4">
+            <SimpleNotifications />
             <ServerStatus />
           </div>
         </div>

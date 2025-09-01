@@ -44,15 +44,16 @@ export const useNFEAPI = () => {
       const result = await nfeAPI.save(nfe);
       console.log('✅ nfeAPI.save retornou:', result);
       
-      // Adicionar NFE à lista local em vez de recarregar tudo
-      if (result.nfe) {
-        setNfes(prev => [...prev, result.nfe]);
-        console.log('📝 NFE adicionada à lista local');
-      } else {
-        // Fallback: recarregar apenas se não tiver a NFE no resultado
-        console.log('🔄 Recarregando lista de NFEs (fallback)');
-        await loadNFEs();
-      }
+      // Adicionar/atualizar NFE na lista local evitando duplicatas por ID
+      const savedId = result.data?.id ?? nfe.id;
+      const savedNfe: NFE = { ...nfe, id: savedId, produtos: Array.isArray(nfe.produtos) ? nfe.produtos : [] };
+      setNfes(prev => {
+        const exists = prev.some(item => item.id === savedId);
+        return exists
+          ? prev.map(item => (item.id === savedId ? savedNfe : item))
+          : [...prev, savedNfe];
+      });
+      console.log('📝 NFE sincronizada na lista local (sem duplicar)');
       toast.success(result.message);
       return result;
     } catch (err) {
@@ -80,12 +81,7 @@ export const useNFEAPI = () => {
     try {
       const result = await nfeAPI.update(id, data);
       // Atualizar NFE na lista local em vez de recarregar tudo
-      if (result.nfe) {
-        setNfes(prev => prev.map(nfe => nfe.id === id ? result.nfe : nfe));
-      } else {
-        // Fallback: recarregar apenas se não tiver a NFE no resultado
-        await loadNFEs();
-      }
+      setNfes(prev => prev.map(nfe => nfe.id === id ? { ...nfe, ...data } : nfe));
       toast.success(result.message);
       return result;
     } catch (err) {
@@ -106,10 +102,30 @@ export const useNFEAPI = () => {
       const result = await nfeAPI.delete(id);
       // Remover NFE da lista local em vez de recarregar tudo
       setNfes(prev => prev.filter(nfe => nfe.id !== id));
-      toast.success(result.message);
+      toast.success('NFE excluída com sucesso!');
       return result;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao excluir NFE';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Excluir todas as NFEs
+  const deleteAllNFEs = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await nfeAPI.deleteAll();
+      // Limpar lista local
+      setNfes([]);
+      toast.success('Todas as NFEs excluídas com sucesso!');
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao excluir todas as NFEs';
       setError(errorMessage);
       toast.error(errorMessage);
       throw err;
@@ -148,6 +164,7 @@ export const useNFEAPI = () => {
     saveNFE,
     updateNFE,
     deleteNFE,
+    deleteAllNFEs,
     loadNFEById,
   };
 };
