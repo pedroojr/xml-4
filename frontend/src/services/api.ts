@@ -131,6 +131,7 @@ export interface Product {
   quantidade: number;
   valorUnitario: number;
   valorTotal: number;
+  discount?: number;
   baseCalculoICMS?: number;
   valorICMS?: number;
   aliquotaICMS?: number;
