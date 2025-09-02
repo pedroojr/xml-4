@@ -318,6 +318,7 @@ export const uploadAPI = {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('xml', file); // compat: alguns servidores esperam 'xml'
       
       console.log('📤 Enviando arquivo XML:', {
         name: file.name,
@@ -374,6 +375,7 @@ export const uploadAPI = {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('xml', file); // compat: alguns servidores esperam 'xml'
       
       console.log('📤🔍 Enviando e validando arquivo XML:', {
         name: file.name,
@@ -402,6 +404,7 @@ export const uploadAPI = {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('xml', file); // compat: alguns servidores esperam 'xml'
       
       if (confirmReplace) {
         formData.append('confirmReplace', 'true');

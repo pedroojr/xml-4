@@ -107,6 +107,7 @@ const initDatabase = () => {
       quantidade REAL NOT NULL,
       valorUnitario REAL NOT NULL,
       valorTotal REAL NOT NULL,
+      discount REAL DEFAULT 0,
       baseCalculoICMS REAL,
       valorICMS REAL,
       aliquotaICMS REAL,
@@ -131,6 +132,23 @@ const initDatabase = () => {
     CREATE INDEX IF NOT EXISTS idx_produtos_nfeId ON produtos(nfeId);
     CREATE INDEX IF NOT EXISTS idx_produtos_codigo ON produtos(codigo);
   `);
+
+  // Migração: adicionar coluna discount se não existir
+  try {
+    db.exec('ALTER TABLE produtos ADD COLUMN discount REAL DEFAULT 0');
+  } catch (e) { /* Coluna já existe */ }
+  // Garantir que valores nulos de discount virem 0
+  try {
+    db.exec('UPDATE produtos SET discount = COALESCE(discount, 0)');
+  } catch (e) { /* Tabela pode não existir ainda em alguns ambientes */ }
+  // Migração: adicionar coluna custoExtra se não existir
+  try {
+    db.exec('ALTER TABLE produtos ADD COLUMN custoExtra REAL DEFAULT 0');
+  } catch (e) { /* Coluna já existe */ }
+  // Migração: adicionar coluna freteProporcional se não existir
+  try {
+    db.exec('ALTER TABLE produtos ADD COLUMN freteProporcional REAL DEFAULT 0');
+  } catch (e) { /* Coluna já existe */ }
 };
 
 initDatabase();
@@ -178,12 +196,16 @@ app.get('/api/nfes/:id', (req, res) => {
     }
     
     // Buscar produtos da NFE
-    const produtosStmt = db.prepare('SELECT * FROM produtos WHERE nfeId = ?');
+    const produtosStmt = db.prepare('SELECT p.*, COALESCE(p.discount, 0) AS discount FROM produtos p WHERE p.nfeId = ?');
     const produtos = produtosStmt.all(id);
+    const produtosNormalized = Array.isArray(produtos) ? produtos.map(p => ({
+      ...p,
+      discount: toNumber(p.discount)
+    })) : [];
     
     res.json({
       ...nfe,
-      produtos
+      produtos: produtosNormalized
     });
   } catch (error) {
     console.error('Erro ao buscar NFE:', error);
@@ -210,6 +232,7 @@ app.post('/api/nfes', (req, res) => {
       quantidade: toNumber(p?.quantidade),
       valorUnitario: toNumber(p?.valorUnitario ?? p?.unitPrice),
       valorTotal: toNumber(p?.valorTotal ?? p?.totalPrice),
+      discount: toNumber(p?.discount),
       baseCalculoICMS: toNumber(p?.baseCalculoICMS),
       valorICMS: toNumber(p?.valorICMS),
       aliquotaICMS: toNumber(p?.aliquotaICMS),
@@ -236,14 +259,17 @@ app.post('/api/nfes', (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
-    const insertProduto = db.prepare(`
-      INSERT INTO produtos (
-        nfeId, codigo, descricao, ncm, cfop, unidade, quantidade,
-        valorUnitario, valorTotal, baseCalculoICMS, valorICMS, aliquotaICMS,
-        baseCalculoIPI, valorIPI, aliquotaIPI, ean, reference, brand,
-        imageUrl, descricao_complementar, custoExtra, freteProporcional
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
+    // Preparação dinâmica para inserção em 'produtos' conforme colunas existentes
+    const tableCols = db.prepare('PRAGMA table_info(produtos)').all().map(c => c.name);
+    const desiredCols = [
+      'nfeId','codigo','descricao','ncm','cfop','unidade','quantidade',
+      'valorUnitario','valorTotal','discount','baseCalculoICMS','valorICMS','aliquotaICMS',
+      'baseCalculoIPI','valorIPI','aliquotaIPI','ean','reference','brand',
+      'imageUrl','descricao_complementar','custoExtra','freteProporcional'
+    ];
+    const cols = desiredCols.filter(c => tableCols.includes(c));
+    const placeholders = cols.map(() => '?').join(', ');
+    const insertProduto = db.prepare(`INSERT INTO produtos (${cols.join(', ')}) VALUES (${placeholders})`);
     
     const deleteProdutos = db.prepare('DELETE FROM produtos WHERE nfeId = ?');
     
@@ -262,15 +288,35 @@ app.post('/api/nfes', (req, res) => {
       // Inserir novos produtos
       if (safeProdutos && Array.isArray(safeProdutos)) {
         safeProdutos.forEach(produto => {
-          insertProduto.run(
-            id, produto.codigo, produto.descricao, produto.ncm, produto.cfop,
-            produto.unidade, produto.quantidade, produto.valorUnitario,
-            produto.valorTotal, produto.baseCalculoICMS, produto.valorICMS,
-            produto.aliquotaICMS, produto.baseCalculoIPI, produto.valorIPI,
-            produto.aliquotaIPI, produto.ean, produto.reference, produto.brand,
-            produto.imageUrl, produto.descricao_complementar,
-            produto.custoExtra || 0, produto.freteProporcional || 0
-          );
+          const values = cols.map(col => {
+            switch (col) {
+              case 'nfeId': return id;
+              case 'codigo': return produto.codigo;
+              case 'descricao': return produto.descricao;
+              case 'ncm': return produto.ncm;
+              case 'cfop': return produto.cfop;
+              case 'unidade': return produto.unidade;
+              case 'quantidade': return produto.quantidade;
+              case 'valorUnitario': return produto.valorUnitario;
+              case 'valorTotal': return produto.valorTotal;
+              case 'discount': return produto.discount || 0;
+              case 'baseCalculoICMS': return produto.baseCalculoICMS;
+              case 'valorICMS': return produto.valorICMS;
+              case 'aliquotaICMS': return produto.aliquotaICMS;
+              case 'baseCalculoIPI': return produto.baseCalculoIPI;
+              case 'valorIPI': return produto.valorIPI;
+              case 'aliquotaIPI': return produto.aliquotaIPI;
+              case 'ean': return produto.ean;
+              case 'reference': return produto.reference;
+              case 'brand': return produto.brand;
+              case 'imageUrl': return produto.imageUrl;
+              case 'descricao_complementar': return produto.descricao_complementar;
+              case 'custoExtra': return produto.custoExtra || 0;
+              case 'freteProporcional': return produto.freteProporcional || 0;
+              default: return null;
+            }
+          });
+          insertProduto.run(...values);
         });
       }
     })();
