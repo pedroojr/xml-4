@@ -64,6 +64,14 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB
+  },
+  fileFilter: (req, file, cb) => {
+    // Aceitar arquivos XML independente do nome do campo
+    if (file.mimetype === 'text/xml' || file.mimetype === 'application/xml' || file.originalname.endsWith('.xml')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Apenas arquivos XML são permitidos'), false);
+    }
   }
 });
 
@@ -391,13 +399,15 @@ app.delete('/api/nfes/:id', (req, res) => {
 });
 
 // POST - Upload de arquivo XML
-app.post('/api/upload-xml', upload.single('xml'), (req, res) => {
+app.post('/api/upload-xml', upload.any(), (req, res) => {
   try {
-    if (!req.file) {
+    if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'Nenhum arquivo enviado' });
     }
     
-    const xmlContent = req.file.buffer.toString('utf-8');
+    // Pegar o primeiro arquivo XML enviado
+    const xmlFile = req.files[0];
+    const xmlContent = xmlFile.buffer.toString('utf-8');
     
     // Aqui você pode adicionar a lógica de parsing do XML
     // Por enquanto, apenas retornamos o conteúdo
