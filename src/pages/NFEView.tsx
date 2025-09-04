@@ -35,7 +35,7 @@ const NFEView = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar
           </Button>
-          <h1 className="text-2xl font-bold">Nota Fiscal {nfe.numero}</h1>
+          <h1 className="text-2xl font-bold">Nota Fiscal {nfe.number}</h1>
         </div>
         <Button variant="outline" onClick={() => window.print()}>
           Imprimir / Exportar PDF
@@ -53,22 +53,22 @@ const NFEView = () => {
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-gray-500" />
               <span className="font-medium">Número:</span>
-              <span>{nfe.numero}</span>
+              <span>{nfe.number}</span>
             </div>
             <div className="flex items-center gap-2">
               <Building2 className="w-4 h-4 text-gray-500" />
               <span className="font-medium">Fornecedor:</span>
-              <span>{nfe.fornecedor}</span>
+              <span>{nfe.supplier}</span>
             </div>
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-gray-500" />
               <span className="font-medium">Data de Emissão:</span>
-              <span>{formatDate(new Date(nfe.data))}</span>
+              <span>{formatDate(new Date(nfe.date))}</span>
             </div>
             <div className="flex items-center gap-2">
               <Receipt className="w-4 h-4 text-gray-500" />
               <span className="font-medium">Valor Total:</span>
-              <span>{formatCurrency(nfe.valor)}</span>
+              <span>{formatCurrency(nfe.value)}</span>
             </div>
           </CardContent>
         </Card>
@@ -86,12 +86,12 @@ const NFEView = () => {
                   <Package2 className="w-4 h-4 text-gray-500" />
                   <span>Total de Itens:</span>
                 </div>
-                <span className="font-medium">{nfe.produtos?.length || 0}</span>
+                <span className="font-medium">{nfe.products?.length || 0}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span>Valor Médio por Item:</span>
                 <span className="font-medium">
-                  {formatCurrency((nfe.valor || 0) / (nfe.produtos?.length || 1))}
+                  {formatCurrency((nfe.value || 0) / (nfe.products?.length || 1))}
                 </span>
               </div>
             </div>
@@ -107,16 +107,16 @@ const NFEView = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {nfe.produtos?.map((produto, index) => (
+            {nfe.products?.map((produto, index) => (
               <div
                 key={index}
                 className="p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-medium">{produto.descricao}</h3>
+                    <h3 className="font-medium">{produto.description}</h3>
                     <p className="text-sm text-gray-500">
-                      {produto.codigo} • {produto.ncm}
+                      {produto.code} • {produto.ncm}
                     </p>
                     {produto.informacoesAdicionais && (
                       <p className="text-sm text-gray-600 mt-2">
@@ -125,9 +125,9 @@ const NFEView = () => {
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="font-medium">{formatCurrency(produto.valorTotal)}</p>
+                    <p className="font-medium">{formatCurrency(produto.totalPrice)}</p>
                     <p className="text-sm text-gray-500">
-                      {produto.quantidade} x {formatCurrency(produto.valorUnitario)}
+                      {produto.quantity} x {formatCurrency(produto.unitPrice)}
                     </p>
                   </div>
                 </div>

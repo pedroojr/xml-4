@@ -45,22 +45,22 @@ export const ExportOptions: React.FC<ExportOptionsProps> = ({
   onClose 
 }) => {
   const [exportFields, setExportFields] = useState<ExportField[]>([
-    { id: 'code', label: 'Código', checked: true },
+    { id: 'code', label: 'Code', checked: true },
     { id: 'ean', label: 'EAN', checked: true },
-    { id: 'name', label: 'Descrição', checked: true },
+    { id: 'description', label: 'Description', checked: true },
     { id: 'ncm', label: 'NCM', checked: true },
     { id: 'cfop', label: 'CFOP', checked: true },
-    { id: 'unidade', label: 'Unidade', checked: true },
-    { id: 'quantidade', label: 'Quantidade', checked: true },
-    { id: 'valorUnitario', label: 'Preço Unitário', checked: true },
-    { id: 'valorTotal', label: 'Preço Total', checked: true },
-    { id: 'discount', label: 'Desconto', checked: true },
-    { id: 'netPrice', label: 'Preço Líquido', checked: true },
-    { id: 'color', label: 'Cor', checked: true },
-    { id: 'size', label: 'Tamanho', checked: true },
-    { id: 'reference', label: 'Referência', checked: true },
-    { id: 'brand', label: 'Marca', checked: true },
-    { id: 'salePrice', label: 'Preço de Venda', checked: true },
+    { id: 'unit', label: 'Unit', checked: true },
+    { id: 'quantity', label: 'Quantity', checked: true },
+    { id: 'unitPrice', label: 'Unit Price', checked: true },
+    { id: 'totalPrice', label: 'Total Price', checked: true },
+    { id: 'discount', label: 'Discount', checked: true },
+    { id: 'netPrice', label: 'Net Price', checked: true },
+    { id: 'color', label: 'Color', checked: true },
+    { id: 'size', label: 'Size', checked: true },
+    { id: 'reference', label: 'Reference', checked: true },
+    { id: 'brand', label: 'Brand', checked: true },
+    { id: 'salePrice', label: 'Sale Price', checked: true },
     { id: 'tags', label: 'Tags', checked: true },
   ]);
 
@@ -205,18 +205,18 @@ export const ExportOptions: React.FC<ExportOptionsProps> = ({
   const exportToDataSystemFormat = () => {
     // Formato específico para importação no DataSystem
     const dataSystemRows = products.map(product => ({
-      codigo: product.code,
+      code: product.code,
       ean: product.ean,
-      descricao: product.name,
+      description: product.description,
       ncm: product.ncm,
-      preco_custo: product.netPrice,
-      preco_venda: product.salePrice,
-      estoque: product.quantity,
-      unidade: product.uom,
-      marca: product.brand || brandName,
-      referencia: product.reference || '',
-      cor: product.color || '',
-      tamanho: product.size || '',
+      cost_price: product.netPrice,
+      sale_price: product.salePrice,
+      stock: product.quantity,
+      unit: product.uom,
+      brand: product.brand || brandName,
+      reference: product.reference || '',
+      color: product.color || '',
+      size: product.size || '',
     }));
 
     const jsonContent = JSON.stringify(dataSystemRows, null, 2);

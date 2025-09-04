@@ -45,7 +45,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
 }) => {
   const { impostoEntrada, setImpostoEntrada } = useImpostoEntrada(0);
 
-  const [valorFrete, setValorFrete] = useState<number>(0);
+  const [freightValue, setFreightValue] = useState<number>(0);
 
   // Calculate suggested markups
   const totalBruto = products.reduce((sum, p) => sum + p.totalPrice, 0);
@@ -118,7 +118,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   };
 
   const handleImageSearch = async (index: number, product: Product) => {
-    const searchTerms = `${product.ean} ${product.code} ${product.name}`;
+    const searchTerms = `${product.ean} ${product.code} ${product.description}`;
     window.open(`https://www.google.com/search?q=${encodeURIComponent(searchTerms)}&tbm=isch`, '_blank');
   };
 
@@ -179,14 +179,14 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   const effectiveHiddenItems = onToggleVisibility ? hiddenItems : localHiddenItems;
 
   // Calcular frete proporcional para cada item
-  const fretesProporcionais = calcularFreteProporcional(products, valorFrete, impostoEntrada);
+  const fretesProporcionais = calcularFreteProporcional(products, freightValue, impostoEntrada);
   // Adiciona o campo nfeId para cada produto (usando invoiceNumber ou um valor fixo se não houver)
   const nfeId = invoiceNumber || 'nfe-id-unico';
   // Atualizar produtos com frete proporcional
   const productsWithFrete = products.map((p, idx) => ({
     ...p,
     nfeId,
-    freteProporcional: fretesProporcionais[idx] || 0,
+    freightShare: fretesProporcionais[idx] || 0,
     // Custo final unitário: custo líquido unitário + frete proporcional unitário
     netPrice: (p.netPrice || 0) + (fretesProporcionais[idx] || 0)
   }));
@@ -222,8 +222,8 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
               epitaSuggestedMarkup={epitaSuggestedMarkup}
               totalItems={products.length}
               filteredItems={products.length - effectiveHiddenItems.size}
-              valorFrete={valorFrete}
-              onValorFreteChange={setValorFrete}
+              freightValue={freightValue}
+              onFreightValueChange={setFreightValue}
             />
 
             <ProductTable

@@ -76,7 +76,7 @@ export const UnitValuesTable: React.FC<UnitValuesTableProps> = ({
               )}
             >
               <TableCell>{product.ean || '-'}</TableCell>
-              <TableCell>{product.name}</TableCell>
+              <TableCell>{product.description}</TableCell>
               <TableCell className="text-right">{formatCurrency(product.unitPrice)}</TableCell>
               <TableCell className="text-right">{formatCurrency(unitDiscount)}</TableCell>
               <TableCell className="text-right">{formatCurrency(unitNetPrice)}</TableCell>

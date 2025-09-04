@@ -1,9 +1,9 @@
 
 import { Product } from '../../types/nfe';
 
-const formatProductName = (name: string): string => {
-  // Remove códigos específicos no final do nome (como SCY765/02)
-  const nameWithoutCode = name.replace(/\s+\w+\/\d+$/, '');
+const formatProductDescription = (description: string): string => {
+  // Remove códigos específicos no final da descrição (como SCY765/02)
+  const nameWithoutCode = description.replace(/\s+\w+\/\d+$/, '');
   
   // Capitaliza cada palavra
   return nameWithoutCode
@@ -23,8 +23,8 @@ export const generateProductDescription = (product: Product): string => {
   const parts: string[] = [];
   
   // Nome do produto formatado
-  const formattedName = formatProductName(product.name);
-  parts.push(formattedName);
+  const formattedDescription = formatProductDescription(product.description);
+  parts.push(formattedDescription);
 
   // Dados técnicos em uma seção separada
   const technicalInfo: string[] = [];

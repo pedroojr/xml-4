@@ -19,10 +19,10 @@ import { formatDate } from '@/utils/formatters';
 
 interface NFE {
   id: string;
-  numero: string;
-  fornecedor: string;
-  dataEmissao: string;
-  quantidadeItens: number;
+  number: string;
+  supplier: string;
+  issueDate: string;
+  itemsQuantity: number;
 }
 
 interface SavedNFEListProps {
@@ -32,27 +32,27 @@ interface SavedNFEListProps {
 
 const SavedNFEList: React.FC<SavedNFEListProps> = ({ nfes, onNFESelect }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedFornecedor, setSelectedFornecedor] = useState<string | null>(null);
+  const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null);
 
   // Agrupar NFEs por fornecedor
-  const nfesByFornecedor = nfes.reduce((acc, nfe) => {
-    if (!acc[nfe.fornecedor]) {
-      acc[nfe.fornecedor] = [];
+  const nfesBySupplier = nfes.reduce((acc, nfe) => {
+    if (!acc[nfe.supplier]) {
+      acc[nfe.supplier] = [];
     }
-    acc[nfe.fornecedor].push(nfe);
+    acc[nfe.supplier].push(nfe);
     return acc;
   }, {} as Record<string, NFE[]>);
 
   // Filtrar NFEs
-  const filteredNFEs = Object.entries(nfesByFornecedor)
-    .filter(([fornecedor, nfeList]) => {
-      const matchesFornecedor = !selectedFornecedor || fornecedor === selectedFornecedor;
-      const matchesSearch = !searchTerm || 
-        fornecedor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        nfeList.some(nfe => 
-          nfe.numero.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredNFEs = Object.entries(nfesBySupplier)
+    .filter(([supplier, nfeList]) => {
+      const matchesSupplier = !selectedSupplier || supplier === selectedSupplier;
+      const matchesSearch = !searchTerm ||
+        supplier.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        nfeList.some(nfe =>
+          nfe.number.toLowerCase().includes(searchTerm.toLowerCase())
         );
-      return matchesFornecedor && matchesSearch;
+      return matchesSupplier && matchesSearch;
     });
 
   return (
@@ -72,10 +72,10 @@ const SavedNFEList: React.FC<SavedNFEListProps> = ({ nfes, onNFESelect }) => {
               className="pl-8"
             />
           </div>
-          {selectedFornecedor && (
+          {selectedSupplier && (
             <Button
               variant="outline"
-              onClick={() => setSelectedFornecedor(null)}
+              onClick={() => setSelectedSupplier(null)}
             >
               Limpar Filtro
             </Button>
@@ -84,12 +84,12 @@ const SavedNFEList: React.FC<SavedNFEListProps> = ({ nfes, onNFESelect }) => {
       </CardHeader>
       <CardContent>
         <Accordion type="single" collapsible className="w-full">
-          {filteredNFEs.map(([fornecedor, nfeList]) => (
-            <AccordionItem key={fornecedor} value={fornecedor}>
+          {filteredNFEs.map(([supplier, nfeList]) => (
+            <AccordionItem key={supplier} value={supplier}>
               <AccordionTrigger className="hover:bg-slate-50 px-4 py-2 rounded-lg">
                 <div className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
-                  <span>{fornecedor}</span>
+                  <span>{supplier}</span>
                   <span className="text-muted-foreground text-sm">
                     ({nfeList.length} {nfeList.length === 1 ? 'nota' : 'notas'})
                   </span>
@@ -98,7 +98,7 @@ const SavedNFEList: React.FC<SavedNFEListProps> = ({ nfes, onNFESelect }) => {
               <AccordionContent>
                 <div className="space-y-2 p-2">
                   {nfeList
-                    .sort((a, b) => new Date(b.dataEmissao).getTime() - new Date(a.dataEmissao).getTime())
+                    .sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime())
                     .map((nfe) => (
                       <div
                         key={nfe.id}
@@ -108,12 +108,12 @@ const SavedNFEList: React.FC<SavedNFEListProps> = ({ nfes, onNFESelect }) => {
                         <div className="flex items-center gap-3">
                           <FileText className="h-4 w-4 text-muted-foreground" />
                           <div>
-                            <div className="font-medium">NF-e {nfe.numero}</div>
+                            <div className="font-medium">NF-e {nfe.number}</div>
                             <div className="text-sm text-muted-foreground flex items-center gap-2">
                               <Calendar className="h-3 w-3" />
-                              {formatDate(new Date(nfe.dataEmissao))}
+                              {formatDate(new Date(nfe.issueDate))}
                               <Package2 className="h-3 w-3 ml-2" />
-                              {nfe.quantidadeItens} {nfe.quantidadeItens === 1 ? 'item' : 'itens'}
+                              {nfe.itemsQuantity} {nfe.itemsQuantity === 1 ? 'item' : 'itens'}
                             </div>
                           </div>
                         </div>

@@ -1,72 +1,67 @@
 export interface Product {
-  codigo: string;
-  descricao: string;
+  code: string;
+  description: string;
   ncm: string;
   cfop: string;
-  unidade: string;
-  quantidade: number;
-  valorUnitario: number;
-  valorTotal: number;
-  baseCalculoICMS: number;
-  valorICMS: number;
-  aliquotaICMS: number;
-  baseCalculoIPI: number;
-  valorIPI: number;
-  aliquotaIPI: number;
+  unit: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  icmsBase: number;
+  icmsValue: number;
+  icmsRate: number;
+  ipiBase: number;
+  ipiValue: number;
+  ipiRate: number;
   xapuriPrice?: number;
   epitaPrice?: number;
-  code: string;
-  name: string;
   ean?: string;
   reference?: string;
   brand?: string;
-  totalPrice: number;
   netPrice: number;
   discount: number;
-  quantity: number;
   imageUrl?: string;
   tags?: string[];
   salePrice?: number;
   uom?: string;
   color?: string;
   size?: string;
-  fornecedor?: string;
-  descricao_complementar?: string;
-  unitPrice: number;
-  freteProporcional?: number;
-  custoExtra?: number;
+  supplier?: string;
+  additionalDescription?: string;
+  freightShare?: number;
+  extraCost?: number;
 }
 
 export interface NFE {
   id: string;
-  data: string;
-  numero: string;
-  chaveNFE: string;
-  valorTotal: number;
-  totalImpostos: number;
-  quantidadeTotal: number;
-  dataEmissao: string;
-  fornecedor: string;
-  cnpjFornecedor: string;
-  produtos: Product[];
+  date: string;
+  number: string;
+  nfeKey: string;
+  totalValue: number;
+  totalTaxes: number;
+  totalQuantity: number;
+  issueDate: string;
+  supplier: string;
+  supplierCnpj: string;
+  products: Product[];
   isFavorite?: boolean;
-  itens?: number;
-  valor?: number;
+  items?: number;
+  value?: number;
   brandName?: string;
   invoiceNumber?: string;
-  impostoEntrada: number;
+  entryTax: number;
 }
 
 export interface NFEItem {
   id: string;
-  codigo: string;
-  descricao: string;
-  quantidade: number;
-  valor: number;
-  unidade: string;
+  code: string;
+  description: string;
+  quantity: number;
+  value: number;
+  unit: string;
   ncm: string;
   cfop: string;
-  impostos: {
+  taxes: {
     icms: number;
     ipi: number;
     pis: number;

@@ -53,7 +53,7 @@ export const calculateTotals = (products: Product[], impostoEntrada: number) => 
 // Função para calcular o frete proporcional por item
 export const calcularFreteProporcional = (
   products: Product[],
-  valorFrete: number,
+  freightValue: number,
   impostoEntrada: number
 ): number[] => {
   // Primeiro, calcula o custo líquido de cada item
@@ -61,5 +61,5 @@ export const calcularFreteProporcional = (
   const totalCustoLiquido = custosLiquidos.reduce((acc, v) => acc + v, 0);
   if (totalCustoLiquido === 0) return products.map(() => 0);
   // Rateia o frete proporcionalmente ao custo líquido
-  return custosLiquidos.map(custo => (custo / totalCustoLiquido) * valorFrete);
+  return custosLiquidos.map(custo => (custo / totalCustoLiquido) * freightValue);
 };

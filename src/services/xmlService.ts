@@ -11,34 +11,34 @@ interface XMLProcessingResult {
 }
 
 interface NFEInfo {
-  numero: string;
-  chaveAcesso: string;
-  dataEmissao: string;
-  dataEntrada: string;
-  valorTotal: string;
-  valorICMS: string;
-  valorIPI: string;
-  valorPIS: string;
-  valorCOFINS: string;
-  emitente: {
-    nome: string;
+  number: string;
+  accessKey: string;
+  issueDate: string;
+  entryDate: string;
+  totalValue: string;
+  icmsValue: string;
+  ipiValue: string;
+  pisValue: string;
+  cofinsValue: string;
+  issuer: {
+    name: string;
     cnpj: string;
     ie: string;
   };
-  destinatario: {
-    nome: string;
+  recipient: {
+    name: string;
     cnpj: string;
     ie: string;
   };
-  itens: Array<{
-    codigo: string;
-    descricao: string;
-    descricao_complementar: string;
-    quantidade: string;
-    valorUnitario: string;
-    valorTotal: string;
+  items: Array<{
+    code: string;
+    description: string;
+    additionalDescription: string;
+    quantity: string;
+    unitPrice: string;
+    totalPrice: string;
     ncm: string;
-    fornecedor: string;
+    supplier: string;
   }>;
 }
 
@@ -149,8 +149,8 @@ export const xmlService = {
         throw new Error('Estrutura da NFE incompleta');
       }
 
-      // Extrair itens
-      const itens = Array.from(det).map(item => {
+      // Extract items
+      const items = Array.from(det).map(item => {
         const prod = item.getElementsByTagName('prod')[0];
         // Buscar infAdProd diretamente do item (det)
         const infAdProd = item.getElementsByTagName('infAdProd')[0];
@@ -161,10 +161,10 @@ export const xmlService = {
 
         // Log detalhado para debug
         const itemData = {
-          codigo: prod.getElementsByTagName('cProd')[0]?.textContent,
-          descricao: prod.getElementsByTagName('xProd')[0]?.textContent,
+          code: prod.getElementsByTagName('cProd')[0]?.textContent,
+          description: prod.getElementsByTagName('xProd')[0]?.textContent,
           infAdProd: infAdProd?.textContent,
-          fornecedor: emit.getElementsByTagName('xNome')[0]?.textContent,
+          supplier: emit.getElementsByTagName('xNome')[0]?.textContent,
           EAN: prod.getElementsByTagName('cEAN')[0]?.textContent
         };
         
@@ -175,14 +175,14 @@ export const xmlService = {
         }
 
         return {
-          codigo: prod.getElementsByTagName('cProd')[0]?.textContent || '',
-          descricao: prod.getElementsByTagName('xProd')[0]?.textContent || '',
-          descricao_complementar: infAdProd?.textContent?.trim() || '',
-          quantidade: prod.getElementsByTagName('qCom')[0]?.textContent || '',
-          valorUnitario: prod.getElementsByTagName('vUnCom')[0]?.textContent || '',
-          valorTotal: prod.getElementsByTagName('vProd')[0]?.textContent || '',
+          code: prod.getElementsByTagName('cProd')[0]?.textContent || '',
+          description: prod.getElementsByTagName('xProd')[0]?.textContent || '',
+          additionalDescription: infAdProd?.textContent?.trim() || '',
+          quantity: prod.getElementsByTagName('qCom')[0]?.textContent || '',
+          unitPrice: prod.getElementsByTagName('vUnCom')[0]?.textContent || '',
+          totalPrice: prod.getElementsByTagName('vProd')[0]?.textContent || '',
           ncm: prod.getElementsByTagName('NCM')[0]?.textContent || '',
-          fornecedor: emit.getElementsByTagName('xNome')[0]?.textContent || '',
+          supplier: emit.getElementsByTagName('xNome')[0]?.textContent || '',
         };
       });
 
@@ -193,26 +193,26 @@ export const xmlService = {
       }
 
       return {
-        numero: ide.getElementsByTagName('nNF')[0]?.textContent || '',
-        chaveAcesso: ide.getElementsByTagName('chNFe')[0]?.textContent || '',
-        dataEmissao: ide.getElementsByTagName('dhEmi')[0]?.textContent || '',
-        dataEntrada: ide.getElementsByTagName('dhSaiEnt')[0]?.textContent || '',
-        valorTotal: icmsTot.getElementsByTagName('vNF')[0]?.textContent || '',
-        valorICMS: icmsTot.getElementsByTagName('vICMS')[0]?.textContent || '',
-        valorIPI: icmsTot.getElementsByTagName('vIPI')[0]?.textContent || '',
-        valorPIS: icmsTot.getElementsByTagName('vPIS')[0]?.textContent || '',
-        valorCOFINS: icmsTot.getElementsByTagName('vCOFINS')[0]?.textContent || '',
-        emitente: {
-          nome: emit.getElementsByTagName('xNome')[0]?.textContent || '',
+        number: ide.getElementsByTagName('nNF')[0]?.textContent || '',
+        accessKey: ide.getElementsByTagName('chNFe')[0]?.textContent || '',
+        issueDate: ide.getElementsByTagName('dhEmi')[0]?.textContent || '',
+        entryDate: ide.getElementsByTagName('dhSaiEnt')[0]?.textContent || '',
+        totalValue: icmsTot.getElementsByTagName('vNF')[0]?.textContent || '',
+        icmsValue: icmsTot.getElementsByTagName('vICMS')[0]?.textContent || '',
+        ipiValue: icmsTot.getElementsByTagName('vIPI')[0]?.textContent || '',
+        pisValue: icmsTot.getElementsByTagName('vPIS')[0]?.textContent || '',
+        cofinsValue: icmsTot.getElementsByTagName('vCOFINS')[0]?.textContent || '',
+        issuer: {
+          name: emit.getElementsByTagName('xNome')[0]?.textContent || '',
           cnpj: emit.getElementsByTagName('CNPJ')[0]?.textContent || '',
           ie: emit.getElementsByTagName('IE')[0]?.textContent || '',
         },
-        destinatario: {
-          nome: dest.getElementsByTagName('xNome')[0]?.textContent || '',
+        recipient: {
+          name: dest.getElementsByTagName('xNome')[0]?.textContent || '',
           cnpj: dest.getElementsByTagName('CNPJ')[0]?.textContent || '',
           ie: dest.getElementsByTagName('IE')[0]?.textContent || '',
         },
-        itens,
+        items,
       };
     } catch (error) {
       console.error('Erro ao extrair informações da NFE:', error);

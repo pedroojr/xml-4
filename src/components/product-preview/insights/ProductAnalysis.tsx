@@ -57,7 +57,7 @@ export const ProductAnalysis: React.FC<ProductAnalysisProps> = ({ products }) =>
       acc[product.ncm] = {
         quantidade: 0,
         valorTotal: 0,
-        descricao: NCM_DESCRIPTIONS[product.ncm] || product.name.split(' ')[0]
+        descricao: NCM_DESCRIPTIONS[product.ncm] || product.description.split(' ')[0]
       };
     }
     acc[product.ncm].quantidade += product.quantity;

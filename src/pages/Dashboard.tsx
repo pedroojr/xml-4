@@ -34,42 +34,42 @@ const Dashboard = () => {
 
   // Cálculos dos totais com verificações de segurança
   const totalNotas = savedNFEs.length;
-  const totalProdutos = savedNFEs.reduce((acc, nfe) => acc + (Array.isArray(nfe.produtos) ? nfe.produtos.length : 0), 0);
-  const quantidadeTotal = savedNFEs.reduce((acc, nfe) => 
-    acc + (Array.isArray(nfe.produtos) ? nfe.produtos.reduce((sum, prod) => sum + (Number(prod.quantity) || 0), 0) : 0), 0);
-  const valorTotal = savedNFEs.reduce((acc, nfe) => acc + (Number(nfe.valor) || 0), 0);
-  const totalImpostos = valorTotal * 0.17; // 17% de impostos
+  const totalProducts = savedNFEs.reduce((acc, nfe) => acc + (Array.isArray(nfe.products) ? nfe.products.length : 0), 0);
+  const totalQuantity = savedNFEs.reduce((acc, nfe) =>
+    acc + (Array.isArray(nfe.products) ? nfe.products.reduce((sum, prod) => sum + (Number(prod.quantity) || 0), 0) : 0), 0);
+  const totalValue = savedNFEs.reduce((acc, nfe) => acc + (Number(nfe.value) || 0), 0);
+  const totalTaxes = totalValue * 0.17; // 17% de impostos
   const notasFavoritas = savedNFEs.filter(nfe => nfe.isFavorite).length;
 
   // Cálculo do volume de compras por fornecedor
-  const volumePorFornecedor = savedNFEs.reduce((acc: any, nfe) => {
-    const fornecedorNome = nfe.fornecedor || 'Fornecedor não especificado';
-    if (!acc[fornecedorNome]) {
-      acc[fornecedorNome] = {
-        valor: 0,
-        itens: 0,
+  const volumePerSupplier = savedNFEs.reduce((acc: any, nfe) => {
+    const supplierName = nfe.supplier || 'Fornecedor não especificado';
+    if (!acc[supplierName]) {
+      acc[supplierName] = {
+        value: 0,
+        items: 0,
         performance: 0,
         crescimento: Math.random() * 20 - 10 // Simulação de crescimento (-10% a +10%)
       };
     }
-    acc[fornecedorNome].valor += Number(nfe.valor) || 0;
-    acc[fornecedorNome].itens += Number(nfe.itens) || 0;
+    acc[supplierName].value += Number(nfe.value) || 0;
+    acc[supplierName].items += Number(nfe.items) || 0;
     return acc;
   }, {});
 
   // Convertendo para array e ordenando por valor
-  const fornecedoresOrdenados = Object.entries(volumePorFornecedor)
+  const suppliersOrdered = Object.entries(volumePerSupplier)
     .map(([nome, dados]: [string, any]) => ({
       name: nome,
-      value: dados.valor,
-      items: dados.itens,
+      value: dados.value,
+      items: dados.items,
       performance: '80%',
       crescimento: dados.crescimento
     }))
     .sort((a, b) => b.value - a.value);
 
   // Encontrar o fornecedor com maior crescimento
-  const fornecedorMaiorCrescimento = fornecedoresOrdenados[0] || {
+  const supplierLargestGrowth = suppliersOrdered[0] || {
     name: 'Nenhum fornecedor',
     value: 0,
     items: 0,
@@ -87,10 +87,10 @@ const Dashboard = () => {
 
   const formattedNFEs = savedNFEs.map(nfe => ({
     id: nfe.id,
-    numero: nfe.numero,
-    fornecedor: nfe.fornecedor,
-    dataEmissao: nfe.data,
-    quantidadeItens: Array.isArray(nfe.produtos) ? nfe.produtos.length : 0
+    number: nfe.number,
+    supplier: nfe.supplier,
+    issueDate: nfe.date,
+    itemsQuantity: Array.isArray(nfe.products) ? nfe.products.length : 0
   }));
 
   return (
@@ -159,7 +159,7 @@ const Dashboard = () => {
               <span className="text-sm text-muted-foreground">Total de Produtos</span>
               <div className="flex items-center mt-2">
                 <Package2 className="w-4 h-4 text-green-500 mr-2" />
-                <span className="text-2xl font-bold">{totalProdutos}</span>
+                <span className="text-2xl font-bold">{totalProducts}</span>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -188,7 +188,7 @@ const Dashboard = () => {
               <span className="text-sm text-muted-foreground">Quantidade Total</span>
               <div className="flex items-center mt-2">
                 <Hash className="w-4 h-4 text-orange-500 mr-2" />
-                <span className="text-2xl font-bold">{quantidadeTotal}</span>
+                <span className="text-2xl font-bold">{totalQuantity}</span>
                 <span className="text-xs text-muted-foreground ml-2">Unidades</span>
               </div>
               <div className="flex items-center mt-2 text-xs">
@@ -208,7 +208,7 @@ const Dashboard = () => {
               <span className="text-sm text-muted-foreground">Valor Total</span>
               <div className="flex items-center mt-2">
                 <DollarSign className="w-4 h-4 text-purple-500 mr-2" />
-                <span className="text-2xl font-bold">{formatCurrency(valorTotal)}</span>
+                <span className="text-2xl font-bold">{formatCurrency(totalValue)}</span>
               </div>
               <div className="flex items-center mt-2 text-xs">
                 <ArrowUpRight className="w-3 h-3 text-green-500 mr-1" />
@@ -224,7 +224,7 @@ const Dashboard = () => {
               <span className="text-sm text-muted-foreground">Total de Impostos</span>
               <div className="flex items-center mt-2">
                 <Receipt className="w-4 h-4 text-red-500 mr-2" />
-                <span className="text-2xl font-bold">{formatCurrency(totalImpostos)}</span>
+                <span className="text-2xl font-bold">{formatCurrency(totalTaxes)}</span>
                 <span className="text-xs text-muted-foreground ml-2">17% do valor</span>
               </div>
               <div className="flex items-center mt-2 text-xs">
@@ -275,7 +275,7 @@ const Dashboard = () => {
             </div>
             
             <div className="space-y-4">
-              {fornecedoresOrdenados.map((fornecedor, index) => (
+              {suppliersOrdered.map((supplier, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
                   <div className="flex items-center gap-3">
                     <span className="w-6 h-6 flex items-center justify-center bg-white rounded-full text-sm font-medium">
@@ -283,21 +283,21 @@ const Dashboard = () => {
                     </span>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{fornecedor.name}</span>
+                        <span className="font-medium">{supplier.name}</span>
                         {index < 2 && (
                           <span className="text-xs bg-yellow-500 text-white px-1.5 py-0.5 rounded">VIP</span>
                         )}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {formatCurrency(fornecedor.value)} • {fornecedor.items} itens
+                        {formatCurrency(supplier.value)} • {supplier.items} itens
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`text-sm ${fornecedor.crescimento >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {fornecedor.crescimento >= 0 ? '+' : ''}{fornecedor.crescimento.toFixed(1)}%
+                    <span className={`text-sm ${supplier.crescimento >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {supplier.crescimento >= 0 ? '+' : ''}{supplier.crescimento.toFixed(1)}%
                     </span>
-                    {fornecedor.crescimento >= 0 ? (
+                    {supplier.crescimento >= 0 ? (
                       <ArrowUpRight className="w-4 h-4 text-green-500" />
                     ) : (
                       <ArrowDownRight className="w-4 h-4 text-red-500" />
@@ -319,7 +319,7 @@ const Dashboard = () => {
                 }}
               >
                 Gerar proposta para fornecedor VIP
-              </Button>
+            </Button>
               <Button variant="outline" className="w-full text-sm">
                 Configurar critérios de classificação VIP
               </Button>
@@ -343,15 +343,15 @@ const Dashboard = () => {
               </select>
             </div>
             <div className="h-[400px] flex items-end gap-4">
-              {fornecedoresOrdenados.map((item, index) => (
+              {suppliersOrdered.map((item, index) => (
                 <TooltipProvider key={index}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex-1 flex flex-col items-center group">
                         <div 
                           className="w-full bg-gradient-to-t from-yellow-500 to-yellow-400 rounded-t group-hover:from-yellow-600 group-hover:to-yellow-500 transition-colors"
-                          style={{ 
-                            height: `${(item.value / fornecedoresOrdenados[0].value) * 300}px`,
+                          style={{
+                            height: `${(item.value / suppliersOrdered[0].value) * 300}px`,
                           }}
                         />
                         <span className="text-xs mt-2 font-medium truncate w-full text-center">
@@ -403,22 +403,22 @@ const Dashboard = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-yellow-500" />
-                <span className="font-medium">{fornecedorMaiorCrescimento.name}</span>
+                <span className="font-medium">{supplierLargestGrowth.name}</span>
               </div>
               <div className="text-sm space-y-2">
                 <div className="flex justify-between">
                   <span>Crescimento</span>
                   <span className="text-green-600">
-                    +{fornecedorMaiorCrescimento.crescimento.toFixed(1)}%
+                    +{supplierLargestGrowth.crescimento.toFixed(1)}%
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Volume</span>
-                  <span>{formatCurrency(fornecedorMaiorCrescimento.value)}</span>
+                  <span>{formatCurrency(supplierLargestGrowth.value)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Itens</span>
-                  <span>{fornecedorMaiorCrescimento.items}</span>
+                  <span>{supplierLargestGrowth.items}</span>
                 </div>
               </div>
             </div>

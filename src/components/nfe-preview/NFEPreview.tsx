@@ -46,7 +46,7 @@ const NFEPreview: React.FC<NFEPreviewProps> = ({ nfe, onClose }) => {
           <div className="flex justify-between items-start">
             <div>
               <h2 className="text-2xl font-bold">NFE {nfe.numero}</h2>
-              <p className="text-sm text-muted-foreground">{nfe.fornecedor}</p>
+              <p className="text-sm text-muted-foreground">{nfe.supplier}</p>
             </div>
             <Button variant="outline" onClick={onClose}>Fechar</Button>
           </div>
@@ -76,11 +76,11 @@ const NFEPreview: React.FC<NFEPreviewProps> = ({ nfe, onClose }) => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Valor Total</Label>
-                <p className="text-lg font-semibold">{formatCurrency(nfe.valorTotal)}</p>
+                <p className="text-lg font-semibold">{formatCurrency(nfe.totalValue)}</p>
               </div>
               <div>
                 <Label>Quantidade de Itens</Label>
-                <p className="text-lg font-semibold">{formatNumber(nfe.quantidadeTotal)}</p>
+                <p className="text-lg font-semibold">{formatNumber(nfe.totalQuantity)}</p>
               </div>
             </div>
           </div>
@@ -90,9 +90,9 @@ const NFEPreview: React.FC<NFEPreviewProps> = ({ nfe, onClose }) => {
             <div className="max-h-60 overflow-y-auto">
               {nfe.itens.map((item: any, index: number) => (
                 <div key={index} className="p-3 bg-gray-50 rounded-lg mb-2">
-                  <div className="font-medium">{item.descricao}</div>
+                  <div className="font-medium">{item.description}</div>
                   <div className="text-sm text-muted-foreground">
-                    {item.quantidade} unidades • {formatCurrency(item.valor)}
+                    {item.quantity} unidades • {formatCurrency(item.value)}
                   </div>
                 </div>
               ))}
