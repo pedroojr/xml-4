@@ -9,40 +9,40 @@ const sizePatterns: SizePattern[] = [
   {
     pattern: /\b(PP|P|M|G|GG|XG|XXG)\b/i,
     sizes: ['PP', 'P', 'M', 'G', 'GG', 'XG', 'XXG'],
-    description: 'Tamanhos padrão de vestuário'
+    description: 'Standard clothing sizes'
   },
   {
     pattern: /\b(\d{2}\/\d{2})\b/,
-    sizes: [], // Dinâmico, ex: "34/35"
-    description: 'Tamanhos de calçados com faixa'
+    sizes: [], // Dynamic, e.g., "34/35"
+    description: 'Shoe sizes with range'
   },
   {
     pattern: /\bTAM(?:ANHO)?[\s:.]-?\s*([A-Za-z0-9]{1,3})\b/i,
-    sizes: [], // Dinâmico, ex: "TAM: G" ou "TAMANHO M"
-    description: 'Indicador explícito de tamanho'
+    sizes: [], // Dynamic, e.g., "TAM: G" or "TAMANHO M"
+    description: 'Explicit size indicator'
   },
   {
     pattern: /\b(INFANTIL|ADULTO|JUVENIL)\b/i,
     sizes: ['INFANTIL', 'ADULTO', 'JUVENIL'],
-    description: 'Categorias de tamanho'
+    description: 'Size categories'
   },
   {
     pattern: /-(\d{1,2})(?:\s|$)/,
-    sizes: [], // Dinâmico, números no final da referência
-    description: 'Números no final da referência (estilo Kelly)'
+    sizes: [], // Dynamic, numbers at the end of the reference
+    description: 'Numbers at the end of the reference (Kelly style)'
   },
   {
     pattern: /(?:FEMININA|MASCULINA|INFANTIL)-(\d{1,2})-/i,
-    sizes: [], // Dinâmico, padrão Elian: IG FEMININA-12-2037
-    description: 'Padrão Elian (número entre hífens)'
+    sizes: [], // Dynamic, Elian pattern: IG FEMININA-12-2037
+    description: 'Elian pattern (number between hyphens)'
   }
 ];
 
-const normalizarTamanho = (tamanho: string): string => {
-  const normalizado = tamanho.trim().toUpperCase();
-  
-  // Padroniza nomenclaturas específicas
-  const padronizacoes: { [key: string]: string } = {
+const normalizeSize = (size: string): string => {
+  const normalized = size.trim().toUpperCase();
+
+  // Standardize specific nomenclatures
+  const standardizations: { [key: string]: string } = {
     'PEQUENO': 'P',
     'MEDIO': 'M',
     'MÉDIO': 'M',
@@ -51,34 +51,34 @@ const normalizarTamanho = (tamanho: string): string => {
     'EXTRA PEQUENO': 'PP'
   };
 
-  return padronizacoes[normalizado] || normalizado;
+  return standardizations[normalized] || normalized;
 };
 
-const validarTamanho = (tamanho: string): boolean => {
-  const tamanhosValidos = new Set([
+const validateSize = (size: string): boolean => {
+  const validSizes = new Set([
     'PP', 'P', 'M', 'G', 'GG', 'XG', 'XXG',
     'INFANTIL', 'ADULTO', 'JUVENIL'
   ]);
 
-  const padraoNumerico = /^\d{1,2}$/;  // 1 ou 2 dígitos
-  const padraoFaixa = /^\d{2}\/\d{2}$/;  // formato 00/00
+  const numericPattern = /^\d{1,2}$/;  // 1 or 2 digits
+  const rangePattern = /^\d{2}\/\d{2}$/;  // format 00/00
 
-  const tamanhoNormalizado = normalizarTamanho(tamanho);
+  const normalizedSize = normalizeSize(size);
 
-  return tamanhosValidos.has(tamanhoNormalizado) ||
-         padraoNumerico.test(tamanhoNormalizado) ||
-         padraoFaixa.test(tamanhoNormalizado);
+  return validSizes.has(normalizedSize) ||
+         numericPattern.test(normalizedSize) ||
+         rangePattern.test(normalizedSize);
 };
 
-export const extrairTamanhoDaReferencia = (referencia: string): string => {
-  if (!referencia) return '';
+export const extractSizeFromReference = (reference: string): string => {
+  if (!reference) return '';
 
-  // Procura por número no final da referência (estilo Kelly)
-  const match = referencia.match(/-(\d{1,2})(?:\s|$)/);
+  // Search for a number at the end of the reference (Kelly style)
+  const match = reference.match(/-(\d{1,2})(?:\s|$)/);
   if (match && match[1]) {
-    const tamanho = match[1];
-    if (validarTamanho(tamanho)) {
-      return tamanho;
+    const size = match[1];
+    if (validateSize(size)) {
+      return size;
     }
   }
 
@@ -88,29 +88,29 @@ export const extrairTamanhoDaReferencia = (referencia: string): string => {
 export const extractSizeFromDescription = (description: string): string => {
   if (!description) return '';
 
-  const textoNormalizado = description.toUpperCase();
-  
-  // Padrão Elian: extrai número entre hífens após FEMININA/MASCULINA/INFANTIL
-  const matchElian = textoNormalizado.match(/(?:FEMININA|MASCULINA|INFANTIL)-(\d{1,2})-/i);
-  if (matchElian && matchElian[1]) {
-    const tamanho = matchElian[1];
-    if (validarTamanho(tamanho)) {
-      return tamanho;
+  const normalizedText = description.toUpperCase();
+
+  // Elian pattern: extract number between hyphens after FEMININA/MASCULINA/INFANTIL
+  const elianMatch = normalizedText.match(/(?:FEMININA|MASCULINA|INFANTIL)-(\d{1,2})-/i);
+  if (elianMatch && elianMatch[1]) {
+    const size = elianMatch[1];
+    if (validateSize(size)) {
+      return size;
     }
   }
 
-  // Casos especiais para produtos infantis
-  if (textoNormalizado.includes('INFAN') && textoNormalizado.includes('COMUM')) {
+  // Special cases for children's products
+  if (normalizedText.includes('INFAN') && normalizedText.includes('COMUM')) {
     return 'INFANTIL';
   }
 
-  // Outros padrões de tamanho
+  // Other size patterns
   for (const { pattern } of sizePatterns) {
-    const match = textoNormalizado.match(pattern);
+    const match = normalizedText.match(pattern);
     if (match && match[1]) {
-      const tamanhoEncontrado = normalizarTamanho(match[1]);
-      if (validarTamanho(tamanhoEncontrado)) {
-        return tamanhoEncontrado;
+      const foundSize = normalizeSize(match[1]);
+      if (validateSize(foundSize)) {
+        return foundSize;
       }
     }
   }
@@ -118,49 +118,49 @@ export const extractSizeFromDescription = (description: string): string => {
   return '';
 };
 
-// Função para debug e análise de padrões
+// Function for debugging and pattern analysis
 export const analyzeDetailedPatterns = (description: string): {
-  tamanhoEncontrado: string;
-  padraoUtilizado?: string;
-  detalhes: string[];
+  foundSize: string;
+  usedPattern?: string;
+  details: string[];
 } => {
-  const detalhes: string[] = [];
-  
+  const details: string[] = [];
+
   if (!description) {
-    return { 
-      tamanhoEncontrado: '', 
-      detalhes: ['Descrição vazia']
+    return {
+      foundSize: '',
+      details: ['Empty description']
     };
   }
 
-  const textoNormalizado = description.toUpperCase();
-  detalhes.push(`Texto normalizado: ${textoNormalizado}`);
+  const normalizedText = description.toUpperCase();
+  details.push(`Normalized text: ${normalizedText}`);
 
   for (const { pattern, description } of sizePatterns) {
-    const match = textoNormalizado.match(pattern);
+    const match = normalizedText.match(pattern);
     if (match) {
-      detalhes.push(`Padrão encontrado: ${description}`);
-      detalhes.push(`Match completo: ${match[0]}`);
-      
+      details.push(`Pattern found: ${description}`);
+      details.push(`Full match: ${match[0]}`);
+
       if (match[1]) {
-        const tamanhoNormalizado = normalizarTamanho(match[1]);
-        detalhes.push(`Tamanho normalizado: ${tamanhoNormalizado}`);
-        
-        if (validarTamanho(tamanhoNormalizado)) {
+        const normalizedSize = normalizeSize(match[1]);
+        details.push(`Normalized size: ${normalizedSize}`);
+
+        if (validateSize(normalizedSize)) {
           return {
-            tamanhoEncontrado: tamanhoNormalizado,
-            padraoUtilizado: description,
-            detalhes
+            foundSize: normalizedSize,
+            usedPattern: description,
+            details
           };
         } else {
-          detalhes.push(`Tamanho "${tamanhoNormalizado}" não passou na validação`);
+          details.push(`Size "${normalizedSize}" failed validation`);
         }
       }
     }
   }
 
   return {
-    tamanhoEncontrado: '',
-    detalhes: [...detalhes, 'Nenhum tamanho válido encontrado']
+    foundSize: '',
+    details: [...details, 'No valid size found']
   };
 };

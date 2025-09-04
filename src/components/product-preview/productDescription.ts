@@ -2,14 +2,14 @@
 import { Product } from '../../types/nfe';
 
 const formatProductDescription = (description: string): string => {
-  // Remove códigos específicos no final da descrição (como SCY765/02)
+  // Remove specific codes at the end of the description (e.g., SCY765/02)
   const nameWithoutCode = description.replace(/\s+\w+\/\d+$/, '');
-  
-  // Capitaliza cada palavra
+
+  // Capitalize each word
   return nameWithoutCode
     .split(' ')
     .map(word => {
-      // Não capitaliza palavras pequenas como "de", "da", "do", etc.
+      // Do not capitalize small words like "de", "da", "do", etc.
       const smallWords = ['de', 'da', 'do', 'das', 'dos', 'e', 'com', 'em', 'para'];
       if (smallWords.includes(word.toLowerCase())) {
         return word.toLowerCase();
@@ -22,29 +22,29 @@ const formatProductDescription = (description: string): string => {
 export const generateProductDescription = (product: Product): string => {
   const parts: string[] = [];
   
-  // Nome do produto formatado
+  // Formatted product name
   const formattedDescription = formatProductDescription(product.description);
   parts.push(formattedDescription);
 
-  // Dados técnicos em uma seção separada
+  // Technical data in a separate section
   const technicalInfo: string[] = [];
 
-  // Adiciona referência se disponível (sem o prefixo REF)
+  // Add reference if available (without the REF prefix)
   if (product.reference) {
     technicalInfo.push(product.reference);
   }
 
-  // Adiciona código do produto se disponível e diferente da referência
+  // Add product code if available and different from the reference
   if (product.code && product.code !== product.reference) {
     technicalInfo.push(product.code);
   }
 
-  // Adiciona EAN se disponível (sem o prefixo EAN)
+  // Add EAN if available (without the EAN prefix)
   if (product.ean) {
     technicalInfo.push(product.ean);
   }
 
-  // Informações de cor e tamanho
+  // Color and size information
   const attributes: string[] = [];
   
   if (product.color) {
@@ -55,7 +55,7 @@ export const generateProductDescription = (product: Product): string => {
     attributes.push(`TAM: ${product.size}`);
   }
 
-  // Monta a descrição final
+  // Build the final description
   if (attributes.length > 0) {
     parts.push(attributes.join(' '));
   }
@@ -64,6 +64,6 @@ export const generateProductDescription = (product: Product): string => {
     parts.push(technicalInfo.join(' '));
   }
 
-  // Une todas as partes usando apenas espaço como separador
+  // Join all parts using a single space as separator
   return parts.join(' ');
 };
