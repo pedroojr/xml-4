@@ -3,27 +3,27 @@ import { extractColorFromDescription } from './colorParser';
 import { extractSizeFromDescription } from './sizeParser';
 import { identifyBrand, analyzeReference } from './brandIdentifier';
 
-const formatAdditionalDescription = (texto: string): string => {
-  if (!texto) return '';
+const formatAdditionalDescription = (text: string): string => {
+  if (!text) return '';
 
-  // Normalizar espaços e remover espaços extras
-  let textoNormalizado = texto.trim().replace(/\s+/g, ' ');
+  // Normalize spaces and remove extra spaces
+  let normalizedText = text.trim().replace(/\s+/g, ' ');
 
-  // Encontrar o padrão "tam: XX" e o código numérico
-  const match = textoNormalizado.match(/(.*?tam:\s*\d+)\s+(\d+\.\d+\.\d+\.\d+)(-NP.*?)(?:\s+-\s+(?:RSF|N\.FCI).*)?$/i);
+  // Find the pattern "tam: XX" and the numeric code
+  const match = normalizedText.match(/(.*?tam:\s*\d+)\s+(\d+\.\d+\.\d+\.\d+)(-NP.*?)(?:\s+-\s+(?:RSF|N\.FCI).*)?$/i);
 
-  if (!match) return textoNormalizado;
+  if (!match) return normalizedText;
 
-  const [, inicio, codigo, finalDescription] = match;
+  const [, start, code, finalDescription] = match;
 
-  // Formatar a primeira parte (até o tam: XX)
-  const parteInicial = inicio
+  // Format the first part (up to "tam: XX")
+  const initialPart = start
     .split('-')
     .map(part => part.trim())
     .join(' / ')
     .toUpperCase();
 
-  // Formatar a parte após o código numérico
+  // Format the part after the numeric code
   const descriptionPart = finalDescription
     .replace(/^-NP/, 'NP')
     .split('-')
@@ -31,7 +31,7 @@ const formatAdditionalDescription = (texto: string): string => {
     .join(' / ')
     .trim();
 
-  return `${parteInicial} ${codigo} ${descriptionPart}`;
+  return `${initialPart} ${code} ${descriptionPart}`;
 };
 
 export const parseNFeXML = (xmlText: string): Product[] => {
@@ -39,7 +39,7 @@ export const parseNFeXML = (xmlText: string): Product[] => {
   const xmlDoc = parser.parseFromString(xmlText, "text/xml");
   
   if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
-    throw new Error("Erro ao analisar o arquivo XML");
+    throw new Error("Error parsing XML file");
   }
   
   const ns = "http://www.portalfiscal.inf.br/nfe";
@@ -73,10 +73,10 @@ export const parseNFeXML = (xmlText: string): Product[] => {
   const totalDiscount = totalProductsValue - totalInvoiceValue;
   const discountPercentage = totalDiscount > 0 ? (totalDiscount / totalProductsValue) * 100 : 0;
   
-  console.log('Valor Total Produtos:', totalProductsValue);
-  console.log('Valor Total Nota:', totalInvoiceValue);
-  console.log('Desconto Total:', totalDiscount);
-  console.log('Porcentagem de Desconto:', discountPercentage.toFixed(2) + '%');
+  console.log('Total Products Value:', totalProductsValue);
+  console.log('Total Invoice Value:', totalInvoiceValue);
+  console.log('Total Discount:', totalDiscount);
+  console.log('Discount Percentage:', discountPercentage.toFixed(2) + '%');
   
   const getICMSInfo = (element: Element) => {
     if (!element) return { cst: "", orig: "" };
@@ -110,7 +110,7 @@ export const parseNFeXML = (xmlText: string): Product[] => {
     const icms = item.getElementsByTagNameNS(ns, "ICMS")[0];
     
     if (!prod) {
-      console.warn(`Item ${i + 1}: Nó 'prod' não encontrado`);
+      console.warn(`Item ${i + 1}: 'prod' node not found`);
       continue;
     }
     
@@ -127,17 +127,17 @@ export const parseNFeXML = (xmlText: string): Product[] => {
     const netPrice = netUnitPrice * quantity;
     
     const description = getElementText(prod, "xProd");
-    const codigo = getElementText(prod, "cProd");
-    const corIdentificada = extractColorFromDescription(description);
-    const tamanho = extractSizeFromDescription(description);
-    const referencia = codigo;
+    const code = getElementText(prod, "cProd");
+    const identifiedColor = extractColorFromDescription(description);
+    const size = extractSizeFromDescription(description);
+    const reference = code;
 
-    analyzeReference(referencia, description);
+    analyzeReference(reference, description);
 
-    const { brand, confidence } = identifyBrand(referencia, description);
-    
+    const { brand, confidence } = identifyBrand(reference, description);
+
     const product: Product = {
-      code: codigo,
+      code: code,
       ean: getElementText(prod, "cEAN"),
       description: description,
       ncm: getElementText(prod, "NCM"),
@@ -148,9 +148,9 @@ export const parseNFeXML = (xmlText: string): Product[] => {
       totalPrice: totalPrice,
       discount: totalDiscount,
       netPrice: netPrice,
-      color: corIdentificada || '',
-      size: tamanho,
-      reference: referencia,
+      color: identifiedColor || '',
+      size: size,
+      reference: reference,
       salePrice: netPrice * 1.3,
       brand: brand,
       additionalDescription: formatAdditionalDescription(item.getElementsByTagName('infAdProd')[0]?.textContent || ''),

@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { extractSizeFromDescription, extrairTamanhoDaReferencia } from '../../utils/sizeParser';
+import { extractSizeFromDescription, extractSizeFromReference } from '../../utils/sizeParser';
 import { ResizableBox } from 'react-resizable';
 import 'react-resizable/css/styles.css';
 import { ProductFilter, ProductFilters } from './ProductFilter';
@@ -648,18 +648,18 @@ export const ProductTable: React.FC<ProductTableProps> = ({
               // Calcular o custo com desconto (Custo Bruto - Desconto Médio)
               const custoComDesconto = calculateCustoComDesconto(product);
               
-              // Calcular o custo líquido (Custo c/ desconto + Imposto de Entrada)
+              // Calculate net cost (Cost with discount + Entry Tax)
               const custoLiquido = calculateCustoLiquido(product, impostoEntrada);
-              // Novo: custo líquido + frete proporcional
+              // New: net cost + proportional freight
               const custoLiquidoComFrete = custoLiquido + (product.freightShare || 0);
-              
-              // Calcular preços de venda com base no custo líquido + frete proporcional
+
+              // Calculate sale prices based on net cost + proportional freight
               const xapuriPrice = roundPrice(calculateSalePrice({ ...product, netPrice: custoLiquidoComFrete }, xapuriMarkup), roundingType);
               const epitaPrice = roundPrice(calculateSalePrice({ ...product, netPrice: custoLiquidoComFrete }, epitaMarkup), roundingType);
-              
-              const tamanhoReferencia = extrairTamanhoDaReferencia(product.reference);
-              const tamanhoDescricao = extractSizeFromDescription(product.description);
-              const tamanho = tamanhoReferencia || tamanhoDescricao || '';
+
+              const referenceSize = extractSizeFromReference(product.reference);
+              const descriptionSize = extractSizeFromDescription(product.description);
+              const size = referenceSize || descriptionSize || '';
 
               return (
                 <TableRow 
@@ -726,7 +726,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                       const netCostWithFreight = netCost + (product.freightShare || 0);
                       value = roundPrice(calculateSalePrice({ ...product, netPrice: netCostWithFreight }, epitaMarkup), roundingType) + extraCost;
                     }
-                    if (column.id === 'size') value = tamanho;
+                    if (column.id === 'size') value = size;
                     if (column.id === 'netPrice') {
                       // Net cost = unit cost + proportional freight
                       const netCost = calculateCustoLiquido(product, impostoEntrada);
