@@ -1,0 +1,16 @@
+{
+  "home": "Início",
+  "dashboard": "Dashboard",
+  "products": "Produtos",
+  "export": "Exportar",
+  "filtersSearch": "Filtros e Busca",
+  "advancedFilters": "Filtros Avançados",
+  "showOnlyHidden": "Mostrar apenas ocultos",
+  "searchPlaceholder": "Buscar por código, descrição, EAN, referência, fornecedor ou descrição complementar...",
+  "unitQuantity": "Quantidade de Unidades",
+  "totalItems": "Total de Itens",
+  "totalValue": "Valor Total",
+  "averageDiscount": "Desconto Médio",
+  "pageOf": "Página {{current}} de {{total}}",
+  "areYouSureLeave": "Tem certeza que deseja sair? Suas alterações podem ser perdidas."
+}

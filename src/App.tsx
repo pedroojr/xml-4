@@ -7,9 +7,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navbar from "@/components/ui/navbar";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
-import Produtos from "./pages/Produtos";
+import Products from "./pages/Products";
 import NotFound from "./pages/NotFound";
 import NFEView from "./pages/NFEView";
+import { useTranslation } from 'react-i18next';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -34,10 +35,12 @@ const BaseLayout = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App = () => {
+  const { t } = useTranslation();
+
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
-      return (e.returnValue = 'Tem certeza que deseja sair? Suas alterações podem ser perdidas.');
+      return (e.returnValue = t('areYouSureLeave'));
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -58,7 +61,7 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/produtos" element={<Produtos />} />
+                <Route path="/produtos" element={<Products />} />
                 <Route path="/nfe/:id" element={<NFEView />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
