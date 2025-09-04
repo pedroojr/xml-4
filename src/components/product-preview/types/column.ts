@@ -101,10 +101,10 @@ export const getDefaultColumns = (): Column[] => [
     width: 'w-fit',
     minWidth: 80,
     order: 10,
-    format: (value: number) => value.toLocaleString()
+    format: (value: number) => value.toLocaleString('pt-BR')
   },
-  { 
-    id: 'unitPrice', 
+  {
+    id: 'unitPrice',
     header: 'Custo Bruto', 
     initiallyVisible: true, 
     alignment: 'right',
