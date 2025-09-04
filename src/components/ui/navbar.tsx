@@ -1,14 +1,16 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { ServerStatus } from '@/components/ServerStatus';
+import { useTranslation } from 'react-i18next';
 
 const Navbar = () => {
   const location = useLocation();
+  const { t } = useTranslation();
 
   const menuItems = [
-    { path: '/', label: 'Início' },
-    { path: '/dashboard', label: 'Dashboard' },
-    { path: '/produtos', label: 'Produtos' },
+    { path: '/', label: t('home') },
+    { path: '/dashboard', label: t('dashboard') },
+    { path: '/produtos', label: t('products') },
   ];
 
   return (

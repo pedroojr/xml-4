@@ -6,17 +6,16 @@ import { Search, Filter, Download, ChevronLeft, ChevronRight } from "lucide-reac
 import { ProductTable } from '@/components/product-preview/ProductTable';
 import { getDefaultColumns } from '@/components/product-preview/types/column';
 import { useNFEStorage } from '@/hooks/useNFEStorage';
-import { useLocation } from 'react-router-dom';
-import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { useProductSettings } from '@/hooks/useProductSettings';
+import { useTranslation } from 'react-i18next';
 
 const ITEMS_PER_PAGE = 50;
 
-const Produtos = () => {
+const Products = () => {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = React.useState('');
   const [currentPage, setCurrentPage] = React.useState(1);
-  const location = useLocation();
   const { savedNFEs } = useNFEStorage();
 
   // Usando o novo hook para gerenciar as configurações
@@ -36,8 +35,8 @@ const Produtos = () => {
   // Extrair todos os produtos das NFEs
   const allProducts = React.useMemo(() => {
     return savedNFEs.reduce((acc: any[], nfe) => {
-      const nfeProducts = nfe.products.map(produto => ({
-        ...produto,
+      const nfeProducts = nfe.products.map(productItem => ({
+        ...productItem,
         nfeId: nfe.id,
         supplier: nfe.supplier,
         date: nfe.date,
@@ -84,18 +83,18 @@ const Produtos = () => {
   };
 
   const handleExport = () => {
-    console.log('Exportando produtos:', filteredProducts);
+    console.log('Exporting products:', filteredProducts);
   };
 
   const handleImageSearch = (index: number, product: any) => {
-    console.log('Buscar imagem para o produto:', product);
+    console.log('Search image for product:', product);
   };
 
   // Estatísticas dos produtos
-  const totalQuantidade = filteredProducts.reduce((acc, prod) => acc + (prod.quantity || 0), 0);
-  const totalUnidades = filteredProducts.length;
+  const totalQuantity = filteredProducts.reduce((acc, prod) => acc + (prod.quantity || 0), 0);
+  const totalUnits = filteredProducts.length;
   const totalValue = filteredProducts.reduce((acc, prod) => acc + (prod.totalPrice || 0), 0);
-  const descontoMedio = filteredProducts.reduce((acc, prod) => acc + (prod.desconto || 0), 0) / filteredProducts.length || 0;
+  const averageDiscount = filteredProducts.reduce((acc, prod) => acc + (prod.desconto || 0), 0) / filteredProducts.length || 0;
 
   // Renderizar números de página
   const renderPageNumbers = () => {
@@ -128,18 +127,18 @@ const Produtos = () => {
   return (
     <div className="w-full px-4 py-8 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Produtos</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('products')}</h1>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="h-4 w-4 mr-2" />
-            Exportar
+            {t('export')}
           </Button>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Filtros e Busca</CardTitle>
+          <CardTitle>{t('filtersSearch')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -147,7 +146,7 @@ const Produtos = () => {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Buscar por código, descrição, EAN, referência, fornecedor ou descrição complementar..."
+                  placeholder={t('searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
                   className="pl-10"
@@ -155,7 +154,7 @@ const Produtos = () => {
               </div>
               <Button variant="outline">
                 <Filter className="h-4 w-4 mr-2" />
-                Filtros Avançados
+                {t('advancedFilters')}
               </Button>
             </div>
 
@@ -170,7 +169,7 @@ const Produtos = () => {
                   htmlFor="showHidden"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  Mostrar apenas ocultos
+                  {t('showOnlyHidden')}
                 </label>
               </div>
             </div>
@@ -181,26 +180,26 @@ const Produtos = () => {
       <div className="grid grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold">{totalUnidades}</div>
-            <div className="text-sm text-muted-foreground">Quantidade de Unidades</div>
+            <div className="text-2xl font-bold">{totalUnits}</div>
+            <div className="text-sm text-muted-foreground">{t('unitQuantity')}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold">{totalQuantidade}</div>
-            <div className="text-sm text-muted-foreground">Total de Itens</div>
+            <div className="text-2xl font-bold">{totalQuantity}</div>
+            <div className="text-sm text-muted-foreground">{t('totalItems')}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold">R$ {totalValue.toFixed(2)}</div>
-            <div className="text-sm text-muted-foreground">Valor Total</div>
+            <div className="text-sm text-muted-foreground">{t('totalValue')}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold">{descontoMedio.toFixed(1)}%</div>
-            <div className="text-sm text-muted-foreground">Desconto Médio</div>
+            <div className="text-2xl font-bold">{averageDiscount.toFixed(1)}%</div>
+            <div className="text-sm text-muted-foreground">{t('averageDiscount')}</div>
           </CardContent>
         </Card>
       </div>
@@ -250,7 +249,7 @@ const Produtos = () => {
           </Button>
 
           <span className="text-sm text-muted-foreground ml-4">
-            Página {currentPage} de {totalPages}
+            {t('pageOf', { current: currentPage, total: totalPages })}
           </span>
         </div>
       )}
@@ -258,4 +257,4 @@ const Produtos = () => {
   );
 };
 
-export default Produtos; 
+export default Products;
