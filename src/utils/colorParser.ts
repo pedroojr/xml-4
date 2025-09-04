@@ -6,9 +6,9 @@ const CORES_COMUNS = [
 
 export type CorComum = typeof CORES_COMUNS[number];
 
-export const extrairCorDaDescricao = (descricao: string): string | null => {
-  const descricaoUpperCase = descricao.toUpperCase();
-  return CORES_COMUNS.find(cor => descricaoUpperCase.includes(cor)) || null;
+export const extractColorFromDescription = (description: string): string | null => {
+  const upper = description.toUpperCase();
+  return CORES_COMUNS.find(cor => upper.includes(cor)) || null;
 };
 
 export const CORES_OPCOES = CORES_COMUNS.map(cor => ({

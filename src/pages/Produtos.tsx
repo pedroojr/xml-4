@@ -36,14 +36,14 @@ const Produtos = () => {
   // Extrair todos os produtos das NFEs
   const allProducts = React.useMemo(() => {
     return savedNFEs.reduce((acc: any[], nfe) => {
-      const nfeProdutos = nfe.produtos.map(produto => ({
+      const nfeProducts = nfe.products.map(produto => ({
         ...produto,
         nfeId: nfe.id,
-        fornecedor: nfe.fornecedor,
-        dataEmissao: nfe.data,
-        impostoEntrada: nfe.impostoEntrada
+        supplier: nfe.supplier,
+        date: nfe.date,
+        entryTax: nfe.entryTax
       }));
-      return [...acc, ...nfeProdutos];
+      return [...acc, ...nfeProducts];
     }, []);
   }, [savedNFEs]);
 
@@ -51,15 +51,15 @@ const Produtos = () => {
   const filteredProducts = React.useMemo(() => {
     return allProducts.filter(product => {
       const searchLower = searchTerm.toLowerCase();
-      const matchesSearch = 
-        (product.codigo?.toString().toLowerCase().includes(searchLower) ||
-        product.descricao?.toLowerCase().includes(searchLower) ||
+      const matchesSearch =
+        (product.code?.toString().toLowerCase().includes(searchLower) ||
+        product.description?.toLowerCase().includes(searchLower) ||
         product.ean?.toString().includes(searchLower) ||
-        product.referencia?.toLowerCase().includes(searchLower) ||
-        product.fornecedor?.toLowerCase().includes(searchLower) ||
-        product.descricao_complementar?.toLowerCase().includes(searchLower));
+        product.reference?.toLowerCase().includes(searchLower) ||
+        product.supplier?.toLowerCase().includes(searchLower) ||
+        product.additionalDescription?.toLowerCase().includes(searchLower));
 
-      const matchesImageFilter = !settings.showOnlyWithImage || product.imagem;
+      const matchesImageFilter = !settings.showOnlyWithImage || product.imageUrl;
       const matchesHiddenFilter = !settings.showOnlyHidden || settings.hiddenItems.has(product.id);
 
       return matchesSearch && matchesImageFilter && matchesHiddenFilter;
@@ -94,7 +94,7 @@ const Produtos = () => {
   // Estatísticas dos produtos
   const totalQuantidade = filteredProducts.reduce((acc, prod) => acc + (prod.quantity || 0), 0);
   const totalUnidades = filteredProducts.length;
-  const valorTotal = filteredProducts.reduce((acc, prod) => acc + (prod.valor || 0), 0);
+  const totalValue = filteredProducts.reduce((acc, prod) => acc + (prod.totalPrice || 0), 0);
   const descontoMedio = filteredProducts.reduce((acc, prod) => acc + (prod.desconto || 0), 0) / filteredProducts.length || 0;
 
   // Renderizar números de página
@@ -193,7 +193,7 @@ const Produtos = () => {
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold">R$ {valorTotal.toFixed(2)}</div>
+            <div className="text-2xl font-bold">R$ {totalValue.toFixed(2)}</div>
             <div className="text-sm text-muted-foreground">Valor Total</div>
           </CardContent>
         </Card>

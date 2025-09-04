@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { extrairTamanhoDaDescricao, extrairTamanhoDaReferencia } from '../../utils/sizeParser';
+import { extractSizeFromDescription, extrairTamanhoDaReferencia } from '../../utils/sizeParser';
 import { ResizableBox } from 'react-resizable';
 import 'react-resizable/css/styles.css';
 import { ProductFilter, ProductFilters } from './ProductFilter';
@@ -306,10 +306,10 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
   // Estado local para custo extra de cada produto
-  const [custoExtraMap, setCustoExtraMap] = useState<{ [codigo: string]: string }>(() => {
-    const initial: { [codigo: string]: string } = {};
+  const [extraCostMap, setExtraCostMap] = useState<{ [code: string]: string }>(() => {
+    const initial: { [code: string]: string } = {};
     products.forEach(p => {
-      initial[p.codigo] = p.custoExtra !== undefined && p.custoExtra !== null ? String(p.custoExtra) : '';
+      initial[p.code] = p.extraCost !== undefined && p.extraCost !== null ? String(p.extraCost) : '';
     });
     return initial;
   });
@@ -425,10 +425,10 @@ export const ProductTable: React.FC<ProductTableProps> = ({
       const matchesAllTerms = searchTerms.every(term => {
         return (
           product.code?.toLowerCase().includes(term) ||
-          product.name?.toLowerCase().includes(term) ||
+          product.description?.toLowerCase().includes(term) ||
           product.ean?.toLowerCase().includes(term) ||
           product.reference?.toLowerCase().includes(term) ||
-          product.descricao_complementar?.toLowerCase().includes(term)
+          product.additionalDescription?.toLowerCase().includes(term)
         );
       });
       if (!matchesAllTerms) return false;
@@ -472,7 +472,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     return totalOriginalPrice > 0 ? (totalDiscount / totalOriginalPrice) * 100 : 0;
   };
 
-  // Calcular a quantidade total de unidades
+  // Calculate total number of units
   const calculateTotalQuantity = (prods: Product[]) => {
     return prods.reduce((acc, p) => acc + p.quantity, 0);
   };
@@ -651,14 +651,14 @@ export const ProductTable: React.FC<ProductTableProps> = ({
               // Calcular o custo líquido (Custo c/ desconto + Imposto de Entrada)
               const custoLiquido = calculateCustoLiquido(product, impostoEntrada);
               // Novo: custo líquido + frete proporcional
-              const custoLiquidoComFrete = custoLiquido + (product.freteProporcional || 0);
+              const custoLiquidoComFrete = custoLiquido + (product.freightShare || 0);
               
               // Calcular preços de venda com base no custo líquido + frete proporcional
               const xapuriPrice = roundPrice(calculateSalePrice({ ...product, netPrice: custoLiquidoComFrete }, xapuriMarkup), roundingType);
               const epitaPrice = roundPrice(calculateSalePrice({ ...product, netPrice: custoLiquidoComFrete }, epitaMarkup), roundingType);
               
               const tamanhoReferencia = extrairTamanhoDaReferencia(product.reference);
-              const tamanhoDescricao = extrairTamanhoDaDescricao(product.name);
+              const tamanhoDescricao = extractSizeFromDescription(product.description);
               const tamanho = tamanhoReferencia || tamanhoDescricao || '';
 
               return (
@@ -688,20 +688,20 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                     }
 
                     // Campo editável para custo extra
-                    if (column.id === 'custoExtra') {
+                    if (column.id === 'extraCost') {
                       return (
                         <TableCell key={column.id} className="text-right">
                           <Input
                             type="number"
                             min="0"
                             step="0.01"
-                            value={custoExtraMap[product.codigo] ?? ''}
+                            value={extraCostMap[product.code] ?? ''}
                             onChange={e => {
-                              setCustoExtraMap(prev => ({ ...prev, [product.codigo]: e.target.value }));
+                              setExtraCostMap(prev => ({ ...prev, [product.code]: e.target.value }));
                               // Persistir o valor no armazenamento da nota
                               const valor = parseFloat(e.target.value) || 0;
                               if (product.nfeId) {
-                                updateProdutoCustoExtra(product.nfeId, product.codigo, valor);
+                                updateProductExtraCost(product.nfeId, product.code, valor);
                               }
                             }}
                             className="w-24 text-right"
@@ -711,27 +711,27 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                     }
 
                     // Ajustar preços finais para somar custo extra
-                    let value: any = column.getValue ? 
-                      column.getValue(product) : 
+                    let value: any = column.getValue ?
+                      column.getValue(product) :
                       product[column.id as keyof Product];
                     if (column.id === 'xapuriPrice') {
-                      const custoExtra = parseFloat(custoExtraMap[product.codigo] || '0') || 0;
-                      const custoLiquido = calculateCustoLiquido(product, impostoEntrada);
-                      const custoLiquidoComFrete = custoLiquido + (product.freteProporcional || 0);
-                      value = roundPrice(calculateSalePrice({ ...product, netPrice: custoLiquidoComFrete }, xapuriMarkup), roundingType) + custoExtra;
+                      const extraCost = parseFloat(extraCostMap[product.code] || '0') || 0;
+                      const netCost = calculateCustoLiquido(product, impostoEntrada);
+                      const netCostWithFreight = netCost + (product.freightShare || 0);
+                      value = roundPrice(calculateSalePrice({ ...product, netPrice: netCostWithFreight }, xapuriMarkup), roundingType) + extraCost;
                     }
                     if (column.id === 'epitaPrice') {
-                      const custoExtra = parseFloat(custoExtraMap[product.codigo] || '0') || 0;
-                      const custoLiquido = calculateCustoLiquido(product, impostoEntrada);
-                      const custoLiquidoComFrete = custoLiquido + (product.freteProporcional || 0);
-                      value = roundPrice(calculateSalePrice({ ...product, netPrice: custoLiquidoComFrete }, epitaMarkup), roundingType) + custoExtra;
+                      const extraCost = parseFloat(extraCostMap[product.code] || '0') || 0;
+                      const netCost = calculateCustoLiquido(product, impostoEntrada);
+                      const netCostWithFreight = netCost + (product.freightShare || 0);
+                      value = roundPrice(calculateSalePrice({ ...product, netPrice: netCostWithFreight }, epitaMarkup), roundingType) + extraCost;
                     }
                     if (column.id === 'size') value = tamanho;
                     if (column.id === 'netPrice') {
-                      // Custo Líquido = custo unitário + frete proporcional
-                      const custoLiquido = calculateCustoLiquido(product, impostoEntrada);
-                      const freteProporcional = product.freteProporcional || 0;
-                      value = custoLiquido + freteProporcional;
+                      // Net cost = unit cost + proportional freight
+                      const netCost = calculateCustoLiquido(product, impostoEntrada);
+                      const freightShare = product.freightShare || 0;
+                      value = netCost + freightShare;
                     }
 
                     return (

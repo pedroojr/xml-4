@@ -32,8 +32,8 @@ interface ProductToolbarProps {
   epitaSuggestedMarkup?: number;
   totalItems: number;
   filteredItems: number;
-  valorFrete: number;
-  onValorFreteChange: (value: number) => void;
+  freightValue: number;
+  onFreightValueChange: (value: number) => void;
 }
 
 export const ProductToolbar: React.FC<ProductToolbarProps> = ({
@@ -55,8 +55,8 @@ export const ProductToolbar: React.FC<ProductToolbarProps> = ({
   epitaSuggestedMarkup,
   totalItems,
   filteredItems,
-  valorFrete,
-  onValorFreteChange,
+  freightValue,
+  onFreightValueChange,
 }) => {
   return (
     <div className="w-full p-4 border-b bg-white">
@@ -73,8 +73,8 @@ export const ProductToolbar: React.FC<ProductToolbarProps> = ({
             onRoundingChange={onRoundingChange}
             xapuriSuggestedMarkup={xapuriSuggestedMarkup}
             epitaSuggestedMarkup={epitaSuggestedMarkup}
-            valorFrete={valorFrete}
-            onValorFreteChange={onValorFreteChange}
+            freightValue={freightValue}
+            onFreightValueChange={onFreightValueChange}
           />
         </div>
         <div className="flex items-center gap-4 w-full lg:w-auto">

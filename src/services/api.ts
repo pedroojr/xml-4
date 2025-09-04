@@ -45,18 +45,18 @@ api.interceptors.response.use(
 
 export interface NFE {
   id: string;
-  data: string;
-  numero: string;
-  chaveNFE?: string;
-  fornecedor: string;
-  valor: number;
-  itens: number;
-  produtos: Product[];
-  impostoEntrada: number;
+  date: string;
+  number: string;
+  nfeKey?: string;
+  supplier: string;
+  value: number;
+  items: number;
+  products: Product[];
+  entryTax: number;
   xapuriMarkup?: number;
   epitaMarkup?: number;
   roundingType?: string;
-  valorFrete?: number;
+  freightValue?: number;
   isFavorite?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -65,27 +65,27 @@ export interface NFE {
 export interface Product {
   id?: number;
   nfeId?: string;
-  codigo: string;
-  descricao: string;
+  code: string;
+  description: string;
   ncm?: string;
   cfop?: string;
-  unidade?: string;
-  quantidade: number;
-  valorUnitario: number;
-  valorTotal: number;
-  baseCalculoICMS?: number;
-  valorICMS?: number;
-  aliquotaICMS?: number;
-  baseCalculoIPI?: number;
-  valorIPI?: number;
-  aliquotaIPI?: number;
+  unit?: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  icmsBase?: number;
+  icmsValue?: number;
+  icmsRate?: number;
+  ipiBase?: number;
+  ipiValue?: number;
+  ipiRate?: number;
   ean?: string;
   reference?: string;
   brand?: string;
   imageUrl?: string;
-  descricao_complementar?: string;
-  custoExtra?: number;
-  freteProporcional?: number;
+  additionalDescription?: string;
+  extraCost?: number;
+  freightShare?: number;
 }
 
 // API de NFEs

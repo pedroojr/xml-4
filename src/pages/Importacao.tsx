@@ -72,9 +72,9 @@ const NFECard = ({ info }: { info: any }) => {
           </div>
           <div>
             <h4 className="font-medium text-sm text-gray-500">Valores</h4>
-            <p className="text-sm">Total: {formatCurrency(info.valorTotal)}</p>
-            <p className="text-sm">ICMS: {formatCurrency(info.valorICMS)}</p>
-            <p className="text-sm">IPI: {formatCurrency(info.valorIPI)}</p>
+            <p className="text-sm">Total: {formatCurrency(info.totalValue)}</p>
+            <p className="text-sm">ICMS: {formatCurrency(info.icmsValue)}</p>
+            <p className="text-sm">IPI: {formatCurrency(info.ipiValue)}</p>
           </div>
         </div>
 
@@ -82,15 +82,15 @@ const NFECard = ({ info }: { info: any }) => {
           <div className="mt-4">
             <h4 className="font-medium text-sm text-gray-500 mb-2">Itens</h4>
             <div className="space-y-2">
-              {info.itens.map((item: any, index: number) => (
+              {info.items.map((item: any, index: number) => (
                 <div key={index} className="p-2 bg-gray-50 rounded">
-                  <p className="text-sm font-medium">{item.descricao}</p>
+                  <p className="text-sm font-medium">{item.description}</p>
                   <div className="grid grid-cols-3 gap-2 mt-1">
-                    <p className="text-xs text-gray-600">Código: {item.codigo}</p>
+                    <p className="text-xs text-gray-600">Código: {item.code}</p>
                     <p className="text-xs text-gray-600">NCM: {item.ncm}</p>
-                    <p className="text-xs text-gray-600">Qtd: {item.quantidade}</p>
-                    <p className="text-xs text-gray-600">Valor Unitário: {formatCurrency(item.valorUnitario)}</p>
-                    <p className="text-xs text-gray-600">Valor Total: {formatCurrency(item.valorTotal)}</p>
+                    <p className="text-xs text-gray-600">Qtd: {item.quantity}</p>
+                    <p className="text-xs text-gray-600">Valor Unitário: {formatCurrency(item.unitPrice)}</p>
+                    <p className="text-xs text-gray-600">Valor Total: {formatCurrency(item.totalPrice)}</p>
                   </div>
                 </div>
               ))}

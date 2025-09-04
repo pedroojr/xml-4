@@ -10,7 +10,7 @@ export function getDefaultColumns(): ColumnDef<any>[] {
       id: "lucroEpitaComDesconto",
       header: "Lucro Epita c/ Desc.",
       accessorFn: (row) => {
-        const custoLiquido = row.valor * (1 + (row.impostoEntrada || 0) / 100);
+        const custoLiquido = row.value * (1 + (row.impostoEntrada || 0) / 100);
         const precoEpita = custoLiquido * (row.epitaMarkup || 130) / 100;
         const precoComDesconto = precoEpita * 0.9; // 10% de desconto
         const lucro = precoComDesconto - custoLiquido;
