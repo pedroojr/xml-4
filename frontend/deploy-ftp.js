@@ -32,11 +32,11 @@ async function uploadDirectory(sftp, localDir, remoteDir) {
 
 async function deploy() {
     const sftp = new Client();
-    const remoteDir = '/var/www/html';
+    const remoteDir = '/home/u461960397/domains/xml.lojasrealce.shop/public_html';
     
     try {
         await sftp.connect({
-            host: '82.29.58.242',
+            host: 'xml.lojasrealce.shop',
             port: 22,
             username: 'root',
             password: 'Pedrojr.xp1@'
