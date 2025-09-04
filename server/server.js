@@ -39,23 +39,23 @@ if (process.env.DEBUG_DB === 'true') {
 }
 const db = new Database(DB_PATH, { verbose: process.env.DEBUG_DB === 'true' ? console.log : undefined });
 
-// Criar tabelas se não existirem
+// Criar tabelas se não existirem e aplicar migrações
 const initDatabase = () => {
   // Tabela de NFEs
   db.exec(`
     CREATE TABLE IF NOT EXISTS nfes (
       id TEXT PRIMARY KEY,
-      data TEXT NOT NULL,
-      numero TEXT NOT NULL,
-      chaveNFE TEXT,
-      fornecedor TEXT NOT NULL,
-      valor REAL NOT NULL,
-      itens INTEGER NOT NULL,
-      impostoEntrada REAL DEFAULT 12,
+      date TEXT NOT NULL,
+      number TEXT NOT NULL,
+      nfeKey TEXT,
+      supplier TEXT NOT NULL,
+      value REAL NOT NULL,
+      items INTEGER NOT NULL,
+      entryTax REAL DEFAULT 12,
       xapuriMarkup REAL DEFAULT 160,
       epitaMarkup REAL DEFAULT 130,
       roundingType TEXT DEFAULT 'none',
-      valorFrete REAL DEFAULT 0,
+      freightValue REAL DEFAULT 0,
       hiddenItems TEXT DEFAULT '[]',
       showHidden BOOLEAN DEFAULT 0,
       isFavorite BOOLEAN DEFAULT 0,
@@ -63,7 +63,26 @@ const initDatabase = () => {
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
-  
+
+  // Migração: renomear colunas antigas de NFEs
+  const renameNfeColumns = {
+    data: 'date',
+    numero: 'number',
+    chaveNFE: 'nfeKey',
+    fornecedor: 'supplier',
+    valor: 'value',
+    itens: 'items',
+    impostoEntrada: 'entryTax',
+    valorFrete: 'freightValue'
+  };
+  for (const [oldName, newName] of Object.entries(renameNfeColumns)) {
+    try {
+      db.exec(`ALTER TABLE nfes RENAME COLUMN ${oldName} TO ${newName}`);
+    } catch (e) {
+      // coluna já renomeada ou não existe
+    }
+  }
+
   // Adicionar colunas se não existirem (para bancos existentes)
   try {
     db.exec(`ALTER TABLE nfes ADD COLUMN hiddenItems TEXT DEFAULT '[]'`);
@@ -81,37 +100,66 @@ const initDatabase = () => {
     CREATE TABLE IF NOT EXISTS produtos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nfeId TEXT NOT NULL,
-      codigo TEXT NOT NULL,
-      descricao TEXT NOT NULL,
+      code TEXT NOT NULL,
+      description TEXT NOT NULL,
       ncm TEXT,
       cfop TEXT,
-      unidade TEXT,
-      quantidade REAL NOT NULL,
-      valorUnitario REAL NOT NULL,
-      valorTotal REAL NOT NULL,
-      baseCalculoICMS REAL,
-      valorICMS REAL,
-      aliquotaICMS REAL,
-      baseCalculoIPI REAL,
-      valorIPI REAL,
-      aliquotaIPI REAL,
+      unit TEXT,
+      quantity REAL NOT NULL,
+      unitPrice REAL NOT NULL,
+      totalPrice REAL NOT NULL,
+      icmsBase REAL,
+      icmsValue REAL,
+      icmsRate REAL,
+      ipiBase REAL,
+      ipiValue REAL,
+      ipiRate REAL,
       ean TEXT,
       reference TEXT,
       brand TEXT,
       imageUrl TEXT,
-      descricao_complementar TEXT,
-      custoExtra REAL DEFAULT 0,
-      freteProporcional REAL DEFAULT 0,
+      additionalDescription TEXT,
+      extraCost REAL DEFAULT 0,
+      freightShare REAL DEFAULT 0,
       FOREIGN KEY (nfeId) REFERENCES nfes(id) ON DELETE CASCADE
     )
   `);
 
+  // Migração: renomear colunas antigas de produtos
+  const renameProdutoColumns = {
+    codigo: 'code',
+    descricao: 'description',
+    unidade: 'unit',
+    quantidade: 'quantity',
+    valorUnitario: 'unitPrice',
+    valorTotal: 'totalPrice',
+    baseCalculoICMS: 'icmsBase',
+    valorICMS: 'icmsValue',
+    aliquotaICMS: 'icmsRate',
+    baseCalculoIPI: 'ipiBase',
+    valorIPI: 'ipiValue',
+    aliquotaIPI: 'ipiRate',
+    descricao_complementar: 'additionalDescription',
+    custoExtra: 'extraCost',
+    freteProporcional: 'freightShare'
+  };
+  for (const [oldName, newName] of Object.entries(renameProdutoColumns)) {
+    try {
+      db.exec(`ALTER TABLE produtos RENAME COLUMN ${oldName} TO ${newName}`);
+    } catch (e) {
+      // coluna já renomeada ou não existe
+    }
+  }
+
   // Índices para melhor performance
   db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_nfes_fornecedor ON nfes(fornecedor);
-    CREATE INDEX IF NOT EXISTS idx_nfes_data ON nfes(data);
+    DROP INDEX IF EXISTS idx_nfes_fornecedor;
+    DROP INDEX IF EXISTS idx_nfes_data;
+    DROP INDEX IF EXISTS idx_produtos_codigo;
+    CREATE INDEX IF NOT EXISTS idx_nfes_supplier ON nfes(supplier);
+    CREATE INDEX IF NOT EXISTS idx_nfes_date ON nfes(date);
     CREATE INDEX IF NOT EXISTS idx_produtos_nfeId ON produtos(nfeId);
-    CREATE INDEX IF NOT EXISTS idx_produtos_codigo ON produtos(codigo);
+    CREATE INDEX IF NOT EXISTS idx_produtos_code ON produtos(code);
   `);
 };
 
@@ -135,8 +183,8 @@ app.get('/api/nfes', (req, res) => {
     const stmt = db.prepare(`
       SELECT 
         n.*,
-        COUNT(p.id) as produtosCount,
-        SUM(p.valorTotal) as valorTotal
+        COUNT(p.id) as productsCount,
+        SUM(p.totalPrice) as productsTotal
       FROM nfes n
       LEFT JOIN produtos p ON n.id = p.nfeId
       GROUP BY n.id
@@ -153,17 +201,17 @@ app.get('/api/nfes', (req, res) => {
       }
       return {
         id: row.id,
-        date: row.data,
-        number: row.numero,
-        nfeKey: row.chaveNFE,
-        supplier: row.fornecedor,
-        value: row.valor,
-        items: row.itens,
-        entryTax: row.impostoEntrada,
+        date: row.date,
+        number: row.number,
+        nfeKey: row.nfeKey,
+        supplier: row.supplier,
+        value: row.value,
+        items: row.items,
+        entryTax: row.entryTax,
         xapuriMarkup: row.xapuriMarkup,
         epitaMarkup: row.epitaMarkup,
         roundingType: row.roundingType,
-        freightValue: row.valorFrete,
+        freightValue: row.freightValue,
         hiddenItems,
         showHidden: Boolean(row.showHidden),
         createdAt: row.createdAt,
@@ -205,42 +253,42 @@ app.get('/api/nfes/:id', (req, res) => {
     
     const produtos = produtosRows.map((p) => ({
       id: p.id,
-      code: p.codigo,
-      description: p.descricao,
+      code: p.code,
+      description: p.description,
       ncm: p.ncm,
       cfop: p.cfop,
-      unit: p.unidade,
-      quantity: p.quantidade,
-      unitPrice: p.valorUnitario,
-      totalPrice: p.valorTotal,
-      icmsBase: p.baseCalculoICMS,
-      icmsValue: p.valorICMS,
-      icmsRate: p.aliquotaICMS,
-      ipiBase: p.baseCalculoIPI,
-      ipiValue: p.valorIPI,
-      ipiRate: p.aliquotaIPI,
+      unit: p.unit,
+      quantity: p.quantity,
+      unitPrice: p.unitPrice,
+      totalPrice: p.totalPrice,
+      icmsBase: p.icmsBase,
+      icmsValue: p.icmsValue,
+      icmsRate: p.icmsRate,
+      ipiBase: p.ipiBase,
+      ipiValue: p.ipiValue,
+      ipiRate: p.ipiRate,
       ean: p.ean,
       reference: p.reference,
       brand: p.brand,
       imageUrl: p.imageUrl,
-      additionalDescription: p.descricao_complementar,
-      extraCost: p.custoExtra,
-      freightShare: p.freteProporcional
+      additionalDescription: p.additionalDescription,
+      extraCost: p.extraCost,
+      freightShare: p.freightShare
     }));
 
     const nfe = {
       id: nfeRow.id,
-      date: nfeRow.data,
-      number: nfeRow.numero,
-      nfeKey: nfeRow.chaveNFE,
-      supplier: nfeRow.fornecedor,
-      value: nfeRow.valor,
-      items: nfeRow.itens,
-      entryTax: nfeRow.impostoEntrada,
+      date: nfeRow.date,
+      number: nfeRow.number,
+      nfeKey: nfeRow.nfeKey,
+      supplier: nfeRow.supplier,
+      value: nfeRow.value,
+      items: nfeRow.items,
+      entryTax: nfeRow.entryTax,
       xapuriMarkup: nfeRow.xapuriMarkup,
       epitaMarkup: nfeRow.epitaMarkup,
       roundingType: nfeRow.roundingType,
-      freightValue: nfeRow.valorFrete,
+      freightValue: nfeRow.freightValue,
       hiddenItems,
       showHidden: Boolean(nfeRow.showHidden),
       products: produtos,
@@ -262,18 +310,18 @@ app.post('/api/nfes', (req, res) => {
     
     const insertNFE = db.prepare(`
       INSERT OR REPLACE INTO nfes (
-        id, data, numero, chaveNFE, fornecedor, valor, itens,
-        impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete,
+        id, date, number, nfeKey, supplier, value, items,
+        entryTax, xapuriMarkup, epitaMarkup, roundingType, freightValue,
         hiddenItems, showHidden
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    
+
     const insertProduto = db.prepare(`
       INSERT INTO produtos (
-        nfeId, codigo, descricao, ncm, cfop, unidade, quantidade,
-        valorUnitario, valorTotal, baseCalculoICMS, valorICMS, aliquotaICMS,
-        baseCalculoIPI, valorIPI, aliquotaIPI, ean, reference, brand,
-        imageUrl, descricao_complementar, custoExtra, freteProporcional
+        nfeId, code, description, ncm, cfop, unit, quantity,
+        unitPrice, totalPrice, icmsBase, icmsValue, icmsRate,
+        ipiBase, ipiValue, ipiRate, ean, reference, brand,
+        imageUrl, additionalDescription, extraCost, freightShare
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
@@ -327,13 +375,13 @@ app.put('/api/nfes/:id', (req, res) => {
     const nextShowHidden = showHidden !== undefined ? (showHidden ? 1 : 0) : (current?.showHidden ?? 0);
 
     const updateStmt = db.prepare(`
-      UPDATE nfes SET 
-        fornecedor = COALESCE(?, fornecedor),
-        impostoEntrada = COALESCE(?, impostoEntrada),
-        xapuriMarkup = COALESCE(?, xapuriMarkup), 
+      UPDATE nfes SET
+        supplier = COALESCE(?, supplier),
+        entryTax = COALESCE(?, entryTax),
+        xapuriMarkup = COALESCE(?, xapuriMarkup),
         epitaMarkup = COALESCE(?, epitaMarkup),
         roundingType = COALESCE(?, roundingType),
-        valorFrete = COALESCE(?, valorFrete),
+        freightValue = COALESCE(?, freightValue),
         hiddenItems = COALESCE(?, hiddenItems),
         showHidden = COALESCE(?, showHidden),
         updatedAt = CURRENT_TIMESTAMP
