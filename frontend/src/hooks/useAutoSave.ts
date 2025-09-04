@@ -1,136 +1,144 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { useNFEStorage } from './useNFEStorage';
-import { NFE } from './useNFEStorage';
+import { useEffect, useCallback, useRef } from 'react';
+import { useNFEAPI } from './useNFEAPI';
+import { NFE } from '@/services/api';
+import { debounce } from 'lodash';
 
-interface UseAutoSaveOptions {
-  delay?: number; // Delay em ms para debounce
-  enabled?: boolean; // Se o auto-save está habilitado
-}
+const AUTOSAVE_DELAY = 1800; // 1.8s para reduzir bursts
 
-export const useAutoSave = (nfe: NFE | null, options: UseAutoSaveOptions = {}) => {
-  const { delay = 2000, enabled = true } = options;
-  const { saveNFE } = useNFEStorage();
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastSavedRef = useRef<string>('');
-  const isSavingRef = useRef(false);
+// Campos permitidos para auto-save
+const ALLOWED_FIELDS = [
+  'xapuriMarkup',
+  'epitaMarkup',
+  'impostoEntrada',
+  'roundingType',
+  'valorFrete',
+  'hiddenItems',
+  'modo_detalhado',
+  'produtos'
+];
 
-  // Função para salvar com debounce
-  const debouncedSave = useCallback(async (nfeToSave: NFE) => {
-    if (!enabled || isSavingRef.current) return;
-
-    // Limpa timeout anterior se existir
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    // Cria novo timeout para salvar
-    timeoutRef.current = setTimeout(async () => {
-      try {
-        // Verifica se já está salvo antes de iniciar
-        const snapshot = JSON.stringify(nfeToSave);
-        if (snapshot === lastSavedRef.current) {
-          return;
-        }
-
-        isSavingRef.current = true;
-        console.log('🔄 Auto-save iniciado para NFE:', nfeToSave.id);
-        await saveNFE(nfeToSave);
-        lastSavedRef.current = snapshot;
-        console.log('✅ Auto-save concluído para NFE:', nfeToSave.id);
-      } catch (error) {
-        console.error('❌ Erro no auto-save:', error);
-      } finally {
-        isSavingRef.current = false;
+// Helper para filtrar apenas campos permitidos
+const filterAllowedFields = (changes: Partial<NFE>): Partial<NFE> => {
+  return Object.entries(changes).reduce(
+    (acc, [key, value]) => {
+      if (ALLOWED_FIELDS.includes(key)) {
+        (acc as any)[key] = value;
       }
-    }, delay);
-  }, [saveNFE, delay, enabled]);
+      return acc;
+    },
+    {} as Partial<NFE>
+  );
+};
 
-  // Função para salvar imediatamente (usado antes de sair da página)
-  const saveImmediately = useCallback(async (nfeToSave: NFE) => {
-    if (!enabled || isSavingRef.current) return;
+export const useAutoSave = (nfe: NFE | null, options?: { enabled?: boolean }) => {
+  const { updateNFE } = useNFEAPI();
+  const isSavingRef = useRef(false);
+  const pendingRef = useRef<{ id: string; data: Partial<NFE> } | null>(null);
+  const backoffRef = useRef(0);
+  const enabled = options?.enabled ?? true;
 
-    // Limpa qualquer timeout pendente
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
+  const executeSave = useCallback(async (id: string, data: Partial<NFE>) => {
+    if (isSavingRef.current) {
+      // Guardar última alteração para executar após concluir a atual
+      pendingRef.current = { id, data };
+      return;
     }
 
+    isSavingRef.current = true;
     try {
-      isSavingRef.current = true;
-      console.log('💾 Salvamento imediato iniciado para NFE:', nfeToSave.id);
-      await saveNFE(nfeToSave);
-      lastSavedRef.current = JSON.stringify(nfeToSave);
-      console.log('✅ Salvamento imediato concluído para NFE:', nfeToSave.id);
-    } catch (error) {
-      console.error('❌ Erro no salvamento imediato:', error);
+      await updateNFE(id, data);
+      backoffRef.current = 0; // sucesso: reset backoff
+    } catch (error: any) {
+      // Se backend respondeu 429, aplicar backoff exponencial com jitter e re-enfileirar
+      const status = error?.status ?? error?.response?.status;
+      if (status === 429) {
+        const base = backoffRef.current || 500; // inicia em 500ms
+        const next = Math.min(base * 2, 8000); // teto 8s
+        backoffRef.current = next;
+        const jitter = Math.random() * 200; // +/-200ms
+        setTimeout(() => {
+          pendingRef.current = { id, data };
+          // Tentar novamente após backoff
+          void executeSave(id, data);
+        }, next + jitter);
+      } else {
+        console.error('❌ Erro no auto-save:', error);
+      }
     } finally {
       isSavingRef.current = false;
+      // Se houve mudanças pendentes enquanto salvava, executar a última (coalescing)
+      if (pendingRef.current) {
+        const nextJob = pendingRef.current;
+        pendingRef.current = null;
+        void executeSave(nextJob.id, nextJob.data);
+      }
     }
-  }, [saveNFE, enabled]);
+  }, [updateNFE]);
 
-  // Effect para detectar mudanças na NFE e acionar auto-save
+  // Função de auto-save com debounce
+  const debouncedSave = useCallback(
+    debounce((id: string, data: Partial<NFE>) => {
+      void executeSave(id, data);
+    }, AUTOSAVE_DELAY),
+    [executeSave]
+  );
+
+  // Função para salvar alterações (com debounce)
+  const saveChanges = useCallback(
+    (changes: Partial<NFE>) => {
+      if (!nfe?.id) {
+        console.warn('⚠️ Tentativa de auto-save sem ID da NFE');
+        return;
+      }
+      if (!enabled) return;
+
+      const filteredChanges = filterAllowedFields(changes);
+      if (Object.keys(filteredChanges).length > 0) {
+        debouncedSave(nfe.id, filteredChanges);
+      }
+    },
+    [nfe?.id, debouncedSave, enabled]
+  );
+
+  // Função para salvar imediatamente (sem debounce)
+  const saveImmediately = useCallback(
+    (changes: Partial<NFE>) => {
+      if (!nfe?.id) {
+        console.warn('⚠️ Tentativa de saveImmediately sem ID da NFE');
+        return;
+      }
+      if (!enabled) return;
+
+      const filteredChanges = filterAllowedFields(changes);
+      if (Object.keys(filteredChanges).length > 0) {
+        void executeSave(nfe.id, filteredChanges);
+      }
+    },
+    [nfe?.id, executeSave, enabled]
+  );
+
+  // Salvar antes de sair da página ou mudar a visibilidade
   useEffect(() => {
-    if (!nfe || !enabled) return;
-
-    const currentNFEString = JSON.stringify(nfe);
-    
-    // Só salva se houve mudanças
-    if (currentNFEString !== lastSavedRef.current) {
-      debouncedSave(nfe);
-    }
-  }, [nfe, debouncedSave, enabled]);
-
-  // Effect para salvar antes de sair da página
-  useEffect(() => {
-    if (!enabled || !nfe) return;
-
-    const handleBeforeUnload = async () => {
-      const currentNFEString = JSON.stringify(nfe);
-      
-      // Só salva se houve mudanças não salvas
-      if (currentNFEString !== lastSavedRef.current) {
-        await saveImmediately(nfe);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        debouncedSave.flush();
       }
     };
 
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'hidden' && nfe) {
-        const currentNFEString = JSON.stringify(nfe);
-        
-        // Só salva se houve mudanças não salvas
-        if (currentNFEString !== lastSavedRef.current) {
-          await saveImmediately(nfe);
-        }
-      }
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      debouncedSave.flush();
+      delete event.returnValue;
     };
 
-    // Adiciona listeners
-    window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
-      // Remove listeners
-      window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      
-      // Limpa timeout se existir
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      debouncedSave.flush();
     };
-  }, [nfe, enabled, saveImmediately]);
+  }, [debouncedSave]);
 
-  // Cleanup no unmount
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  return {
-    saveImmediately: (nfeToSave: NFE) => saveImmediately(nfeToSave),
-    isSaving: isSavingRef.current
-  };
+  return { saveChanges, saveImmediately };
 };

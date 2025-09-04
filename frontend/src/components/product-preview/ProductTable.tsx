@@ -32,6 +32,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useNFEStorage } from '@/hooks/useNFEStorage';
+import { logger } from '../../utils/logger';
 
 interface ProductTableProps {
   products: Product[];
@@ -48,6 +49,7 @@ interface ProductTableProps {
   onXapuriMarkupChange: (value: number) => void;
   onEpitaMarkupChange: (value: number) => void;
   onRoundingTypeChange: (value: RoundingType) => void;
+  nfeNetValue?: number; // Valor total da NFE (vNF)
 }
 
 // Adiciona nfeId ao tipo Product localmente para evitar erro de tipagem
@@ -288,6 +290,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   onXapuriMarkupChange,
   onEpitaMarkupChange,
   onRoundingTypeChange,
+  nfeNetValue,
 }) => {
   const { updateProdutoCustoExtra } = useNFEStorage();
   const [showHidden, setShowHidden] = useState(() => {
@@ -345,18 +348,34 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 
   const handleCopyToClipboard = async (value: any, column: Column, field: string) => {
     try {
+      if (value === null || value === undefined) {
+        toast.error('Valor inválido para cópia');
+        return;
+      }
       const formattedValue = formatValueForCopy(value, column);
+      if (!formattedValue) {
+        toast.error('Não foi possível formatar o valor');
+        return;
+      }
       await navigator.clipboard.writeText(formattedValue);
       setCopiedField(field);
       toast.success('Copiado para a área de transferência');
       setTimeout(() => setCopiedField(''), 2000);
     } catch (err) {
+      logger.error('Erro ao copiar:', err);
       toast.error('Erro ao copiar');
     }
   };
 
   const formatValueForCopy = (value: any, column: Column): string => {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    
     if (typeof value === 'number') {
+      if (!Number.isFinite(value)) {
+        return '0';
+      }
       if (column.id.toLowerCase().includes('price') || 
           column.id.toLowerCase().includes('discount') || 
           column.id === 'unitPrice' || 
@@ -366,8 +385,14 @@ export const ProductTable: React.FC<ProductTableProps> = ({
       if (column.id === 'quantity') {
         return formatNumberForCopy(value, 4);
       }
+      return formatNumberForCopy(value, 2);
     }
-    return value?.toString() || '';
+    
+    try {
+      return String(value).trim();
+    } catch {
+      return '';
+    }
   };
 
   const handleDragStart = (columnId: string) => {
@@ -468,22 +493,26 @@ export const ProductTable: React.FC<ProductTableProps> = ({
       })
     : filteredProducts;
 
-  // Calcular a média de desconto em percentual
+  // Calcular a média de desconto em percentual baseado no valor total bruto vs líquido da NFE
   const calculateAverageDiscountPercent = (prods: Product[]) => {
     if (!prods || prods.length === 0) return 0;
 
+    // Calcular valor total bruto (soma dos produtos)
     const totalProductsValue = prods.reduce((acc, p) => {
       const price = (p.totalPrice ?? p.valorTotal ?? 0);
       return acc + (isNaN(price) ? 0 : price);
     }, 0);
 
-    const totalDiscount = prods.reduce((acc, p) => {
-      const d = p.discount ?? 0;
-      return acc + (isNaN(d) ? 0 : d);
-    }, 0);
-
     if (totalProductsValue <= 0) return 0;
-    return (totalDiscount / totalProductsValue) * 100;
+
+    // Calcular valor líquido (usar vNF da NFE se disponível)
+    const netValue = calculateTotalNetValue(prods);
+    
+    // Calcular desconto total: valor bruto - valor líquido
+    const totalDiscount = totalProductsValue - netValue;
+    
+    // Calcular percentual de desconto
+    return totalDiscount > 0 ? (totalDiscount / totalProductsValue) * 100 : 0;
   };
 
   // Calcular a quantidade total de unidades
@@ -494,8 +523,14 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     }, 0);
   };
 
-  // Função para calcular o valor líquido total (Valor Total - Desconto Total)
+  // Função para calcular o valor líquido total (usar vNF da NFE se disponível)
   const calculateTotalNetValue = (prods: Product[]) => {
+    // Se temos o valor total da NFE (vNF), usar ele diretamente
+    if (nfeNetValue !== undefined && nfeNetValue > 0) {
+      return nfeNetValue;
+    }
+    
+    // Fallback: calcular como antes (Valor Total - Desconto Total)
     const totalValue = prods.reduce((acc, p) => {
       const price = p.totalPrice || p.valorTotal || 0;
       return acc + (isNaN(price) ? 0 : price);
@@ -507,7 +542,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     return totalValue - totalDiscount;
   };
 
-  const averageDiscountPercent = calculateAverageDiscountPercent(sortedFilteredProducts);
+  const averageDiscountPercent = calculateAverageDiscountPercent(products);
   const totalQuantity = calculateTotalQuantity(products);
   const filteredTotalQuantity = calculateTotalQuantity(filteredProducts);
 
@@ -547,7 +582,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
         throw new Error('Falha ao copiar valor');
       }
     } catch (error) {
-      console.error('Erro ao copiar:', error);
+      logger.error('Erro ao copiar:', error);
       toast.error('Erro ao copiar valor para a área de transferência', {
         icon: <Copy className="h-4 w-4 text-red-500" />,
         className: 'bg-red-50 text-red-800 border border-red-200'
@@ -594,9 +629,9 @@ export const ProductTable: React.FC<ProductTableProps> = ({
             </Card>
             <Card className="bg-white/50">
               <CardContent className="p-3">
-                <div className="text-xs font-medium text-muted-foreground">Valor Total</div>
+                <div className="text-xs font-medium text-muted-foreground">VALOR TOTAL DOS PRODUTOS</div>
                 <div className="text-sm font-medium tabular-nums">
-                  {sortedFilteredProducts.reduce((acc, p) => {
+                  {products.reduce((acc, p) => {
                     const price = p.totalPrice || p.valorTotal || 0;
                     return acc + (isNaN(price) ? 0 : price);
                   }, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
@@ -605,15 +640,15 @@ export const ProductTable: React.FC<ProductTableProps> = ({
             </Card>
             <Card className="bg-white/50">
               <CardContent className="p-3">
-                <div className="text-xs font-medium text-muted-foreground">Valor Líquido</div>
+                <div className="text-xs font-medium text-muted-foreground">VALOR TOTAL DA NOTA</div>
                 <div className="text-sm font-medium tabular-nums">
-                  {calculateTotalNetValue(sortedFilteredProducts).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  {calculateTotalNetValue(products).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </div>
               </CardContent>
             </Card>
             <Card className="bg-white/50">
               <CardContent className="p-3">
-                <div className="text-xs font-medium text-muted-foreground">Desconto Médio</div>
+                <div className="text-xs font-medium text-muted-foreground">Desconto = {averageDiscountPercent.toFixed(1)}%</div>
                 <div className="text-sm font-medium tabular-nums">{averageDiscountPercent.toFixed(1)}%</div>
               </CardContent>
             </Card>

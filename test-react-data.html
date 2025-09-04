@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test React Data Processing</title>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>Test React Data Processing</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function testReactDataProcessing() {
+            try {
+                console.log('🔍 Testando processamento de dados como no React...');
+                
+                // Simula exatamente o que o componente NFEView faz
+                const response = await axios.get('http://localhost:3011/api/nfes/23250101933349000572550040003073661354363657');
+                const nfeDetail = response.data;
+                
+                console.log('📊 nfeDetail recebido:', nfeDetail);
+                console.log('📊 nfeDetail.produtos:', nfeDetail.produtos);
+                
+                // Simula a lógica do componente: const nfe = nfeDetail || ...
+                const nfe = nfeDetail;
+                console.log('📊 nfe após processamento:', nfe);
+                
+                // Simula: const produtos = Array.isArray(nfe.produtos) ? nfe.produtos : [];
+                const produtos = Array.isArray(nfe.produtos) ? nfe.produtos : [];
+                console.log('📊 produtos após Array.isArray:', produtos);
+                console.log('📊 produtos.length:', produtos.length);
+                
+                // Testa a renderização de cada produto
+                let html = '<h2>Produtos encontrados:</h2>';
+                produtos.forEach((produto, index) => {
+                    console.log(`📦 Produto ${index + 1}:`, {
+                        descricao: produto.descricao,
+                        codigo: produto.codigo,
+                        unidade: produto.unidade,
+                        discount: produto.discount
+                    });
+                    
+                    html += `
+                        <div style="border: 1px solid #ccc; margin: 10px; padding: 10px;">
+                            <h3>${produto.descricao || 'Sem descrição'}</h3>
+                            <p>Código: ${produto.codigo || 'Sem código'} • Unidade: ${produto.unidade || 'Sem unidade'} • NCM: ${produto.ncm || 'Sem NCM'}</p>
+                            ${produto.discount && produto.discount > 0 ? `<p style="color: green;">Desconto: ${produto.discount.toFixed(2)}</p>` : ''}
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('results').innerHTML = html;
+                
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                document.getElementById('results').innerHTML = `<p style="color: red;">Erro: ${error.message}</p>`;
+            }
+        }
+        
+        // Executa o teste quando a página carrega
+        window.onload = testReactDataProcessing;
+    </script>
+</body>
+</html>

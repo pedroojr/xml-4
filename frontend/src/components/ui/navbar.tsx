@@ -10,8 +10,6 @@ const Navbar = () => {
   const menuItems = [
     { path: '/', label: 'Início' },
     { path: '/dashboard', label: 'Dashboard' },
-    { path: '/analytics', label: 'Analytics' },
-    { path: '/export', label: 'Export' },
     { path: '/notas-em-aberto', label: 'Notas em Aberto' },
   ];
 

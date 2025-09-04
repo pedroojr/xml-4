@@ -11,27 +11,34 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3018,
+    port: 3020,
     host: 'localhost',
     strictPort: true,
     cors: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:3011',
+        target: 'http://127.0.0.1:3011',
         changeOrigin: true,
-        secure: false
+        secure: false,
       },
       '/status': {
-        target: 'http://localhost:3011',
+        target: 'http://127.0.0.1:3011',
         changeOrigin: true,
-        secure: false
-      }
-    }
+        secure: false,
+      },
+      // Proxy para Socket.IO em desenvolvimento
+      '/socket.io': {
+        target: 'http://127.0.0.1:3011',
+        changeOrigin: true,
+        ws: true,
+        secure: false,
+      },
+    },
   },
   preview: {
     port: 4173,
     host: 'localhost',
-    strictPort: true
+    strictPort: true,
   },
   build: {
     outDir: 'dist',
@@ -44,21 +51,21 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          utils: ['axios', 'date-fns']
+          utils: ['axios', 'date-fns'],
         },
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
-        assetFileNames: 'assets/[ext]/[name]-[hash].[ext]'
-      }
+        assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
+      },
     },
     terserOptions: {
       compress: {
         drop_console: process.env.NODE_ENV === 'production',
-        drop_debugger: true
-      }
-    }
+        drop_debugger: true,
+      },
+    },
   },
   define: {
-    __DEV__: process.env.NODE_ENV === 'development'
-  }
+    __DEV__: process.env.NODE_ENV === 'development',
+  },
 })

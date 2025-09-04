@@ -29,13 +29,23 @@ class WebSocketService {
   }
 
   private connect() {
-    const serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:3011';
-    
-    this.socket = io(serverUrl, {
-      transports: ['websocket', 'polling'],
-      timeout: 20000,
-      forceNew: true
-    });
+    const isDev = import.meta.env.DEV;
+
+    if (isDev) {
+      // Conecta ao mesmo origin do Vite; o proxy do Vite redireciona para o backend
+      this.socket = io({
+        transports: ['websocket', 'polling'],
+        timeout: 20000,
+        forceNew: true,
+      });
+    } else {
+      const serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:3011';
+      this.socket = io(serverUrl, {
+        transports: ['websocket', 'polling'],
+        timeout: 20000,
+        forceNew: true,
+      });
+    }
 
     this.setupEventListeners();
   }

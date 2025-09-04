@@ -1,8 +1,9 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
+import { logger } from '../utils/logger';
 
 // Configuração da API
 // Em desenvolvimento, usa proxy do Vite. Em produção, usa a URL da API
-const API_BASE_URL = import.meta.env.NODE_ENV === 'development' 
+const API_BASE_URL = import.meta.env.DEV 
   ? '' // Usa proxy do Vite em desenvolvimento
   : (import.meta.env.VITE_API_URL || 'https://xml.lojasrealce.shop/api');
 
@@ -30,7 +31,7 @@ api.interceptors.request.use(
     return config;
   },
   (error: AxiosError) => {
-    console.error('❌ Erro na requisição:', error);
+    logger.error('❌ Erro na requisição:', error);
     return Promise.reject(error);
   }
 );
@@ -48,19 +49,17 @@ api.interceptors.response.use(
     
     // Para erros 409 (duplicatas), preservar os dados originais
     if (errorStatus === 409 && error.response?.data?.isDuplicate) {
-      console.error('❌ Erro 409 - Duplicata detectada:', {
+      logger.error('❌ Erro 409 - Duplicata detectada:', {
         status: errorStatus,
         data: error.response.data,
         url: error.config?.url
       });
-      
-      // Retornar o erro original com todos os dados da duplicata
       return Promise.reject(error);
     }
     
     let errorMessage = error.response?.data?.message || error.message || 'Erro desconhecido';
     
-    // Mensagens mais específicas baseadas no status
+    // Mensagens específicas
     if (errorStatus === 404) {
       errorMessage = 'Recurso não encontrado';
     } else if (errorStatus === 500) {
@@ -72,23 +71,32 @@ api.interceptors.response.use(
     } else if (errorStatus === 403) {
       errorMessage = 'Acesso negado';
     } else if (errorStatus === 409) {
-      // Para outros conflitos (não duplicatas)
       errorMessage = error.response?.data?.message || 'Conflito detectado';
+    } else if (errorStatus === 429) {
+      const retryAfter = (error.response?.headers?.['retry-after'] as any) || null;
+      errorMessage = 'Muitas requisições. Aguardando para tentar novamente.';
+      // Anexar informação de Retry-After para camadas superiores aplicarem backoff
+      const apiError429 = {
+        message: errorMessage,
+        status: 429,
+        details: error.response?.data?.details,
+        retryAfter: retryAfter ? Number(retryAfter) * 1000 : undefined,
+      } as any;
+      return Promise.reject(apiError429);
     } else if (error.code === 'ECONNABORTED') {
       errorMessage = 'Tempo limite da requisição excedido';
     } else if (error.code === 'ERR_NETWORK') {
       errorMessage = 'Erro de conexão. Verifique sua internet ou se o servidor está funcionando.';
     }
     
-    console.error('❌ Erro na resposta:', {
+    logger.error('❌ Erro na resposta:', {
       status: errorStatus,
       message: errorMessage,
       url: error.config?.url,
       code: error.code
     });
     
-    // Criar erro padronizado
-    const apiError: ApiError = {
+    const apiError: any = {
       message: errorMessage,
       status: errorStatus,
       details: error.response?.data?.details
@@ -110,7 +118,7 @@ export interface NFE {
   impostoEntrada?: number;
   xapuriMarkup?: number;
   epitaMarkup?: number;
-  roundingType?: 'none' | 'up' | 'down' | 'nearest';
+  roundingType?: '90' | '50' | 'none';
   valorFrete?: number;
   isFavorite?: boolean;
   createdAt?: string;
@@ -213,14 +221,28 @@ const validateNFE = (nfe: Partial<NFE>): string[] => {
     valor: nfe.valor,
     valorType: typeof nfe.valor,
     itens: nfe.itens,
-    itensType: typeof nfe.itens
+    itensType: typeof nfe.itens,
+    produtos: nfe.produtos ? `Array com ${nfe.produtos.length} itens` : 'undefined'
   });
   
+  // Validações obrigatórias
   if (!nfe.id?.trim()) errors.push('ID é obrigatório');
   if (!nfe.fornecedor?.trim()) errors.push('Fornecedor é obrigatório');
   if (!nfe.numero?.trim()) errors.push('Número da NFE é obrigatório');
   if (typeof nfe.valor !== 'number' || nfe.valor < 0) errors.push('Valor deve ser um número positivo');
   if (typeof nfe.itens !== 'number' || nfe.itens < 0) errors.push('Quantidade de itens deve ser um número positivo');
+  
+  // Validações opcionais
+  if (nfe.data && typeof nfe.data !== 'string') errors.push('Data deve ser uma string válida');
+  if (nfe.impostoEntrada !== undefined && (typeof nfe.impostoEntrada !== 'number' || nfe.impostoEntrada < 0)) {
+    errors.push('Imposto de entrada deve ser um número não negativo');
+  }
+  if (nfe.produtos && !Array.isArray(nfe.produtos)) {
+    errors.push('Produtos deve ser um array válido');
+  }
+  if (nfe.produtos && Array.isArray(nfe.produtos) && nfe.produtos.length === 0) {
+    errors.push('NFE deve conter pelo menos um produto');
+  }
   
   console.log('🔍 Erros de validação:', errors);
   return errors;
@@ -234,7 +256,7 @@ export const nfeAPI = {
       const response = await api.get<{data: NFE[], pagination: any}>('/api/nfes');
       return Array.isArray(response.data.data) ? response.data.data : [];
     } catch (error) {
-      console.error('Erro ao buscar NFEs:', error);
+      logger.error('Erro ao buscar NFEs:', error);
       throw error;
     }
   },
@@ -249,7 +271,7 @@ export const nfeAPI = {
       const response = await api.get<NFE>(`/api/nfes/${encodeURIComponent(id)}`);
       return response.data;
     } catch (error) {
-      console.error(`Erro ao buscar NFE ${id}:`, error);
+      logger.error(`Erro ao buscar NFE ${id}:`, error);
       throw error;
     }
   },
@@ -265,7 +287,7 @@ export const nfeAPI = {
       const response = await api.post<ApiResponse<{ id: string }>>('/api/nfes', nfe);
       return response.data;
     } catch (error) {
-      console.error('Erro ao salvar NFE:', error);
+      logger.error('Erro ao salvar NFE:', error);
       throw error;
     }
   },
@@ -280,7 +302,7 @@ export const nfeAPI = {
       const response = await api.put<ApiResponse<void>>(`/api/nfes/${encodeURIComponent(id)}`, nfe);
       return response.data;
     } catch (error) {
-      console.error(`Erro ao atualizar NFE ${id}:`, error);
+      logger.error(`Erro ao atualizar NFE ${id}:`, error);
       throw error;
     }
   },
@@ -295,7 +317,7 @@ export const nfeAPI = {
       const response = await api.delete<ApiResponse<void>>(`/api/nfes/${encodeURIComponent(id)}`);
       return response.data;
     } catch (error) {
-      console.error(`Erro ao excluir NFE ${id}:`, error);
+      logger.error(`Erro ao excluir NFE ${id}:`, error);
       throw error;
     }
   },
@@ -319,7 +341,6 @@ export const uploadAPI = {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('xml', file); // compat: alguns servidores esperam 'xml'
       
       console.log('📤 Enviando arquivo XML:', {
         name: file.name,
@@ -376,7 +397,6 @@ export const uploadAPI = {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('xml', file); // compat: alguns servidores esperam 'xml'
       
       console.log('📤🔍 Enviando e validando arquivo XML:', {
         name: file.name,
@@ -405,7 +425,6 @@ export const uploadAPI = {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('xml', file); // compat: alguns servidores esperam 'xml'
       
       if (confirmReplace) {
         formData.append('confirmReplace', 'true');

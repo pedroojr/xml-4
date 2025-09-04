@@ -1,63 +1,71 @@
 {
   "requests": {
-    "total": 2194,
+    "total": 27559,
     "byEndpoint": {
       "/api/analytics/reset": 1,
-      "/api/analytics/summary": 12,
-      "/api/analytics/metrics": 12,
-      "undefined": 6,
-      "/api/export/files": 6,
-      "/api/status": 1306,
-      "/api/nfes": 761,
-      "/api/nfes/:id": 49,
-      "/api/upload-xml": 24,
+      "/api/analytics/summary": 1,
+      "/api/analytics/metrics": 1,
+      "/api/nfes": 13960,
+      "/api/status": 4825,
+      "undefined": 4,
+      "/api/export/files": 4,
+      "/api/upload-xml": 58,
+      "/api/nfes/:id": 8688,
       "/": 1,
-      "/status": 14,
-      "/api/nfes/42250282698085000198550060007410191252586975": 1,
-      "/api/nfes/42250182698085000198550060007363361046979838": 1
+      "/api/nfes/:id/compare-original": 4,
+      "/api/nfes/:id/original-xml": 1,
+      "/api/validate-xml": 1,
+      "/api/nfes/35200714200166000187550010000000046271227678": 1,
+      "/api/cache/nfe/23250101933349000572550040003073661354363657": 1,
+      "/status": 3,
+      "/api/upload/xml": 1,
+      "/api/upload": 3,
+      "/api/nfes/upload": 1
     },
     "byMethod": {
-      "POST": 62,
-      "GET": 2076,
-      "undefined": 6,
-      "OPTIONS": 38,
-      "DELETE": 12
+      "POST": 613,
+      "GET": 18956,
+      "undefined": 4,
+      "DELETE": 42,
+      "PUT": 7944
     },
     "byStatusCode": {
-      "200": 1553,
-      "201": 5,
-      "204": 38,
-      "304": 580,
-      "404": 1,
-      "409": 11,
-      "undefined": 6
+      "200": 5608,
+      "201": 3,
+      "204": 7457,
+      "304": 13484,
+      "400": 5,
+      "404": 21,
+      "409": 6,
+      "500": 971,
+      "undefined": 4
     }
   },
   "uploads": {
-    "total": 13,
-    "successful": 13,
+    "total": 51,
+    "successful": 51,
     "failed": 0,
-    "totalSize": 753196
+    "totalSize": 1941824
   },
   "nfes": {
-    "total": 13,
-    "processed": 13,
+    "total": 51,
+    "processed": 51,
     "errors": 0,
     "byMonth": {
-      "2025-09": 13
+      "2025-09": 51
     }
   },
   "performance": {
-    "averageResponseTime": 9.084990481231943,
+    "averageResponseTime": 10.507114136183235,
     "slowestEndpoints": [],
-    "cacheHitRate": 90.33112582781457,
-    "totalCacheHits": 682,
-    "totalCacheMisses": 73
+    "cacheHitRate": 0,
+    "totalCacheHits": 0,
+    "totalCacheMisses": 14116
   },
   "system": {
-    "uptime": 11555,
-    "startTime": "2025-09-01T19:43:04.656Z",
-    "lastRestart": "2025-09-01T19:43:04.656Z"
+    "uptime": 133752,
+    "startTime": "2025-09-02T20:38:38.151Z",
+    "lastRestart": "2025-09-02T20:38:38.151Z"
   },
   "errors": {
     "total": 0,

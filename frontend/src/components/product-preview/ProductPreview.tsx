@@ -27,6 +27,9 @@ interface ProductPreviewProps {
   onXapuriMarkupChange: (value: number) => void;
   onEpitaMarkupChange: (value: number) => void;
   onRoundingTypeChange: (value: RoundingType) => void;
+  nfeNetValue?: number; // Valor total da NFE (vNF)
+  valorFrete: number;
+  onValorFreteChange: (value: number) => void;
 }
 
 const ProductPreview: React.FC<ProductPreviewProps> = ({ 
@@ -43,15 +46,19 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   roundingType,
   onXapuriMarkupChange,
   onEpitaMarkupChange,
-  onRoundingTypeChange
+  onRoundingTypeChange,
+  nfeNetValue,
+  valorFrete,
+  onValorFreteChange
 }) => {
   const { impostoEntrada, setImpostoEntrada } = useImpostoEntrada(0);
 
-  const [valorFrete, setValorFrete] = useState<number>(0);
+  // Remove this line since we now receive valorFrete as a prop
+  // const [valorFrete, setValorFrete] = useState<number>(0);
 
   // Calculate suggested markups
-  const totalBruto = products.reduce((sum, p) => sum + p.totalPrice, 0);
-  const totalLiquido = products.reduce((sum, p) => sum + p.netPrice, 0);
+  const totalBruto = products.reduce((sum, p) => sum + (p.totalPrice ?? 0), 0);
+  const totalLiquido = products.reduce((sum, p) => sum + (p.netPrice ?? 0), 0);
   
   // Markup sugerido para Xapuri (ajustando para custo líquido)
   const precoVendaXapuri = totalBruto * 2.2;
@@ -220,13 +227,13 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
               visibleColumns={visibleColumns}
               onToggleColumn={toggleColumn}
               onNewFileRequest={handleNewFileRequest}
-              onDeleteRequest={onDeleteRequest}
+              onDeleteRequest={onDeleteRequest || (() => {})}
               xapuriSuggestedMarkup={xapuriSuggestedMarkup}
               epitaSuggestedMarkup={epitaSuggestedMarkup}
               totalItems={products.length}
               filteredItems={products.length - effectiveHiddenItems.size}
               valorFrete={valorFrete}
-              onValorFreteChange={setValorFrete}
+              onValorFreteChange={onValorFreteChange}
             />
 
             <ProductTable
@@ -244,6 +251,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
               onEpitaMarkupChange={onEpitaMarkupChange}
               onImpostoEntradaChange={setImpostoEntrada}
               onRoundingTypeChange={onRoundingTypeChange}
+              nfeNetValue={nfeNetValue ?? 0}
             />
           </TabsContent>
 

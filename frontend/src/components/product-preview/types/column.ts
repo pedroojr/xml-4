@@ -52,7 +52,8 @@ export const getDefaultColumns = (): Column[] => [
     initiallyVisible: true,
     width: 'w-fit',
     minWidth: 120,
-    order: 4
+    order: 4,
+    getValue: (product: Product) => product.reference || product.codigo || product.code || ''
   },
   { 
     id: 'ean', 
@@ -60,7 +61,8 @@ export const getDefaultColumns = (): Column[] => [
     initiallyVisible: true,
     width: 'w-fit',
     minWidth: 120,
-    order: 5
+    order: 5,
+    getValue: (product: Product) => product.ean || ''
   },
   { 
     id: 'color', 
@@ -92,7 +94,8 @@ export const getDefaultColumns = (): Column[] => [
     initiallyVisible: true,
     width: 'w-fit',
     minWidth: 56,
-    order: 9
+    order: 9,
+    getValue: (product: Product) => product.uom || product.un || product.unidade || ''
   },
   { 
     id: 'quantity', 

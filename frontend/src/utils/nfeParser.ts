@@ -35,6 +35,11 @@ const formatarDescricaoComplementar = (texto: string): string => {
 };
 
 export const parseNFeXML = (xmlText: string): Product[] => {
+  const result = parseNFeXMLWithTotals(xmlText);
+  return result.products;
+};
+
+export const parseNFeXMLWithTotals = (xmlText: string): { products: Product[], totalInvoiceValue: number } => {
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(xmlText, "text/xml");
   
@@ -53,13 +58,32 @@ export const parseNFeXML = (xmlText: string): Product[] => {
 
   const parseNumber = (text: string) => {
     if (!text) return 0;
-    const cleanText = text.replace(/[^\d,.-]/g, '').replace(',', '.');
-    const number = parseFloat(cleanText);
+    // Manter apenas dígitos, vírgula, ponto e sinal
+    const raw = text.replace(/\s+/g, '').replace(/[^\d.,-]/g, '');
+
+    const hasComma = raw.includes(',');
+    const hasDot = raw.includes('.');
+
+    let normalized = raw;
+    if (hasComma && hasDot) {
+      // Formato brasileiro típico: 11.111,31 -> remover milhares e trocar vírgula por ponto
+      normalized = raw.replace(/\./g, '').replace(',', '.');
+    } else if (hasComma && !hasDot) {
+      // Apenas vírgula como decimal: 123,45 -> 123.45
+      normalized = raw.replace(',', '.');
+    } else {
+      // Apenas ponto (já no formato internacional) ou somente dígitos
+      normalized = raw;
+    }
+
+    const number = parseFloat(normalized);
     return isNaN(number) ? 0 : number;
   };
 
   let totalProductsValue = 0;
   let totalInvoiceValue = 0;
+  // Novo: capturar desconto total do XML quando disponível
+  let totalDiscountFromXML = 0;
 
   const totalNode = xmlDoc.getElementsByTagNameNS(ns, "total")[0];
   if (totalNode) {
@@ -67,17 +91,21 @@ export const parseNFeXML = (xmlText: string): Product[] => {
     if (icmsTotalNode) {
       totalProductsValue = parseNumber(getElementText(icmsTotalNode, "vProd"));
       totalInvoiceValue = parseNumber(getElementText(icmsTotalNode, "vNF"));
+      // vDesc = desconto total da nota (quando houver)
+      totalDiscountFromXML = parseNumber(getElementText(icmsTotalNode, "vDesc"));
     }
   }
 
   // vProd = Valor total dos produtos; vNF = Valor total da nota
-  // Regra: desconto total = vProd - vNF (se positivo)
-  const totalDiscount = totalProductsValue - totalInvoiceValue;
-  const discountPercentage = totalDiscount > 0 ? (totalDiscount / totalProductsValue) * 100 : 0;
+  // Preferir o desconto informado (vDesc). Se ausente, inferir por (vProd - vNF) se positivo
+  const inferredDiscount = Math.max(totalProductsValue - totalInvoiceValue, 0);
+  const totalDiscount = totalDiscountFromXML > 0 ? totalDiscountFromXML : inferredDiscount;
+  const discountPercentage = totalProductsValue > 0 ? (totalDiscount / totalProductsValue) * 100 : 0;
   
   console.log('Valor Total Produtos:', totalProductsValue);
   console.log('Valor Total Nota:', totalInvoiceValue);
-  console.log('Desconto Total:', totalDiscount);
+  console.log('Desconto Total (XML):', totalDiscountFromXML);
+  console.log('Desconto Total (usado):', totalDiscount);
   console.log('Porcentagem de Desconto:', discountPercentage.toFixed(2) + '%');
   
   const getICMSInfo = (element?: Element) => {
@@ -174,5 +202,5 @@ export const parseNFeXML = (xmlText: string): Product[] => {
     products.push(product);
   }
   
-  return products;
+  return { products, totalInvoiceValue };
 };

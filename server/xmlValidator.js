@@ -772,6 +772,7 @@ class XMLValidator {
       numeroNFe: null,
       emitente: null,
       valorTotal: null,
+      valorLiquido: null,
       dataEmissao: null,
       quantidadeProdutos: 0
     };
@@ -807,13 +808,22 @@ class XMLValidator {
         console.log('⚠️ Emitente não encontrado');
       }
 
-      // Valor total - usar local-name() para compatibilidade
-      const valor = xmlDoc.get('//*[local-name()="ICMSTot"]/*[local-name()="vNF"]') || xmlDoc.get('//ICMSTot/vNF');
-      if (valor) {
-        info.valorTotal = parseFloat(valor.text());
-        console.log('✅ Valor total extraído:', info.valorTotal);
+      // Valor total dos produtos (vProd) - usar local-name() para compatibilidade
+      const valorProd = xmlDoc.get('//*[local-name()="ICMSTot"]/*[local-name()="vProd"]') || xmlDoc.get('//ICMSTot/vProd');
+      if (valorProd) {
+        info.valorTotal = parseFloat(valorProd.text());
+        console.log('✅ Valor total dos produtos (vProd) extraído:', info.valorTotal);
       } else {
-        console.log('⚠️ Valor total não encontrado');
+        console.log('⚠️ Valor total dos produtos (vProd) não encontrado');
+      }
+
+      // Valor líquido da NFe (vNF) - usar local-name() para compatibilidade
+      const valorNF = xmlDoc.get('//*[local-name()="ICMSTot"]/*[local-name()="vNF"]') || xmlDoc.get('//ICMSTot/vNF');
+      if (valorNF) {
+        info.valorLiquido = parseFloat(valorNF.text());
+        console.log('✅ Valor líquido da NFe (vNF) extraído:', info.valorLiquido);
+      } else {
+        console.log('⚠️ Valor líquido da NFe (vNF) não encontrado');
       }
 
       // Data de emissão - usar local-name() para compatibilidade
@@ -874,12 +884,17 @@ class XMLValidator {
             baseCalculoIPI: 0,
             valorIPI: 0,
             aliquotaIPI: 0,
-            ean: ''
+            ean: '',
+            referencia: ''
           };
 
           // Código do produto
           const codigo = det.get('.//*[local-name()="cProd"]') || det.get('.//cProd');
-          if (codigo) produto.codigo = codigo.text();
+          if (codigo) {
+            produto.codigo = codigo.text();
+            // Por padrão, a referência é igual ao código do produto
+            produto.referencia = codigo.text();
+          }
 
           // Descrição do produto
           const descricao = det.get('.//*[local-name()="xProd"]') || det.get('.//xProd');

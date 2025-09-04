@@ -72,25 +72,36 @@ export const useNFEAPI = () => {
       setLoading(false);
       console.log('🏁 useNFEAPI.saveNFE finalizado para:', nfe.id);
     }
-  }, [loadNFEs]);
+  }, []);
 
   // Atualizar NFE
   const updateNFE = useCallback(async (id: string, data: Partial<NFE>) => {
     setLoading(true);
     setError(null);
-    try {
-      const result = await nfeAPI.update(id, data);
-      // Atualizar NFE na lista local em vez de recarregar tudo
-      setNfes(prev => prev.map(nfe => nfe.id === id ? { ...nfe, ...data } : nfe));
-      toast.success(result.message);
-      return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao atualizar NFE';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      throw err;
-    } finally {
-      setLoading(false);
+    let attempt = 0;
+    let delay = 500;
+    while (true) {
+      try {
+        const result = await nfeAPI.update(id, data);
+        await loadNFEs();
+        toast.success(result.message);
+        return result;
+      } catch (err: any) {
+        const status = err?.status ?? err?.response?.status;
+        if (status === 429 && attempt < 3) {
+          // backoff exponencial com jitter
+          await new Promise((r) => setTimeout(r, delay + Math.random() * 200));
+          attempt += 1;
+          delay = Math.min(delay * 2, 4000);
+          continue;
+        }
+        const errorMessage = err instanceof Error ? err.message : 'Erro ao atualizar NFE';
+        setError(errorMessage);
+        toast.error(errorMessage);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
     }
   }, [loadNFEs]);
 
@@ -151,7 +162,7 @@ export const useNFEAPI = () => {
     }
   }, []);
 
-  // Carregar NFEs na inicialização
+  // Carregar NFEs na inicialização e após cada atualização
   useEffect(() => {
     loadNFEs();
   }, [loadNFEs]);

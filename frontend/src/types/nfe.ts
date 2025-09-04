@@ -2,10 +2,13 @@ export interface Product {
   id?: number;
   nfeId?: string;
   codigo: string;
+  code?: string;
   descricao: string;
   ncm?: string;
   cfop?: string;
   unidade?: string;
+  uom?: string;
+  un?: string;
   quantidade: number;
   valorUnitario: number;
   valorTotal: number;
@@ -17,7 +20,6 @@ export interface Product {
   aliquotaIPI?: number;
   xapuriPrice?: number;
   epitaPrice?: number;
-  code?: string;
   name?: string;
   ean?: string;
   reference?: string;
@@ -29,7 +31,6 @@ export interface Product {
   imageUrl?: string;
   tags?: string[];
   salePrice?: number;
-  uom?: string;
   color?: string;
   size?: string;
   fornecedor?: string;
@@ -44,7 +45,7 @@ export interface NFE {
   data: string;
   numero: string;
   chaveNFE?: string;
-  valorTotal?: number;
+  valorTotal?: number; // Valor total da NFE do XML
   totalImpostos?: number;
   quantidadeTotal?: number;
   dataEmissao?: string;
@@ -54,12 +55,13 @@ export interface NFE {
   isFavorite?: boolean;
   itens?: number;
   valor?: number;
+  descontoPercent?: number;
   brandName?: string;
   invoiceNumber?: string;
   impostoEntrada?: number;
   xapuriMarkup?: number;
   epitaMarkup?: number;
-  roundingType?: 'none' | 'up' | 'down' | 'nearest';
+  roundingType?: '90' | '50' | 'none';
   valorFrete?: number;
   createdAt?: string;
   updatedAt?: string;

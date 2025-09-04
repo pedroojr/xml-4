@@ -7,8 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navbar from "@/components/ui/navbar";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
-import AnalyticsDashboard from "./components/Analytics/AnalyticsDashboard";
-import ExportManager from "./components/Export/ExportManager";
+
 import NotFound from "./pages/NotFound";
 import NotasEmAberto from "./pages/NotasEmAberto";
 
@@ -52,8 +51,7 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/analytics" element={<AnalyticsDashboard />} />
-            <Route path="/export" element={<ExportManager />} />
+
                 <Route path="/notas-em-aberto" element={<NotasEmAberto />} />
                 <Route path="/notas-em-aberto/:id" element={<NotasEmAberto />} />
                 <Route path="*" element={<NotFound />} />

@@ -22,6 +22,10 @@ export function Copiavel({ valor, formatacao = 'texto', className = "" }: Copiav
   };
 
   const copiar = async () => {
+    if (valor === null || valor === undefined || valor === '' || (typeof valor === 'number' && isNaN(valor))) {
+      console.warn('Tentativa de copiar valor inválido');
+      return;
+    }
     try {
       let sucesso;
       
@@ -63,4 +67,4 @@ export function Copiavel({ valor, formatacao = 'texto', className = "" }: Copiav
       </span>
     </div>
   );
-} 
+}

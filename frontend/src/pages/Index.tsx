@@ -42,7 +42,7 @@ import { nfeAPI, uploadAPI } from "@/services/api";
 import { Product } from "@/types/nfe";
 import { NFE } from "@/hooks/useNFEStorage";
 import { RoundingType } from "@/components/product-preview/productCalculations";
-import { parseNFeXML } from "@/utils/nfeParser";
+import { parseNFeXML, parseNFeXMLWithTotals } from "@/utils/nfeParser";
 import { formatCurrency, formatDate } from '@/utils/formatters';
 import {
   Tooltip,
@@ -85,6 +85,8 @@ const Index = () => {
   const [invoiceNumber, setInvoiceNumber] = useState<string>("");
   const [brandName, setBrandName] = useState<string>("");
   const [isEditingBrand, setIsEditingBrand] = useState(false);
+  const [nfeNetValue, setNfeNetValue] = useState<number>(0);
+  const [valorFrete, setValorFrete] = useState<number>(0);
   
   // Estado para confirmação de duplicata
   const [duplicateConfirmation, setDuplicateConfirmation] = useState<{
@@ -115,8 +117,8 @@ const Index = () => {
   const currentNFE: NFE | null = currentNFeId ? {
     id: currentNFeId,
     data: new Date().toISOString().split('T')[0],
-    numero: invoiceNumber || '',
-    fornecedor: brandName || '',
+    numero: invoiceNumber,
+    fornecedor: brandName,
     valor: products.reduce((sum, p) => sum + (p.totalPrice ?? 0), 0),
     itens: products.length,
     produtos: products,
@@ -275,9 +277,10 @@ const Index = () => {
         throw new Error('Arquivo XML inválido ou não é uma NF-e');
       }
 
-      const extractedProducts = parseNFeXML(text);
+      const { products: extractedProducts, totalInvoiceValue } = parseNFeXMLWithTotals(text);
       setProducts(extractedProducts);
       setHiddenItems(new Set());
+      setNfeNetValue(totalInvoiceValue);
       
       const nfeId = (nfeInfo.chaveNFE && nfeInfo.chaveNFE.trim()) ? nfeInfo.chaveNFE.trim() : `nfe_${Date.now()}`;
       setCurrentNFeId(nfeId);
@@ -290,17 +293,18 @@ const Index = () => {
       
       const nfe: NFE = {
            id: nfeId,
-           data: nfeInfo.dataEmissao ?? new Date().toISOString().split('T')[0],
+           data: (nfeInfo.dataEmissao ? nfeInfo.dataEmissao.split('T')[0] : new Date().toISOString().split('T')[0]),
            numero: nfeInfo.numero || '',
-           fornecedor: nfeInfo.emitNome || '',
+            fornecedor: nfeInfo.emitNome || '',
            valor: valorTotal,
+           valorTotal: totalInvoiceValue, // Valor total da NFE do XML
            itens: extractedProducts.length,
            produtos: extractedProducts,
            chaveNFE: nfeInfo.chaveNFE || '',
            impostoEntrada: impostoEntrada,
            xapuriMarkup: xapuriMarkup,
            epitaMarkup: epitaMarkup,
-           roundingType: roundingType as 'none' | 'up' | 'down' | 'nearest'
+           roundingType: roundingType
          };
       
       console.log('🔍 Debug NFE validada e processada:', {
@@ -354,6 +358,7 @@ const Index = () => {
       setInvoiceNumber(detailed.numero);
       setBrandName(detailed.fornecedor);
       setIsEditingBrand(false);
+      setNfeNetValue((detailed as any).valorLiquido || detailed.valor || 0); // Definir o valor líquido da NFE
       setCurrentView("products");
     } catch (err) {
       console.error('Falha ao carregar NFE detalhada:', err);
@@ -363,6 +368,7 @@ const Index = () => {
       setInvoiceNumber(nfe.numero);
       setBrandName(nfe.fornecedor);
       setIsEditingBrand(false);
+      setNfeNetValue(0); // Usar 0 como fallback já que NFE não tem valorLiquido
       setCurrentView("products");
     }
   };
@@ -410,9 +416,10 @@ const Index = () => {
           throw new Error('Arquivo XML inválido ou não é uma NF-e');
         }
 
-        const extractedProducts = parseNFeXML(text);
+        const { products: extractedProducts, totalInvoiceValue } = parseNFeXMLWithTotals(text);
         setProducts(extractedProducts);
         setHiddenItems(new Set());
+        setNfeNetValue(totalInvoiceValue);
         
         const nfeId = (nfeInfo.chaveNFE && nfeInfo.chaveNFE.trim()) ? nfeInfo.chaveNFE.trim() : `nfe_${Date.now()}`;
         setCurrentNFeId(nfeId);
@@ -425,17 +432,18 @@ const Index = () => {
         
         const nfe: NFE = {
           id: nfeId,
-          data: nfeInfo.dataEmissao ?? new Date().toISOString().split('T')[0],
+          data: (nfeInfo.dataEmissao ? nfeInfo.dataEmissao.split('T')[0] : new Date().toISOString().split('T')[0]),
           numero: nfeInfo.numero || '',
-          fornecedor: nfeInfo.emitNome || '',
+           fornecedor: nfeInfo.emitNome || '',
           valor: valorTotal,
+          valorTotal: totalInvoiceValue, // Valor total da NFE do XML
           itens: extractedProducts.length,
           produtos: extractedProducts,
           chaveNFE: nfeInfo.chaveNFE || '',
           impostoEntrada: impostoEntrada,
           xapuriMarkup: xapuriMarkup,
           epitaMarkup: epitaMarkup,
-          roundingType: roundingType as 'none' | 'up' | 'down' | 'nearest'
+          roundingType: roundingType
         };
         
         saveImmediately(nfe);
@@ -494,7 +502,7 @@ const Index = () => {
                   <TrendingUp className="w-6 h-6 text-purple-600" />
                 </div>
                 <div className="text-3xl font-bold text-slate-900 mb-2">{formatCurrency(stats.valorTotal)}</div>
-                <div className="text-slate-600">Valor Total</div>
+                <div className="text-slate-600">VALOR TOTAL DA NOTA</div>
               </CardContent>
             </Card>
 
@@ -824,6 +832,9 @@ const Index = () => {
             <ProductPreview
               products={products}
               hiddenItems={hiddenItems}
+              nfeNetValue={nfeNetValue}
+              valorFrete={valorFrete}
+              onValorFreteChange={setValorFrete}
               onToggleVisibility={(index) => {
                 const newHiddenItems = new Set(hiddenItems);
                 if (newHiddenItems.has(index)) {
@@ -840,6 +851,7 @@ const Index = () => {
                 setInvoiceNumber("");
                 setBrandName("");
                 setIsEditingBrand(false);
+                setNfeNetValue(0);
               setCurrentView("upload");
               }}
               onDeleteRequest={handleDeleteCurrentNFe}
@@ -961,7 +973,7 @@ const Index = () => {
           <Card className="bg-white hover:bg-gray-50 transition-colors">
             <CardContent className="p-4">
               <div className="flex flex-col">
-                <span className="text-sm text-muted-foreground">Valor Total</span>
+                <span className="text-sm text-muted-foreground">VALOR TOTAL DA NOTA</span>
                 <div className="flex items-center mt-2">
                   <DollarSign className="w-4 h-4 text-purple-500 mr-2" />
                   <span className="text-2xl font-bold">{formatCurrency(valorTotal)}</span>

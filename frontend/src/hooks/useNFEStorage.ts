@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNFEAPI } from './useNFEAPI';
+import { logger } from '../utils/logger';
 
 export interface NFE {
   id: string;
@@ -7,6 +8,7 @@ export interface NFE {
   numero: string;
   fornecedor: string;
   valor: number;
+  valorTotal?: number; // Valor total da NFE do XML
   itens: number;
   produtos: any[];
   brandName?: string;
@@ -16,7 +18,7 @@ export interface NFE {
   impostoEntrada: number;
   xapuriMarkup?: number;
   epitaMarkup?: number;
-  roundingType?: 'none' | 'up' | 'down' | 'nearest';
+  roundingType?: '90' | '50' | 'none';
   valorFrete?: number;
 }
 
@@ -32,13 +34,15 @@ export const useNFEStorage = () => {
     try {
       console.log('🔄 Iniciando salvamento da NFE:', nfe.id);
       
-      // Verificação simplificada: apenas salva a NFE sem verificar duplicação por chaveNFE
-      // O servidor já lida com a lógica de insert/update baseado no ID
-
-      // Garantir que produtos seja sempre um array
+      // Garantir que produtos seja sempre um array e mantenha todos os campos
       const nfeWithProducts = {
         ...nfe,
-        produtos: Array.isArray(nfe.produtos) ? nfe.produtos : []
+        produtos: Array.isArray(nfe.produtos) ? nfe.produtos.map(produto => ({
+          ...produto,
+          codigo: produto.codigo || '',
+          unidade: produto.unidade || '',
+          discount: produto.discount || 0
+        })) : []
       };
 
       console.log('📤 Enviando NFE para API:', {
@@ -53,7 +57,7 @@ export const useNFEStorage = () => {
       await apiSaveNFE(nfeWithProducts);
       console.log('✅ NFE salva com sucesso:', nfe.id);
     } catch (error) {
-      console.error('❌ Erro detalhado ao salvar NFE:', {
+      logger.error('❌ Erro detalhado ao salvar NFE:', {
         nfeId: nfe.id,
         error: error,
         errorMessage: error instanceof Error ? error.message : 'Erro desconhecido',
@@ -69,26 +73,45 @@ export const useNFEStorage = () => {
 
   const removeNFE = async (id: string) => {
     try {
+      console.log('🗑️ Removendo NFE:', id);
       await apiDeleteNFE(id);
+      console.log('✅ NFE removida com sucesso:', id);
     } catch (error) {
+      logger.error('❌ Erro detalhado ao remover NFE:', {
+         nfeId: id,
+         error: error,
+         errorMessage: error instanceof Error ? error.message : 'Erro desconhecido',
+         errorStack: error instanceof Error ? error.stack : undefined
+       });
+      
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Erro ao remover nota fiscal');
+      throw new Error(`Erro ao remover nota fiscal ${id}`);
     }
   };
 
   const toggleFavorite = async (id: string) => {
     try {
+      console.log('⭐ Alternando favorito para NFE:', id);
       const nfe = Array.isArray(savedNFEs) ? savedNFEs.find(n => n.id === id) : undefined;
-      if (nfe) {
-        await updateNFE(id, { isFavorite: !nfe.isFavorite });
+      if (!nfe) {
+        throw new Error(`NFE com ID ${id} não encontrada`);
       }
+      await updateNFE(id, { isFavorite: !nfe.isFavorite });
+      console.log('✅ Favorito atualizado com sucesso:', { id, isFavorite: !nfe.isFavorite });
     } catch (error) {
+      logger.error('❌ Erro detalhado ao atualizar favorito:', {
+         nfeId: id,
+         error: error,
+         errorMessage: error instanceof Error ? error.message : 'Erro desconhecido',
+         errorStack: error instanceof Error ? error.stack : undefined
+       });
+      
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Erro ao atualizar favorito');
+      throw new Error(`Erro ao atualizar favorito da NFE ${id}`);
     }
   };
 

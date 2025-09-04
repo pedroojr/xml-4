@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, Building2, Calendar, Package2, Receipt, Trash2 } from 'lucide-react';
+import { ArrowLeft, Building2, Calendar, FileText, Package2, Receipt, Trash2, Percent as PercentIcon } from 'lucide-react';
 import { useNFEStorage } from '@/hooks/useNFEStorage';
 import { nfeAPI } from '@/services/api';
 import { formatCurrency, formatDate } from '@/utils/formatters';
@@ -39,10 +39,31 @@ const NFEView = () => {
         await loadNFEs();
         if (id) {
           const detail = await nfeAPI.getById(id);
+          console.log('🔍 Dados recebidos da API:', detail);
+          
+          // Calcular o desconto real baseado nos totais
+          if (detail.valorTotal && detail.valor) {
+            const descontoTotal = ((detail.valorTotal - detail.valor) / detail.valorTotal) * 100;
+            detail.descontoPercent = descontoTotal;
+          }
+          
+          // Processar produtos
+          if (detail.produtos && detail.produtos.length > 0) {
+            detail.produtos = detail.produtos.map(produto => ({
+              ...produto,
+              // Garantir que código e unidade estejam corretos
+              codigo: produto.codigo || produto.code || null,
+              unidade: produto.unidade || produto.uom || produto.un || null,
+              // Calcular desconto individual se necessário
+              discount: produto.discount || (detail.descontoPercent ? (produto.valorTotal * detail.descontoPercent / 100) : 0)
+            }));
+            
+            console.log('🔍 Produtos processados:', detail.produtos);
+          }
+          
           setNfeDetail(detail);
         }
       } catch (err) {
-        // Silencia erros aqui; tratamento visual abaixo
         console.error('Erro ao carregar NFE detalhada:', err);
       }
     };
@@ -124,9 +145,16 @@ const NFEView = () => {
             </div>
             <div className="flex items-center gap-2">
               <Receipt className="w-4 h-4 text-gray-500" />
-              <span className="font-medium">Valor Total:</span>
+              <span className="font-medium">VALOR TOTAL DA NOTA:</span>
               <span>{formatCurrency(nfe.valor)}</span>
             </div>
+            {nfe.descontoPercent > 0 && (
+              <div className="flex items-center gap-2">
+                <PercentIcon className="w-4 h-4 text-green-500" />
+                <span className="font-medium">Desconto Total:</span>
+                <span className="text-green-600">{nfe.descontoPercent.toFixed(1)}%</span>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -164,7 +192,7 @@ const NFEView = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {produtos.map((produto, index) => (
+            {produtos.map((produto: any, index: number) => (
               <div
                 key={index}
                 className="p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
@@ -173,8 +201,13 @@ const NFEView = () => {
                   <div>
                     <h3 className="font-medium">{produto.descricao || 'Sem descrição'}</h3>
                     <p className="text-sm text-gray-500">
-                      {produto.codigo || 'Sem código'} • {produto.ncm || 'Sem NCM'}
+                      Código: {produto.codigo || 'Sem código'} • Unidade: {produto.unidade || 'Sem unidade'} • NCM: {produto.ncm || 'Sem NCM'}
                     </p>
+                    {produto.discount && produto.discount > 0 && (
+                      <p className="text-sm text-green-600">
+                        Desconto: {formatCurrency(produto.discount)} ({((produto.discount / produto.valorTotal) * 100).toFixed(1)}%)
+                      </p>
+                    )}
                     {(produto as any).informacoesAdicionais && (
                       <p className="text-sm text-gray-600 mt-2">
                         {(produto as any).informacoesAdicionais}

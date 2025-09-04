@@ -11,14 +11,22 @@ class CacheManager {
       this.client = createClient({
         url: process.env.REDIS_URL || 'redis://localhost:6379',
         socket: {
-          connectTimeout: 5000,
-          lazyConnect: true
+          connectTimeout: 3000,
+          lazyConnect: true,
+          reconnectStrategy: (retries) => {
+            if (retries > 3) {
+              console.log('⚠️ Redis: Máximo de tentativas atingido, continuando sem cache');
+              return false;
+            }
+            return Math.min(retries * 100, 3000);
+          }
         }
       });
 
       this.client.on('error', (err) => {
         console.log('❌ Redis Client Error:', err.message);
         this.isConnected = false;
+        // Não propagar o erro para evitar crash
       });
 
       this.client.on('connect', () => {
@@ -35,10 +43,17 @@ class CacheManager {
         this.isConnected = false;
       });
 
-      await this.client.connect();
+      // Timeout para evitar travamento
+      const connectPromise = this.client.connect();
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Redis connection timeout')), 5000);
+      });
+      
+      await Promise.race([connectPromise, timeoutPromise]);
     } catch (error) {
       console.log('⚠️ Redis não disponível, continuando sem cache:', error.message);
       this.isConnected = false;
+      this.client = null;
     }
   }
 

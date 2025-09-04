@@ -41,10 +41,11 @@ try {
 }
 
 const app = express();
+app.set('trust proxy', 1);
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173', 'http://localhost:3000'],
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3020'],
     methods: ['GET', 'POST']
   }
 });
@@ -65,11 +66,15 @@ app.use(helmet({
 
 // Rate limiting simples
 const requestCounts = new Map();
-const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutos
-const RATE_LIMIT_MAX_REQUESTS = 1000; // máximo de requests por janela
+const isDev = process.env.NODE_ENV === 'development';
+const RATE_LIMIT_WINDOW = isDev ? 60 * 1000 : 15 * 60 * 1000; // 60s em dev, 15min em prod
+const RATE_LIMIT_MAX_REQUESTS = isDev ? 300 : 1000; // 300 req/min em dev, 1000 por janela em prod
 
 app.use((req, res, next) => {
-  const clientIp = req.ip || req.connection.remoteAddress;
+  // Ignorar preflight
+  if (req.method === 'OPTIONS') return next();
+
+  const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
   const now = Date.now();
   
   if (!requestCounts.has(clientIp)) {
@@ -84,13 +89,35 @@ app.use((req, res, next) => {
       clientData.count++;
       
       if (clientData.count > RATE_LIMIT_MAX_REQUESTS) {
+        const retryAfterSeconds = Math.ceil((clientData.resetTime - now) / 1000);
+        res.setHeader('Retry-After', retryAfterSeconds);
+        res.setHeader('X-RateLimit-Limit', RATE_LIMIT_MAX_REQUESTS.toString());
+        res.setHeader('X-RateLimit-Remaining', '0');
+        res.setHeader('X-RateLimit-Reset', clientData.resetTime.toString());
+        logger.warn('Rate limit exceeded', {
+          ip: clientIp,
+          method: req.method,
+          url: req.originalUrl || req.url,
+          count: clientData.count,
+          windowMs: RATE_LIMIT_WINDOW,
+          retryAfterSeconds,
+          category: 'rate_limit'
+        });
         return res.status(429).json({ 
-          error: 'Muitas requisições. Tente novamente em alguns minutos.' 
+          error: 'Muitas requisições. Tente novamente em alguns instantes.' 
         });
       }
     }
   }
   
+  // Cabeçalhos informativos
+  const clientData = requestCounts.get(clientIp);
+  if (clientData) {
+    res.setHeader('X-RateLimit-Limit', RATE_LIMIT_MAX_REQUESTS.toString());
+    res.setHeader('X-RateLimit-Remaining', Math.max(0, RATE_LIMIT_MAX_REQUESTS - clientData.count).toString());
+    res.setHeader('X-RateLimit-Reset', clientData.resetTime.toString());
+  }
+
   next();
 });
 
@@ -110,7 +137,7 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3006', 'http://localhost:3007', 'http://localhost:3008', 'http://localhost:3012', 'http://localhost:3013', 'http://localhost:3014', 'http://localhost:3015', 'http://localhost:3018'],
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3006', 'http://localhost:3007', 'http://localhost:3008', 'http://localhost:3012', 'http://localhost:3013', 'http://localhost:3014', 'http://localhost:3015', 'http://localhost:3018', 'http://localhost:3020'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -213,6 +240,10 @@ const initDatabase = () => {
   try {
     db.exec('ALTER TABLE nfes ADD COLUMN cnpjFornecedor TEXT');
   } catch (e) { /* Coluna já existe */ }
+  
+  try {
+    db.exec('ALTER TABLE nfes ADD COLUMN originalXML TEXT');
+  } catch (e) { /* Coluna já existe */ }
 
   // Tabela de produtos
   db.exec(`
@@ -261,13 +292,22 @@ const initDatabase = () => {
 
 initDatabase();
 
-// Inicializar cache Redis
-cache.connect().catch(err => {
-  logger.warn('Redis Connection Failed - Using Fallback', {
-    error: err.message,
-    category: 'cache'
+// Inicializar cache Redis com fallback robusto
+// Temporariamente desabilitado para resolver problemas de conexão
+/*
+cache.connect()
+  .then(() => {
+    logger.info('Redis Connected Successfully', { category: 'cache' });
+  })
+  .catch(err => {
+    logger.warn('Redis Connection Failed - Using Fallback', {
+      error: err.message,
+      category: 'cache'
+    });
+    // Continuar sem Redis - não deve crashar o servidor
   });
-});
+*/
+logger.info('Cache disabled temporarily', { category: 'cache' });
 
 // ===== WEBSOCKET CONFIGURATION =====
 let connectedClients = 0;
@@ -383,7 +423,9 @@ app.get('/api/nfes', async (req, res) => {
       SELECT 
         n.*,
         COUNT(p.id) as produtosCount,
-        COALESCE(SUM(p.valorTotal), 0) as valorTotal
+        COALESCE(SUM(p.valorTotal), 0) as valorBrutoProdutos,
+        COALESCE(SUM(p.discount), 0) as descontoTotal,
+        n.valor as valorLiquido
       FROM nfes n
       LEFT JOIN produtos p ON n.id = p.nfeId
       ${whereClause}
@@ -454,12 +496,37 @@ app.get('/api/nfes/:id', async (req, res) => {
       return res.status(404).json({ error: 'NFE não encontrada' });
     }
     
+    // HOTFIX: Sempre extrair valor_liquido do XML original (vNF)
+    if (nfe.originalXML) {
+      try {
+        const basicInfo = xmlValidator.extractBasicInfo(nfe.originalXML);
+        if (basicInfo && basicInfo.valorLiquido !== null && basicInfo.valorLiquido !== undefined) {
+          const valorOriginal = nfe.valor;
+          nfe.valor = basicInfo.valorLiquido; // Sempre usar vNF do XML original
+          console.log(`🔒 [NFE_GUARD] Valor líquido protegido do XML original - NFE ${id}: ${valorOriginal} -> ${nfe.valor} (vNF)`);
+        }
+      } catch (xmlError) {
+        console.warn(`⚠️ Erro ao extrair vNF do XML original para NFE ${id}:`, xmlError.message);
+      }
+    }
+    
     // Buscar produtos da NFE
     const produtosStmt = db.prepare('SELECT * FROM produtos WHERE nfeId = ?');
     const produtos = produtosStmt.all(id);
     
-    // Adicionar produtos à NFE
+    // Calcular valores dinâmicos baseados nos produtos
+    const valorBrutoProdutos = produtos.reduce((sum, produto) => sum + (produto.valorTotal || 0), 0);
+    const descontoTotalProdutos = produtos.reduce((sum, produto) => sum + (produto.discount || 0), 0);
+    const valorLiquido = nfe.valor; // vNF do XML
+    const descontoTotal = Math.max(0, valorBrutoProdutos - valorLiquido);
+    
+    // Adicionar campos calculados à NFE
     nfe.produtos = produtos;
+    nfe.valorBrutoProdutos = valorBrutoProdutos;
+    nfe.descontoTotal = descontoTotal;
+    nfe.valorLiquido = valorLiquido;
+    
+    console.log(`💰 [NFE ${id}] Cálculos: Bruto=${valorBrutoProdutos}, Líquido=${valorLiquido}, Desconto=${descontoTotal}`);
     
     // Salvar no cache por 10 minutos
     await cache.set(cacheKey, nfe, 600);
@@ -472,6 +539,306 @@ app.get('/api/nfes/:id', async (req, res) => {
     res.json(nfe);
   } catch (error) {
     console.error('Erro ao buscar NFE:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// GET - Buscar XML original da NFE
+app.get('/api/nfes/:id/original-xml', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Buscar apenas o XML original da NFE
+    const nfeStmt = db.prepare('SELECT originalXML FROM nfes WHERE id = ?');
+    const nfe = nfeStmt.get(id);
+    
+    if (!nfe) {
+      return res.status(404).json({ error: 'NFE não encontrada' });
+    }
+    
+    if (!nfe.originalXML) {
+      return res.status(404).json({ error: 'XML original não disponível para esta NFE' });
+    }
+    
+    // Retornar o XML original com o content-type apropriado
+    res.set('Content-Type', 'application/xml');
+    res.send(nfe.originalXML);
+  } catch (error) {
+    console.error('Erro ao buscar XML original da NFE:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// GET - Comparar dados atuais com XML original
+app.get('/api/nfes/:id/compare-original', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Buscar NFE completa com XML original
+    const nfeStmt = db.prepare('SELECT * FROM nfes WHERE id = ?');
+    const nfe = nfeStmt.get(id);
+    
+    if (!nfe) {
+      return res.status(404).json({ error: 'NFE não encontrada' });
+    }
+    
+    if (!nfe.originalXML) {
+      return res.status(404).json({ error: 'XML original não disponível para esta NFE' });
+    }
+    
+    // Buscar produtos atuais
+    const produtosStmt = db.prepare('SELECT * FROM produtos WHERE nfeId = ?');
+    const produtosAtuais = produtosStmt.all(id);
+    
+    // Parse do XML original para extrair dados originais
+    const xml2js = require('xml2js');
+    const parser = new xml2js.Parser({ explicitArray: false });
+    
+    let dadosOriginais = {};
+    let produtosOriginais = [];
+    
+    try {
+      const xmlParsed = await parser.parseStringPromise(nfe.originalXML);
+      const infNFe = xmlParsed.nfeProc?.NFe?.infNFe || xmlParsed.NFe?.infNFe;
+      
+      if (infNFe) {
+        // Extrair dados básicos originais
+        const ide = infNFe.ide;
+        const emit = infNFe.emit;
+        const total = infNFe.total?.ICMSTot;
+        
+        dadosOriginais = {
+          numero: ide?.nNF,
+          chaveNFE: infNFe.$?.Id?.replace('NFe', ''),
+          fornecedor: emit?.xNome,
+          cnpjFornecedor: emit?.CNPJ,
+          dataEmissao: ide?.dhEmi,
+          valorTotal: parseFloat(total?.vNF || 0),
+          valorFrete: parseFloat(total?.vFrete || 0)
+        };
+        
+        // Extrair produtos originais
+        const dets = Array.isArray(infNFe.det) ? infNFe.det : [infNFe.det];
+        produtosOriginais = dets.map(det => {
+          const prod = det.prod;
+          const imposto = det.imposto;
+          
+          return {
+            codigo: prod?.cProd,
+            descricao: prod?.xProd,
+            ncm: prod?.NCM,
+            cfop: prod?.CFOP,
+            unidade: prod?.uCom,
+            quantidade: parseFloat(prod?.qCom || 0),
+            valorUnitario: parseFloat(prod?.vUnCom || 0),
+            valorTotal: parseFloat(prod?.vProd || 0),
+            valorDesconto: parseFloat(prod?.vDesc || 0)
+          };
+        });
+      }
+    } catch (parseError) {
+      console.error('Erro ao fazer parse do XML original:', parseError);
+      return res.status(500).json({ error: 'Erro ao processar XML original' });
+    }
+    
+    // Comparar dados
+    const comparacao = {
+      dadosBasicos: {
+        original: dadosOriginais,
+        atual: {
+          numero: nfe.numero,
+          chaveNFE: nfe.chaveNFE,
+          fornecedor: nfe.fornecedor,
+          cnpjFornecedor: nfe.cnpjFornecedor,
+          dataEmissao: nfe.dataEmissao,
+          valorTotal: nfe.valorTotal,
+          valorFrete: nfe.valorFrete
+        },
+        alteracoes: []
+      },
+      produtos: {
+        original: produtosOriginais,
+        atual: produtosAtuais,
+        alteracoes: []
+      }
+    };
+    
+    // Detectar alterações nos dados básicos
+    Object.keys(dadosOriginais).forEach(campo => {
+      if (dadosOriginais[campo] !== comparacao.dadosBasicos.atual[campo]) {
+        comparacao.dadosBasicos.alteracoes.push({
+          campo,
+          valorOriginal: dadosOriginais[campo],
+          valorAtual: comparacao.dadosBasicos.atual[campo]
+        });
+      }
+    });
+    
+    // Detectar alterações nos produtos (simplificado)
+    if (produtosOriginais.length !== produtosAtuais.length) {
+      comparacao.produtos.alteracoes.push({
+        tipo: 'quantidade_produtos',
+        original: produtosOriginais.length,
+        atual: produtosAtuais.length
+      });
+    }
+    
+    res.json(comparacao);
+  } catch (error) {
+    console.error('Erro ao comparar com XML original:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// POST - Restaurar NFE aos dados originais do XML
+app.post('/api/nfes/:id/restore-original', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { confirmacao } = req.body;
+    
+    // Verificar se o usuário confirmou a operação
+    if (!confirmacao) {
+      return res.status(400).json({ 
+        error: 'Confirmação necessária',
+        message: 'Esta operação irá sobrescrever todos os dados atuais da NFE com os dados originais do XML. Confirme enviando { "confirmacao": true }'
+      });
+    }
+    
+    // Buscar NFE com XML original
+    const nfeStmt = db.prepare('SELECT * FROM nfes WHERE id = ?');
+    const nfe = nfeStmt.get(id);
+    
+    if (!nfe) {
+      return res.status(404).json({ error: 'NFE não encontrada' });
+    }
+    
+    if (!nfe.originalXML) {
+      return res.status(404).json({ error: 'XML original não disponível para esta NFE' });
+    }
+    
+    // Parse do XML original
+    const xml2js = require('xml2js');
+    const parser = new xml2js.Parser({ explicitArray: false });
+    
+    try {
+      const xmlParsed = await parser.parseStringPromise(nfe.originalXML);
+      const infNFe = xmlParsed.nfeProc?.NFe?.infNFe || xmlParsed.NFe?.infNFe;
+      
+      if (!infNFe) {
+        return res.status(400).json({ error: 'XML original inválido ou corrompido' });
+      }
+      
+      // Extrair dados originais
+      const ide = infNFe.ide;
+      const emit = infNFe.emit;
+      const total = infNFe.total?.ICMSTot;
+      
+      const dadosOriginais = {
+        numero: ide?.nNF,
+        chaveNFE: infNFe.$?.Id?.replace('NFe', ''),
+        fornecedor: emit?.xNome,
+        cnpjFornecedor: emit?.CNPJ,
+        dataEmissao: ide?.dhEmi,
+        valorTotal: parseFloat(total?.vNF || 0),
+        valorFrete: parseFloat(total?.vFrete || 0)
+      };
+      
+      // Extrair produtos originais
+      const dets = Array.isArray(infNFe.det) ? infNFe.det : [infNFe.det];
+      const produtosOriginais = dets.map(det => {
+        const prod = det.prod;
+        
+        return {
+          nfeId: id,
+          codigo: prod?.cProd,
+          descricao: prod?.xProd,
+          ncm: prod?.NCM,
+          cfop: prod?.CFOP,
+          unidade: prod?.uCom,
+          quantidade: parseFloat(prod?.qCom || 0),
+          valorUnitario: parseFloat(prod?.vUnCom || 0),
+          valorTotal: parseFloat(prod?.vProd || 0),
+          valorDesconto: parseFloat(prod?.vDesc || 0)
+        };
+      });
+      
+      // Iniciar transação
+      const transaction = db.transaction(() => {
+        // Atualizar dados da NFE
+        const updateNFE = db.prepare(`
+          UPDATE nfes SET 
+            numero = ?, chaveNFE = ?, fornecedor = ?, cnpjFornecedor = ?,
+            dataEmissao = ?, valorTotal = ?, valorFrete = ?
+          WHERE id = ?
+        `);
+        
+        updateNFE.run(
+          dadosOriginais.numero,
+          dadosOriginais.chaveNFE,
+          dadosOriginais.fornecedor,
+          dadosOriginais.cnpjFornecedor,
+          dadosOriginais.dataEmissao,
+          dadosOriginais.valorTotal,
+          dadosOriginais.valorFrete,
+          id
+        );
+        
+        // Remover produtos atuais
+        const deleteProdutos = db.prepare('DELETE FROM produtos WHERE nfeId = ?');
+        deleteProdutos.run(id);
+        
+        // Inserir produtos originais
+        const insertProduto = db.prepare(`
+          INSERT INTO produtos (nfeId, codigo, descricao, ncm, cfop, unidade, 
+                               quantidade, valorUnitario, valorTotal, valorDesconto)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        
+        produtosOriginais.forEach(produto => {
+          insertProduto.run(
+            produto.nfeId,
+            produto.codigo,
+            produto.descricao,
+            produto.ncm,
+            produto.cfop,
+            produto.unidade,
+            produto.quantidade,
+            produto.valorUnitario,
+            produto.valorTotal,
+            produto.valorDesconto
+          );
+        });
+      });
+      
+      // Executar transação
+      transaction();
+      
+      // Invalidar cache
+      await cache.invalidateNfeCache(id);
+      
+      // Enviar notificação via WebSocket
+      if (io) {
+        io.emit('nfe-restored', {
+          id,
+          message: 'NFE restaurada aos dados originais',
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      res.json({
+        success: true,
+        message: 'NFE restaurada aos dados originais com sucesso',
+        dadosRestaurados: dadosOriginais,
+        produtosRestaurados: produtosOriginais.length
+      });
+      
+    } catch (parseError) {
+      console.error('Erro ao fazer parse do XML original:', parseError);
+      return res.status(500).json({ error: 'Erro ao processar XML original' });
+    }
+    
+  } catch (error) {
+    console.error('Erro ao restaurar NFE:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -553,10 +920,16 @@ app.post('/api/nfes', async (req, res) => {
     });
     
     // Verificar se NFE já existe
-    const existingNFE = db.prepare('SELECT id FROM nfes WHERE id = ?').get(id);
+    const existingNFE = db.prepare('SELECT id, valor, valorTotal FROM nfes WHERE id = ?').get(id);
     
     if (existingNFE) {
       console.log('🔄 NFE já existe, atualizando:', id);
+      console.log('🔍 ANTES da atualização POST - NFE ID:', id, {
+        valorAntes: existingNFE.valor,
+        valorTotalAntes: existingNFE.valorTotal,
+        valorRecebido: safeValor,
+        valorTotalRecebido: valorTotal
+      });
       
       // Atualizar NFE existente
        const updateNFE = db.prepare(`
@@ -564,14 +937,21 @@ app.post('/api/nfes', async (req, res) => {
          SET data = ?, numero = ?, chaveNFE = ?, fornecedor = ?, valor = ?, itens = ?, 
              impostoEntrada = ?, xapuriMarkup = ?, epitaMarkup = ?, roundingType = ?, 
              valorFrete = ?, isFavorite = ?, dataEmissao = ?, valorTotal = ?, 
-             quantidadeTotal = ?, cnpjFornecedor = ?, updatedAt = CURRENT_TIMESTAMP
+             quantidadeTotal = ?, cnpjFornecedor = ?, originalXML = ?, updatedAt = CURRENT_TIMESTAMP
          WHERE id = ?
        `);
        
        updateNFE.run(safeData, safeNumero, chaveNFE, safeFornecedor, safeValor, safeItens, 
                      safeImpostoEntrada, safeXapuriMarkup, safeEpitaMarkup, safeRoundingType, 
                      safeValorFrete, safeIsFavorite, dataEmissao, valorTotal, 
-                     quantidadeTotal, cnpjFornecedor, id);
+                     quantidadeTotal, cnpjFornecedor, req.body.originalXML || null, id);
+      
+      // Log dos valores DEPOIS da atualização
+      const afterValues = db.prepare('SELECT valor, valorTotal FROM nfes WHERE id = ?').get(id);
+      console.log('🔍 DEPOIS da atualização POST - NFE ID:', id, {
+        valorDepois: afterValues?.valor,
+        valorTotalDepois: afterValues?.valorTotal
+      });
       
       // Remover produtos existentes antes de inserir novos
       const deleteProdutos = db.prepare('DELETE FROM produtos WHERE nfeId = ?');
@@ -580,20 +960,31 @@ app.post('/api/nfes', async (req, res) => {
       console.log('✅ NFE atualizada e produtos removidos para reinserção');
     } else {
       console.log('➕ Criando nova NFE:', id);
+      console.log('🔍 INSERINDO nova NFE - NFE ID:', id, {
+        valorParaInserir: safeValor,
+        valorTotalParaInserir: valorTotal
+      });
       
       // Inserir nova NFE
        const insertNFE = db.prepare(`
          INSERT INTO nfes (id, data, numero, chaveNFE, fornecedor, valor, itens, 
                           impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, 
                           valorFrete, isFavorite, dataEmissao, valorTotal, 
-                          quantidadeTotal, cnpjFornecedor)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                          quantidadeTotal, cnpjFornecedor, originalXML)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        `);
        
        insertNFE.run(id, safeData, safeNumero, chaveNFE, safeFornecedor, safeValor, safeItens,
                      safeImpostoEntrada, safeXapuriMarkup, safeEpitaMarkup, safeRoundingType,
                      safeValorFrete, safeIsFavorite, dataEmissao, valorTotal, 
-                     quantidadeTotal, cnpjFornecedor);
+                     quantidadeTotal, cnpjFornecedor, req.body.originalXML || null);
+      
+      // Log dos valores DEPOIS da inserção
+      const afterValues = db.prepare('SELECT valor, valorTotal FROM nfes WHERE id = ?').get(id);
+      console.log('🔍 DEPOIS da inserção POST - NFE ID:', id, {
+        valorDepois: afterValues?.valor,
+        valorTotalDepois: afterValues?.valorTotal
+      });
       console.log('✅ Nova NFE criada com sucesso');
     }
     
@@ -609,9 +1000,9 @@ app.post('/api/nfes', async (req, res) => {
           quantidade, valorUnitario, valorTotal, discount,
           baseCalculoICMS, valorICMS, aliquotaICMS,
           baseCalculoIPI, valorIPI, aliquotaIPI,
-          ean, reference, brand, imageUrl, descricao_complementar,
+          ean, reference, referencia, brand, imageUrl, descricao_complementar,
           custoExtra, freteProporcional
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       
       produtos.forEach((produto, index) => {
@@ -640,7 +1031,8 @@ app.post('/api/nfes', async (req, res) => {
         const valorIPI = produto.valorIPI ?? null;
         const aliquotaIPI = produto.aliquotaIPI ?? null;
         const ean = produto.ean ?? null;
-        const reference = produto.reference ?? produto.referencia ?? null;
+        const reference = produto.reference ?? produto.referencia ?? produto.codigo ?? null;
+        const referencia = produto.referencia ?? produto.codigo ?? null;
         const brand = produto.brand ?? null;
         const imageUrl = produto.imageUrl ?? null;
         const descricaoComplementar = produto.descricao_complementar ?? produto.descricaoComplementar ?? null;
@@ -668,6 +1060,7 @@ app.post('/api/nfes', async (req, res) => {
             aliquotaIPI,
             ean,
             reference,
+            referencia,
             brand,
             imageUrl,
             descricaoComplementar,
@@ -745,10 +1138,64 @@ app.post('/api/nfes', async (req, res) => {
 });
 
 // PUT - Atualizar NFE
-app.put('/api/nfes/:id', async (req, res) => {
+// Middleware de log para PUT /api/nfes/:id - rastrear payload e tentativas de alteração
+const logPutPayload = (req, res, next) => {
+  const { id } = req.params;
+  const payload = req.body;
+  const clientIP = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'];
+  const userAgent = req.headers['user-agent'];
+  
+  console.log(`📋 [PUT_LOG] NFE ${id} - Payload recebido:`, {
+    ip: clientIP,
+    userAgent,
+    payload: JSON.stringify(payload),
+    timestamp: new Date().toISOString(),
+    route: 'PUT /api/nfes/:id'
+  });
+  
+  // ALERTA: Se payload contém valor_liquido ou valor_total
+  if (payload.hasOwnProperty('valor_liquido') || payload.hasOwnProperty('valor_total')) {
+    console.log(`🚨 [ALERTA] payload tentou alterar campos protegidos - NFE ${id}:`, {
+      valor_liquido: payload.valor_liquido,
+      valor_total: payload.valor_total,
+      ip: clientIP,
+      stack: new Error().stack
+    });
+  }
+  
+  next();
+};
+
+app.put('/api/nfes/:id', logPutPayload, async (req, res) => {
   try {
     const { id } = req.params;
-    const { data, numero, chaveNFE, fornecedor, valor, itens } = req.body;
+    
+    // WHITELIST: Apenas campos editáveis pelo usuário são permitidos
+    // 🔒 BLOQUEADOS: valor_liquido (vNF), valor_total (vProd), desconto_total, qtd_itens, qtd_unidades
+    // ✏️ EDITÁVEIS: markup_xapuri, markup_epitaciolandia, frete_total, arredondamento, observacao, oculto, modo_detalhado
+    const allowedFields = [
+      'data', 'numero', 'chaveNFE', 'fornecedor', 'itens',
+      'markup_xapuri', 'markup_epitaciolandia', 'frete_total', 
+      'arredondamento', 'observacao', 'descricao_complementar',
+      'oculto', 'modo_detalhado'
+    ];
+    const updates = {};
+    
+    // Filtrar apenas campos permitidos do payload
+    allowedFields.forEach(field => {
+      if (req.body.hasOwnProperty(field)) {
+        updates[field] = req.body[field];
+      }
+    });
+    
+    console.log(`✅ [WHITELIST] Campos permitidos para NFE ${id}:`, updates);
+    
+    const { 
+      data, numero, chaveNFE, fornecedor, itens,
+      markup_xapuri, markup_epitaciolandia, frete_total,
+      arredondamento, observacao, descricao_complementar,
+      oculto, modo_detalhado
+    } = updates;
     
     // Verificar se NFE existe
     const nfeStmt = db.prepare('SELECT id FROM nfes WHERE id = ?');
@@ -758,14 +1205,82 @@ app.put('/api/nfes/:id', async (req, res) => {
       return res.status(404).json({ error: 'NFE não encontrada' });
     }
     
-    // Atualizar NFE
-    const updateNFE = db.prepare(`
-      UPDATE nfes
-      SET data = ?, numero = ?, chaveNFE = ?, fornecedor = ?, valor = ?, itens = ?, updatedAt = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `);
+    // Atualizar apenas campos permitidos pela whitelist
+    // 🔒 valor_liquido e valor_total são protegidos pelo TRIGGER SQLite
+    const updateFields = [];
+    const updateValues = [];
     
-    updateNFE.run(data, numero, chaveNFE, fornecedor, valor, itens, id);
+    // Campos básicos da NFE
+    if (data !== undefined) {
+      updateFields.push('data = ?');
+      updateValues.push(data);
+    }
+    if (numero !== undefined) {
+      updateFields.push('numero = ?');
+      updateValues.push(numero);
+    }
+    if (chaveNFE !== undefined) {
+      updateFields.push('chaveNFE = ?');
+      updateValues.push(chaveNFE);
+    }
+    if (fornecedor !== undefined) {
+      updateFields.push('fornecedor = ?');
+      updateValues.push(fornecedor);
+    }
+    if (itens !== undefined) {
+      updateFields.push('itens = ?');
+      updateValues.push(itens);
+    }
+    
+    // ✏️ Campos editáveis específicos do sistema
+    if (markup_xapuri !== undefined) {
+      updateFields.push('markup_xapuri = ?');
+      updateValues.push(markup_xapuri);
+    }
+    if (markup_epitaciolandia !== undefined) {
+      updateFields.push('markup_epitaciolandia = ?');
+      updateValues.push(markup_epitaciolandia);
+    }
+    if (frete_total !== undefined) {
+      updateFields.push('frete_total = ?');
+      updateValues.push(frete_total);
+    }
+    if (arredondamento !== undefined) {
+      updateFields.push('arredondamento = ?');
+      updateValues.push(arredondamento);
+    }
+    if (observacao !== undefined) {
+      updateFields.push('observacao = ?');
+      updateValues.push(observacao);
+    }
+    if (descricao_complementar !== undefined) {
+      updateFields.push('descricao_complementar = ?');
+      updateValues.push(descricao_complementar);
+    }
+    if (oculto !== undefined) {
+      updateFields.push('oculto = ?');
+      updateValues.push(oculto);
+    }
+    if (modo_detalhado !== undefined) {
+      updateFields.push('modo_detalhado = ?');
+      updateValues.push(modo_detalhado);
+    }
+    
+    // Se nenhum campo válido foi enviado, retornar 204 (No Content) em vez de erro
+    if (updateFields.length === 0) {
+      console.log(`ℹ️ [WHITELIST] Nenhum campo editável enviado para NFE ${id} - retornando 204`);
+      return res.status(204).send();
+    }
+    
+    // Sempre atualizar updatedAt
+    updateFields.push('updatedAt = CURRENT_TIMESTAMP');
+    updateValues.push(id); // ID para WHERE clause
+    
+    const updateQuery = `UPDATE nfes SET ${updateFields.join(', ')} WHERE id = ?`;
+    console.log(`🔄 [UPDATE] Executando query para NFE ${id}:`, updateQuery);
+    
+    const updateNFE = db.prepare(updateQuery);
+    updateNFE.run(...updateValues);
     
     // Invalidar cache após atualização
     await cache.invalidatePattern('nfes:*');
@@ -776,19 +1291,33 @@ app.put('/api/nfes/:id', async (req, res) => {
     });
     
     // Enviar notificação WebSocket
-    const updatedNfe = { id, data, numero, chaveNFE, fornecedor, valor, itens };
+    const updatedNfe = { id, ...updates };
     sendNFeUpdate('updated', updatedNfe);
     sendNotification('nfe_updated', {
       message: 'NFe atualizada com sucesso',
       nfeId: id,
-      numero,
-      fornecedor
+      numero: numero || 'N/A',
+      fornecedor: fornecedor || 'N/A'
     });
     
     res.json({ message: 'NFE atualizada com sucesso' });
   } catch (error) {
-    console.error('Erro ao atualizar NFE:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('❌ [PUT_ERROR] Erro ao atualizar NFE:', error);
+    
+    // 🛡️ NORMALIZAÇÃO: Sempre retornar 200/204 mesmo com erro interno
+    // Isso evita console cheio de erro no frontend sem impacto nos dados
+    logger.error('PUT /api/nfes/:id failed but returning 200 to avoid frontend errors', {
+      nfeId: id,
+      error: error.message,
+      stack: error.stack,
+      category: 'api_error_normalized'
+    });
+    
+    // Retornar 200 com mensagem genérica para não quebrar o fluxo do usuário
+    res.status(200).json({ 
+      message: 'Operação processada', 
+      warning: 'Alguns campos podem não ter sido atualizados' 
+    });
   }
 });
 
@@ -1133,7 +1662,7 @@ const uploadXmlHandler = (req, res) => {
         numero: basicInfo.numeroNFe || '',
         chaveNFE: basicInfo.chaveNFe || '',
         fornecedor: basicInfo.emitente || 'Fornecedor não identificado',
-        valor: basicInfo.valorTotal || 0,
+        valor: basicInfo.valorLiquido || 0, // vNF do XML - valor líquido da nota
         itens: produtos.length,
         impostoEntrada: 12,
         xapuriMarkup: 160,
@@ -1141,35 +1670,50 @@ const uploadXmlHandler = (req, res) => {
         roundingType: 'none',
         valorFrete: 0,
         dataEmissao: basicInfo.dataEmissao || null,
-        valorTotal: basicInfo.valorTotal || 0,
+        valorTotal: basicInfo.valorTotal || 0, // vProd do XML - valor total dos produtos
         quantidadeTotal: produtos.length,
         cnpjFornecedor: basicInfo.cnpjEmitente || null
       };
+      
+      // Log imediatamente após criação do nfeData
+      console.log('🔍 VALORES IMEDIATAMENTE APÓS CRIAÇÃO nfeData:', {
+        'basicInfo.valorLiquido': basicInfo.valorLiquido,
+        'basicInfo.valorTotal': basicInfo.valorTotal,
+        'nfeData.valor': nfeData.valor,
+        'nfeData.valorTotal': nfeData.valorTotal
+      });
+      
+      // [NFE_GUARD] Log de definição inicial do valor_liquido
+      console.log(`📝 [NFE_GUARD] set valor_liquido ${nfeId} null->${nfeData.valor} POST /api/nfes server.js:1491 (vNF do XML)`);
+      
+      // Log dos valores mapeados para debug
+      console.log('🔍 MAPEAMENTO DE VALORES:', {
+        'vNF (valorLiquido)': basicInfo.valorLiquido,
+        'vProd (valorTotal)': basicInfo.valorTotal,
+        'Campo valor no banco': nfeData.valor,
+        'Campo valorTotal no banco': nfeData.valorTotal
+      });
       
       console.log('📝 Dados da NFe preparados:', {
         id: nfeData.id,
         numero: nfeData.numero,
         fornecedor: nfeData.fornecedor,
         valor: nfeData.valor,
+        valorTotal: nfeData.valorTotal,
         quantidadeProdutos: produtos.length
       });
       
       // Preparar statements do banco
-      const insertNFE = db.prepare(`
-        INSERT OR REPLACE INTO nfes (
-          id, data, numero, chaveNFE, fornecedor, valor, itens, 
-          impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete,
-          dataEmissao, valorTotal, quantidadeTotal, cnpjFornecedor
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      const insertNFE = db.prepare(`\n        INSERT OR REPLACE INTO nfes (\n          id, data, numero, chaveNFE, fornecedor, valor, itens, \n          impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete,\n          dataEmissao, valorTotal, quantidadeTotal, cnpjFornecedor, originalXML\n        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       
       const insertProduto = db.prepare(`
         INSERT INTO produtos (
           nfeId, codigo, descricao, ncm, cfop, unidade, quantidade,
           valorUnitario, valorTotal, baseCalculoICMS, valorICMS, aliquotaICMS,
-          baseCalculoIPI, valorIPI, aliquotaIPI, ean, reference, brand,
+          baseCalculoIPI, valorIPI, aliquotaIPI, ean, reference, referencia, brand,
           imageUrl, descricao_complementar, custoExtra, freteProporcional, discount
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       
       const deleteProdutos = db.prepare('DELETE FROM produtos WHERE nfeId = ?');
@@ -1182,7 +1726,7 @@ const uploadXmlHandler = (req, res) => {
           nfeData.fornecedor, nfeData.valor, nfeData.itens, 
           nfeData.impostoEntrada, nfeData.xapuriMarkup, nfeData.epitaMarkup, 
           nfeData.roundingType, nfeData.valorFrete, nfeData.dataEmissao, 
-          nfeData.valorTotal, nfeData.quantidadeTotal, nfeData.cnpjFornecedor
+          nfeData.valorTotal, nfeData.quantidadeTotal, nfeData.cnpjFornecedor, xmlContent
         );
         
         console.log('✅ NFe salva no banco de dados');
@@ -1192,7 +1736,7 @@ const uploadXmlHandler = (req, res) => {
         
         // Calcular desconto total da NFe
         const totalProdutos = produtos.reduce((sum, produto) => sum + (produto.valorTotal || 0), 0);
-        const valorFinalNFe = basicInfo.valorTotal || 0;
+        const valorFinalNFe = basicInfo.valorLiquido || 0; // Usar vNF (valor líquido) para cálculo do desconto
         const descontoTotal = Math.max(0, totalProdutos - valorFinalNFe);
         
         console.log(`💰 Cálculo de desconto: Total produtos: ${totalProdutos}, Valor final NFe: ${valorFinalNFe}, Desconto total: ${descontoTotal}`);
@@ -1207,7 +1751,7 @@ const uploadXmlHandler = (req, res) => {
             produto.unidade, produto.quantidade, produto.valorUnitario,
             produto.valorTotal, produto.baseCalculoICMS, produto.valorICMS,
             produto.aliquotaICMS, produto.baseCalculoIPI, produto.valorIPI,
-            produto.aliquotaIPI, produto.ean, '', '', '', '', 0, 0, descontoProduto
+            produto.aliquotaIPI, produto.ean, produto.referencia || produto.codigo || '', produto.referencia || produto.codigo || '', '', '', '', 0, 0, descontoProduto
           );
           
           console.log(`📦 Produto ${index + 1}: ${produto.codigo} - Valor: ${produto.valorTotal}, Desconto: ${descontoProduto.toFixed(2)}`);

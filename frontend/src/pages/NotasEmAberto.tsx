@@ -26,6 +26,7 @@ const NotasEmAberto = () => {
   const [brandName, setBrandName] = useState<string>("");
   const [isEditingBrand, setIsEditingBrand] = useState(false);
   const [hiddenItems, setHiddenItems] = useState<Set<number>>(new Set());
+  const [nfeNetValue, setNfeNetValue] = useState<number>(0);
   
   // Configurações (carregadas do localStorage)
   const [xapuriMarkup, setXapuriMarkup] = useState<number>(() => {
@@ -44,11 +45,15 @@ const NotasEmAberto = () => {
     const saved = localStorage.getItem('roundingType');
     return (saved as RoundingType) || 'none';
   });
+  const [valorFrete, setValorFrete] = useState<number>(() => {
+    const saved = localStorage.getItem('valorFrete');
+    return saved ? parseFloat(saved) || 0 : 0;
+  });
 
   // Criar objeto NFE atual para auto-save
   const currentNFE: NFE | null = currentNFeId ? {
     id: currentNFeId,
-    data: new Date().toISOString().split('T')[0],
+    data: new Date().toISOString().split('T')[0] || '',
     numero: invoiceNumber || '',
     fornecedor: brandName || '',
     valor: products.reduce((sum, p) => sum + (p.totalPrice ?? 0), 0),
@@ -57,11 +62,27 @@ const NotasEmAberto = () => {
     impostoEntrada: impostoEntrada,
     xapuriMarkup: xapuriMarkup,
     epitaMarkup: epitaMarkup,
-    roundingType: roundingType as RoundingType
+    roundingType: roundingType as RoundingType,
+    valorFrete: valorFrete,
+    hiddenItems: Array.from(hiddenItems)
   } : null;
 
   // Configurar auto-save
-  // useAutoSave(currentNFE, { enabled: currentNFeId !== null });
+  const { saveChanges } = useAutoSave(currentNFE);
+
+  // Atualizar auto-save quando os valores mudarem
+  useEffect(() => {
+    if (currentNFE) {
+      saveChanges({
+        xapuriMarkup,
+        epitaMarkup,
+        impostoEntrada,
+        roundingType,
+        valorFrete,
+        hiddenItems: Array.from(hiddenItems)
+      });
+    }
+  }, [xapuriMarkup, epitaMarkup, impostoEntrada, roundingType, valorFrete, hiddenItems, currentNFE, saveChanges]);
 
   // Carregar NFE específica se ID for fornecido na URL
   useEffect(() => {
@@ -99,6 +120,10 @@ const NotasEmAberto = () => {
       if (detailed.roundingType) {
         setRoundingType(detailed.roundingType as RoundingType);
       }
+      // Valor líquido total da NFE (vNF) vindo do XML salvo
+      if (detailed.valor !== undefined && detailed.valor !== null) {
+        setNfeNetValue(Number(detailed.valor) || 0);
+      }
     } catch (err) {
       console.error('Falha ao carregar NFE detalhada:', err);
       setProducts(Array.isArray(nfe.produtos) ? nfe.produtos : []);
@@ -120,6 +145,9 @@ const NotasEmAberto = () => {
       }
       if (nfe.roundingType) {
         setRoundingType(nfe.roundingType as RoundingType);
+      }
+      if (nfe.valorTotal !== undefined && nfe.valorTotal !== null) {
+        setNfeNetValue(Number(nfe.valorTotal) || 0);
       }
     } finally {
       setIsLoadingProducts(false);
@@ -151,6 +179,11 @@ const NotasEmAberto = () => {
     localStorage.setItem('roundingType', value);
   };
 
+  const handleValorFreteChange = (value: number) => {
+    setValorFrete(value);
+    localStorage.setItem('valorFrete', value.toString());
+  };
+
   const handleDeleteAllNFEs = async () => {
     if (!Array.isArray(savedNFEs) || savedNFEs.length === 0) {
       toast.error('Não há notas para excluir');
@@ -170,6 +203,7 @@ const NotasEmAberto = () => {
         setInvoiceNumber('');
         setBrandName('');
         setHiddenItems(new Set());
+        setNfeNetValue(0);
       } catch (error) {
         console.error('Erro ao excluir todas as NFEs:', error);
       }
@@ -179,6 +213,7 @@ const NotasEmAberto = () => {
   const handleBackToList = () => {
     setProducts([]);
     setCurrentNFeId(null);
+    setNfeNetValue(0);
     navigate('/notas-em-aberto');
   };
 
@@ -239,6 +274,9 @@ const NotasEmAberto = () => {
               }
               setHiddenItems(newHiddenItems);
             }}
+            nfeNetValue={nfeNetValue}
+            valorFrete={valorFrete}
+            onValorFreteChange={handleValorFreteChange}
           />
         )}
       </div>
@@ -317,7 +355,7 @@ const NotasEmAberto = () => {
                   {/* Footer com valor total se disponível */}
                   {nfe.valorTotal && (
                     <div className="pt-3 border-t border-slate-200">
-                      <div className="text-sm text-slate-500">Valor Total</div>
+                      <div className="text-sm text-slate-500">VALOR TOTAL DA NOTA</div>
                       <div className="font-semibold text-green-600">
                         R$ {nfe.valorTotal.toLocaleString('pt-BR', {
                           minimumFractionDigits: 2,

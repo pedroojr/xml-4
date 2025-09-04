@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { statusAPI } from '@/services/api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,27 +8,62 @@ import { toast } from 'sonner';
 export const ServerStatus = () => {
   const [status, setStatus] = useState<'online' | 'offline' | 'checking'>('checking');
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
+  const intervalRef = useRef<number | null>(null);
+  const backoffRef = useRef(0);
+
+  const scheduleNext = (delay: number) => {
+    if (intervalRef.current) window.clearTimeout(intervalRef.current);
+    intervalRef.current = window.setTimeout(() => {
+      void checkStatus();
+    }, delay);
+  };
 
   const checkStatus = async () => {
+    // Pausar se aba não está visível
+    if (document.visibilityState !== 'visible') {
+      scheduleNext(30000);
+      return;
+    }
+
     setStatus('checking');
     try {
       const result = await statusAPI.check();
       setStatus('online');
       setLastCheck(new Date());
-    } catch (error) {
+      backoffRef.current = 0;
+      scheduleNext(30000); // 30s entre polls
+    } catch (error: any) {
       setStatus('offline');
       setLastCheck(new Date());
+      const statusCode = error?.status ?? error?.response?.status;
+      if (statusCode === 429) {
+        const base = backoffRef.current || 5000; // inicia em 5s
+        const next = Math.min(base * 2, 60000); // teto 60s
+        backoffRef.current = next;
+        scheduleNext(next);
+      } else {
+        scheduleNext(30000);
+      }
       console.error('Erro ao verificar status do servidor:', error);
     }
   };
 
   useEffect(() => {
-    checkStatus();
-    
-    // Verificar status a cada 60 segundos
-    const interval = setInterval(checkStatus, 60000);
-    
-    return () => clearInterval(interval);
+    void checkStatus();
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        // retomar imediatamente quando volta ao foco
+        scheduleNext(0);
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      if (intervalRef.current) window.clearTimeout(intervalRef.current);
+    };
   }, []);
 
   const getStatusColor = () => {
@@ -87,7 +122,7 @@ export const ServerStatus = () => {
           size="sm"
           variant="outline"
           onClick={() => {
-            checkStatus();
+            void checkStatus();
             toast.info('Verificando conexão com o servidor...');
           }}
           className="h-6 px-2 text-xs"

@@ -191,7 +191,7 @@ const Dashboard = () => {
         >
           <CardContent className="p-4">
             <div className="flex flex-col">
-              <span className="text-sm text-muted-foreground">Valor Total</span>
+              <span className="text-sm text-muted-foreground">VALOR TOTAL DA NOTA</span>
               <div className="flex items-center mt-2">
                 <DollarSign className="w-4 h-4 text-purple-500 mr-2" />
                 <span className="text-2xl font-bold">{formatCurrency(valorTotal)}</span>
