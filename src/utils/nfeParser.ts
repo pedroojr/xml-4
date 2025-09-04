@@ -1,9 +1,9 @@
 import { Product } from '../types/nfe';
-import { extrairCorDaDescricao } from './colorParser';
-import { extrairTamanhoDaDescricao } from './sizeParser';
+import { extractColorFromDescription } from './colorParser';
+import { extractSizeFromDescription } from './sizeParser';
 import { identifyBrand, analyzeReference } from './brandIdentifier';
 
-const formatarDescricaoComplementar = (texto: string): string => {
+const formatAdditionalDescription = (texto: string): string => {
   if (!texto) return '';
 
   // Normalizar espaços e remover espaços extras
@@ -14,7 +14,7 @@ const formatarDescricaoComplementar = (texto: string): string => {
 
   if (!match) return textoNormalizado;
 
-  const [, inicio, codigo, descricaoFinal] = match;
+  const [, inicio, codigo, finalDescription] = match;
 
   // Formatar a primeira parte (até o tam: XX)
   const parteInicial = inicio
@@ -24,14 +24,14 @@ const formatarDescricaoComplementar = (texto: string): string => {
     .toUpperCase();
 
   // Formatar a parte após o código numérico
-  const parteDescricao = descricaoFinal
+  const descriptionPart = finalDescription
     .replace(/^-NP/, 'NP')
     .split('-')
     .map(part => part.trim())
     .join(' / ')
     .trim();
 
-  return `${parteInicial} ${codigo} ${parteDescricao}`;
+  return `${parteInicial} ${codigo} ${descriptionPart}`;
 };
 
 export const parseNFeXML = (xmlText: string): Product[] => {
@@ -126,23 +126,23 @@ export const parseNFeXML = (xmlText: string): Product[] => {
     const totalDiscount = unitDiscount * quantity;
     const netPrice = netUnitPrice * quantity;
     
-    const nome = getElementText(prod, "xProd");
+    const description = getElementText(prod, "xProd");
     const codigo = getElementText(prod, "cProd");
-    const corIdentificada = extrairCorDaDescricao(nome);
-    const tamanho = extrairTamanhoDaDescricao(nome);
+    const corIdentificada = extractColorFromDescription(description);
+    const tamanho = extractSizeFromDescription(description);
     const referencia = codigo;
 
-    analyzeReference(referencia, nome);
+    analyzeReference(referencia, description);
 
-    const { brand, confidence } = identifyBrand(referencia, nome);
+    const { brand, confidence } = identifyBrand(referencia, description);
     
     const product: Product = {
       code: codigo,
       ean: getElementText(prod, "cEAN"),
-      name: nome,
+      description: description,
       ncm: getElementText(prod, "NCM"),
       cfop: getElementText(prod, "CFOP"),
-      uom: getElementText(prod, "uCom"),
+      unit: getElementText(prod, "uCom"),
       quantity: quantity,
       unitPrice: unitPrice,
       totalPrice: totalPrice,
@@ -153,19 +153,13 @@ export const parseNFeXML = (xmlText: string): Product[] => {
       reference: referencia,
       salePrice: netPrice * 1.3,
       brand: brand,
-      descricao_complementar: formatarDescricaoComplementar(item.getElementsByTagName('infAdProd')[0]?.textContent || ''),
-      codigo: codigo,
-      descricao: nome,
-      unidade: getElementText(prod, "uCom"),
-      quantidade: quantity,
-      valorUnitario: unitPrice,
-      valorTotal: totalPrice,
-      baseCalculoICMS: 0,
-      valorICMS: 0,
-      aliquotaICMS: 0,
-      baseCalculoIPI: 0,
-      valorIPI: 0,
-      aliquotaIPI: 0
+      additionalDescription: formatAdditionalDescription(item.getElementsByTagName('infAdProd')[0]?.textContent || ''),
+      icmsBase: 0,
+      icmsValue: 0,
+      icmsRate: 0,
+      ipiBase: 0,
+      ipiValue: 0,
+      ipiRate: 0
     };
     
     products.push(product);

@@ -21,17 +21,17 @@ export const getDefaultColumns = (): Column[] => [
     minWidth: 48,
     order: 0
   },
-  { 
-    id: 'code', 
-    header: 'Código', 
+  {
+    id: 'code',
+    header: 'Code',
     initiallyVisible: true,
     width: 'w-fit',
     minWidth: 100,
     order: 1
   },
-  { 
-    id: 'name', 
-    header: 'Descrição', 
+  {
+    id: 'description',
+    header: 'Description',
     initiallyVisible: true,
     width: 'w-fit',
     minWidth: 300,
@@ -85,9 +85,9 @@ export const getDefaultColumns = (): Column[] => [
     minWidth: 80,
     order: 8
   },
-  { 
-    id: 'uom', 
-    header: 'UN', 
+  {
+    id: 'unit',
+    header: 'Unit',
     initiallyVisible: true,
     width: 'w-fit',
     minWidth: 56,
@@ -154,27 +154,27 @@ export const getDefaultColumns = (): Column[] => [
       return custoComDesconto; // O valor real com imposto será calculado no ProductTable
     }
   },
-  { 
-    id: 'freteProporcional', 
-    header: 'Frete Proporcional', 
-    initiallyVisible: true, 
+  {
+    id: 'freightShare',
+    header: 'Freight Share',
+    initiallyVisible: true,
     alignment: 'right',
     width: 'w-fit',
     minWidth: 112,
     order: 14.5,
     format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-    getValue: (product: Product) => product.freteProporcional ?? 0
+    getValue: (product: Product) => product.freightShare ?? 0
   },
   {
-    id: 'custoExtra',
-    header: 'Custo Extra',
+    id: 'extraCost',
+    header: 'Extra Cost',
     initiallyVisible: true,
     alignment: 'right',
     width: 'w-fit',
     minWidth: 112,
     order: 14.6,
     format: (value: number) => value?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) || '',
-    getValue: (product: Product) => product.custoExtra ?? 0
+    getValue: (product: Product) => product.extraCost ?? 0
   },
   { 
     id: 'unitDiscount', 
@@ -208,18 +208,18 @@ export const getDefaultColumns = (): Column[] => [
     format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
   },
   {
-    id: 'descricao_complementar',
-    header: 'Descrição Complementar',
+    id: 'additionalDescription',
+    header: 'Additional Description',
     initiallyVisible: false,
     width: 'w-fit',
     minWidth: 350,
     order: 18,
-    getValue: (product: Product) => product.descricao_complementar || ''
+    getValue: (product: Product) => product.additionalDescription || ''
   }
 ];
 
 export const compactColumns = [
-  'name',
+  'description',
   'ean',
   'quantity',
   'netPrice',

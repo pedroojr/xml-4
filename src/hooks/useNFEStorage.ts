@@ -4,21 +4,21 @@ import { Product } from '../types/nfe';
 
 export interface NFE {
   id: string;
-  data: string;
-  numero: string;
-  fornecedor: string;
-  valor: number;
-  itens: number;
-  produtos: Product[];
+  date: string;
+  number: string;
+  supplier: string;
+  value: number;
+  items: number;
+  products: Product[];
   brandName?: string;
   invoiceNumber?: string;
   isFavorite?: boolean;
-  chaveNFE?: string;
-  impostoEntrada: number;
+  nfeKey?: string;
+  entryTax: number;
   xapuriMarkup?: number;
   epitaMarkup?: number;
   roundingType?: string;
-  valorFrete?: number;
+  freightValue?: number;
   hiddenItems?: (string | number)[]; // pode ser código (string) ou índice legado (number)
   showHidden?: boolean;
 }
@@ -88,15 +88,15 @@ export const useNFEStorage = () => {
     localStorage.removeItem(eventType);
   };
 
-  const checkDuplicateNFE = (chaveNFE: string | undefined): boolean => {
-    if (!chaveNFE) return false;
-    return savedNFEs.some(nfe => nfe.chaveNFE === chaveNFE);
+  const checkDuplicateNFE = (nfeKey: string | undefined): boolean => {
+    if (!nfeKey) return false;
+    return savedNFEs.some(nfe => nfe.nfeKey === nfeKey);
   };
 
   const saveNFE = async (nfe: NFE) => {
     try {
       // Verifica se já existe uma nota com a mesma chave
-      if (nfe.chaveNFE && checkDuplicateNFE(nfe.chaveNFE)) {
+      if (nfe.nfeKey && checkDuplicateNFE(nfe.nfeKey)) {
         // Se for uma atualização da mesma nota (mesmo ID), permite
         const existingNFE = savedNFEs.find(saved => saved.id === nfe.id);
         if (!existingNFE) {
@@ -151,9 +151,9 @@ export const useNFEStorage = () => {
     }
   };
 
-  const updateNFEImpostoEntrada = async (id: string, impostoEntrada: number) => {
+  const updateNFEEntryTax = async (id: string, entryTax: number) => {
     try {
-      await updateNFE(id, { impostoEntrada });
+      await updateNFE(id, { entryTax });
       
       // Atualiza lista e notifica outras abas
       await loadNFEs();
@@ -166,16 +166,16 @@ export const useNFEStorage = () => {
     }
   };
 
-  const updateProdutoCustoExtra = async (nfeId: string, produtoCodigo: string, custoExtra: number) => {
+  const updateProductExtraCost = async (nfeId: string, productCode: string, extraCost: number) => {
     try {
       const nfe = savedNFEs.find(n => n.id === nfeId);
       if (nfe) {
-        const updatedProdutos = nfe.produtos.map(produto =>
-          produto.codigo === produtoCodigo
-            ? { ...produto, custoExtra }
+        const updatedProducts = nfe.products.map(produto =>
+          produto.code === productCode
+            ? { ...produto, extraCost }
             : produto
         );
-        await updateNFE(nfeId, { produtos: updatedProdutos });
+        await updateNFE(nfeId, { products: updatedProducts });
         
         // Atualiza lista e notifica outras abas
         await loadNFEs();
@@ -189,16 +189,16 @@ export const useNFEStorage = () => {
     }
   };
 
-  const updateProdutoFreteProporcional = async (nfeId: string, produtoCodigo: string, freteProporcional: number) => {
+  const updateProductFreightShare = async (nfeId: string, productCode: string, freightShare: number) => {
     try {
       const nfe = savedNFEs.find(n => n.id === nfeId);
       if (nfe) {
-        const updatedProdutos = nfe.produtos.map(produto =>
-          produto.codigo === produtoCodigo
-            ? { ...produto, freteProporcional }
+        const updatedProducts = nfe.products.map(produto =>
+          produto.code === productCode
+            ? { ...produto, freightShare }
             : produto
         );
-        await updateNFE(nfeId, { produtos: updatedProdutos });
+        await updateNFE(nfeId, { products: updatedProducts });
         
         // Atualiza lista e notifica outras abas
         await loadNFEs();
@@ -251,11 +251,11 @@ export const useNFEStorage = () => {
     removeNFE,
     toggleFavorite,
     updateNFE,
-    updateNFEImpostoEntrada,
-    updateProdutoCustoExtra,
-    updateProdutoFreteProporcional,
+    updateNFEEntryTax,
+    updateProductExtraCost,
+    updateProductFreightShare,
     updateHiddenItems,
     updateShowHidden,
     loadNFEs,
   };
-}; 
+};

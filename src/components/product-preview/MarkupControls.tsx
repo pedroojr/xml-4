@@ -17,8 +17,8 @@ interface MarkupControlsProps {
   onRoundingChange: (value: RoundingType) => void;
   xapuriSuggestedMarkup?: number;
   epitaSuggestedMarkup?: number;
-  valorFrete: number;
-  onValorFreteChange: (value: number) => void;
+  freightValue: number;
+  onFreightValueChange: (value: number) => void;
 }
 
 export const MarkupControls: React.FC<MarkupControlsProps> = ({
@@ -32,8 +32,8 @@ export const MarkupControls: React.FC<MarkupControlsProps> = ({
   onRoundingChange,
   xapuriSuggestedMarkup,
   epitaSuggestedMarkup,
-  valorFrete,
-  onValorFreteChange,
+  freightValue,
+  onFreightValueChange,
 }) => {
   return (
     <div className="p-2 border-b bg-white rounded shadow-sm">
@@ -155,14 +155,14 @@ export const MarkupControls: React.FC<MarkupControlsProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="valor-frete" className="text-xs font-semibold text-indigo-700 mb-1">
+          <Label htmlFor="freight-value" className="text-xs font-semibold text-indigo-700 mb-1">
             Frete Total (R$)
           </Label>
           <Input
-            id="valor-frete"
+            id="freight-value"
             type="number"
-            value={valorFrete}
-            onChange={e => onValorFreteChange(Number(e.target.value))}
+            value={freightValue}
+            onChange={e => onFreightValueChange(Number(e.target.value))}
             className="w-full min-w-[80px] border-indigo-200 focus:border-indigo-400 px-2 py-1 rounded text-sm"
             min="0"
             step="0.01"

@@ -85,10 +85,10 @@ export const extrairTamanhoDaReferencia = (referencia: string): string => {
   return '';
 };
 
-export const extrairTamanhoDaDescricao = (descricao: string): string => {
-  if (!descricao) return '';
+export const extractSizeFromDescription = (description: string): string => {
+  if (!description) return '';
 
-  const textoNormalizado = descricao.toUpperCase();
+  const textoNormalizado = description.toUpperCase();
   
   // Padrão Elian: extrai número entre hífens após FEMININA/MASCULINA/INFANTIL
   const matchElian = textoNormalizado.match(/(?:FEMININA|MASCULINA|INFANTIL)-(\d{1,2})-/i);
@@ -119,21 +119,21 @@ export const extrairTamanhoDaDescricao = (descricao: string): string => {
 };
 
 // Função para debug e análise de padrões
-export const analisarPadroesDetalhados = (descricao: string): { 
+export const analyzeDetailedPatterns = (description: string): {
   tamanhoEncontrado: string;
   padraoUtilizado?: string;
   detalhes: string[];
 } => {
   const detalhes: string[] = [];
   
-  if (!descricao) {
+  if (!description) {
     return { 
       tamanhoEncontrado: '', 
       detalhes: ['Descrição vazia']
     };
   }
 
-  const textoNormalizado = descricao.toUpperCase();
+  const textoNormalizado = description.toUpperCase();
   detalhes.push(`Texto normalizado: ${textoNormalizado}`);
 
   for (const { pattern, description } of sizePatterns) {

@@ -39,7 +39,7 @@ const Index = () => {
         id: currentNFE.id,
         hiddenItems: currentNFE.hiddenItems,
         showHidden: currentNFE.showHidden,
-        produtosCount: currentNFE.produtos?.length,
+        productsCount: currentNFE.products?.length,
         xapuriMarkup: currentNFE.xapuriMarkup,
         epitaMarkup: currentNFE.epitaMarkup,
         timestamp: new Date().toISOString()
@@ -48,7 +48,7 @@ const Index = () => {
       console.log('🔍 DEBUG - NFE NÃO encontrada:', {
         currentNFeId,
         savedNFEsCount: savedNFEs?.length || 0,
-        savedNFEs: savedNFEs?.map(n => n && n.id ? { id: n.id, numero: n.numero, xapuriMarkup: n.xapuriMarkup } : 'INVALID_NFE').filter(n => n !== 'INVALID_NFE') || [],
+        savedNFEs: savedNFEs?.map(n => n && n.id ? { id: n.id, number: n.number, xapuriMarkup: n.xapuriMarkup } : 'INVALID_NFE').filter(n => n !== 'INVALID_NFE') || [],
         timestamp: new Date().toISOString()
       });
     }
@@ -82,7 +82,7 @@ const Index = () => {
     if (savedNFEs && Array.isArray(savedNFEs)) {
       console.log('🔍 DEBUG - savedNFEs atualizado:', {
         count: savedNFEs.length,
-        nfes: savedNFEs.map(n => n && n.id ? { id: n.id, numero: n.numero, xapuriMarkup: n.xapuriMarkup, hiddenItems: n.hiddenItems, showHidden: n.showHidden } : 'INVALID_NFE').filter(n => n !== 'INVALID_NFE'),
+        nfes: savedNFEs.map(n => n && n.id ? { id: n.id, number: n.number, xapuriMarkup: n.xapuriMarkup, hiddenItems: n.hiddenItems, showHidden: n.showHidden } : 'INVALID_NFE').filter(n => n !== 'INVALID_NFE'),
         timestamp: new Date().toISOString()
       });
     } else {
@@ -93,35 +93,35 @@ const Index = () => {
   // Sincronização automática quando currentNFeId muda
   useEffect(() => {
     if (currentNFeId && currentNFE) {
-      console.log('🔍 DEBUG - Carregando produtos da NFE:', {
+      console.log('🔍 DEBUG - Carregando products da NFE:', {
         nfeId: currentNFE.id,
-        produtosCount: currentNFE.produtos?.length,
-        produtos: currentNFE.produtos,
+        productsCount: currentNFE.products?.length,
+        products: currentNFE.products,
         hiddenItems: currentNFE.hiddenItems,
         showHidden: currentNFE.showHidden
       });
       
-      // Normalizar produtos para garantir compatibilidade
-      const normalizedProducts = currentNFE.produtos?.map(p => ({
+      // Normalizar products para garantir compatibilidade
+      const normalizedProducts = currentNFE.products?.map(p => ({
         ...p,
-        codigo: p.codigo ?? p.code ?? '',
-        descricao: p.descricao ?? p.description ?? p.name ?? '',
+        code: p.code ?? p.code ?? '',
+        description: p.description ?? p.description ?? p.name ?? '',
         cor: p.cor ?? '',
-        totalPrice: p.totalPrice ?? p.valorTotal ?? 0
+        totalPrice: p.totalPrice ?? p.totalValue ?? 0
       })) || [];
       
       console.log('🔍 DEBUG - Produtos normalizados:', {
         count: normalizedProducts.length,
-        produtos: normalizedProducts
+        products: normalizedProducts
       });
       
       setProducts(normalizedProducts);
-      setInvoiceNumber(currentNFE.numero);
-      setBrandName(currentNFE.fornecedor);
+      setInvoiceNumber(currentNFE.number);
+      setBrandName(currentNFE.supplier);
     } else {
       console.log('🔍 DEBUG - NFE não encontrada ou sem ID:', {
         currentNFeId,
-        currentNFE: currentNFE ? { id: currentNFE.id, produtosCount: currentNFE.produtos?.length } : null
+        currentNFE: currentNFE ? { id: currentNFE.id, productsCount: currentNFE.products?.length } : null
       });
     }
   }, [currentNFeId, currentNFE]);
@@ -148,16 +148,16 @@ const Index = () => {
 
     if (!ideNode || !emitNode) return null;
 
-    const numero = ideNode.querySelector('nNF')?.textContent || '';
-    const dataEmissao = ideNode.querySelector('dhEmi')?.textContent || '';
+    const number = ideNode.querySelector('nNF')?.textContent || '';
+    const issueDate = ideNode.querySelector('dhEmi')?.textContent || '';
     const chaveNFE = nfeNode.querySelector('infNFe')?.getAttribute('Id')?.replace('NFe', '') || '';
     
     const emitNome = emitNode.querySelector('xNome')?.textContent || '';
     const emitCNPJ = emitNode.querySelector('CNPJ')?.textContent || emitNode.querySelector('CPF')?.textContent || '';
 
     return {
-      numero,
-      dataEmissao,
+      number,
+      issueDate,
       chaveNFE,
       emitNome,
       emitCNPJ
@@ -191,7 +191,7 @@ const Index = () => {
       const extractedProducts = parseNFeXML(text);
       console.log('🔍 DEBUG - Produtos extraídos do XML:', {
         count: extractedProducts.length,
-        produtos: extractedProducts
+        products: extractedProducts
       });
       
       const nfeId = `nfe_${Date.now()}`;
@@ -199,13 +199,13 @@ const Index = () => {
       // Salvar NFE com valores padrão
       const nfe = {
         id: nfeId,
-        data: nfeInfo.dataEmissao,
-        numero: nfeInfo.numero,
+        date: nfeInfo.issueDate,
+        number: nfeInfo.number,
         chaveNFE: nfeInfo.chaveNFE,
-        fornecedor: nfeInfo.emitNome,
-        valor: extractedProducts.reduce((sum, p) => sum + p.totalPrice, 0),
-        itens: extractedProducts.length,
-        produtos: extractedProducts,
+        supplier: nfeInfo.emitNome,
+        value: extractedProducts.reduce((sum, p) => sum + p.totalPrice, 0),
+        items: extractedProducts.length,
+        products: extractedProducts,
         impostoEntrada: 12,
         xapuriMarkup: 160,
         epitaMarkup: 130,
@@ -216,8 +216,8 @@ const Index = () => {
       
       console.log('🔍 DEBUG - Salvando NFE:', {
         nfeId: nfe.id,
-        produtosCount: nfe.produtos.length,
-        produtos: nfe.produtos
+        productsCount: nfe.products.length,
+        products: nfe.products
       });
       
       // Salvar NFE
@@ -234,38 +234,38 @@ const Index = () => {
           setTimeout(async () => {
             // Buscar NFE específica para confirmar que foi salva
             const savedNFE = savedNFEs.find(n => n && n.id === result.id);
-            if (savedNFE && savedNFE.produtos && savedNFE.produtos.length > 0) {
+            if (savedNFE && savedNFE.products && savedNFE.products.length > 0) {
               console.log('🔍 DEBUG - NFE encontrada após salvar:', {
                 id: savedNFE.id,
-                produtosCount: savedNFE.produtos.length
+                productsCount: savedNFE.products.length
               });
               
               // Definir como NFE atual
               setCurrentNFeId(result.id);
-              setInvoiceNumber(nfeInfo.numero);
+              setInvoiceNumber(nfeInfo.number);
               setBrandName(nfeInfo.emitNome);
               setXmlContentForDataSystem(text);
               
-              // Carregar produtos da NFE salva
-              const normalizedProducts = savedNFE.produtos.map(p => ({
+              // Carregar products da NFE salva
+              const normalizedProducts = savedNFE.products.map(p => ({
                 ...p,
-                codigo: p.codigo ?? p.code ?? '',
-                descricao: p.descricao ?? p.description ?? p.name ?? '',
+                code: p.code ?? p.code ?? '',
+                description: p.description ?? p.description ?? p.name ?? '',
                 cor: p.cor ?? '',
-                totalPrice: p.totalPrice ?? p.valorTotal ?? 0
+                totalPrice: p.totalPrice ?? p.totalValue ?? 0
               }));
               
               setProducts(normalizedProducts);
               
               console.log('🔍 DEBUG - Produtos carregados da NFE salva:', {
                 nfeId: result.id,
-                produtosCount: normalizedProducts.length
+                productsCount: normalizedProducts.length
               });
             } else {
-              console.warn('⚠️ NFE não encontrada ou sem produtos após salvar:', result.id);
-              // Fallback: usar produtos extraídos diretamente
+              console.warn('⚠️ NFE não encontrada ou sem products após salvar:', result.id);
+              // Fallback: usar products extraídos diretamente
               setCurrentNFeId(result.id);
-              setInvoiceNumber(nfeInfo.numero);
+              setInvoiceNumber(nfeInfo.number);
               setBrandName(nfeInfo.emitNome);
               setXmlContentForDataSystem(text);
               setProducts(extractedProducts);
@@ -274,18 +274,18 @@ const Index = () => {
           
         } catch (error) {
           console.error('❌ Erro ao recarregar NFEs após salvar:', error);
-          // Fallback: usar produtos extraídos diretamente
+          // Fallback: usar products extraídos diretamente
           setCurrentNFeId(result.id);
-          setInvoiceNumber(nfeInfo.numero);
+          setInvoiceNumber(nfeInfo.number);
           setBrandName(nfeInfo.emitNome);
           setXmlContentForDataSystem(text);
           setProducts(extractedProducts);
         }
       } else {
         console.error('❌ NFE salva mas sem ID retornado');
-        // Fallback: usar produtos extraídos diretamente
+        // Fallback: usar products extraídos diretamente
         setCurrentNFeId(nfeId);
-        setInvoiceNumber(nfeInfo.numero);
+        setInvoiceNumber(nfeInfo.number);
         setBrandName(nfeInfo.emitNome);
         setXmlContentForDataSystem(text);
         setProducts(extractedProducts);
@@ -304,15 +304,15 @@ const Index = () => {
     const ideNode = xmlDoc.querySelector('ide');
     if (!ideNode) return '';
     
-    const numero = ideNode.querySelector('nNF')?.textContent || '';
-    return numero;
+    const number = ideNode.querySelector('nNF')?.textContent || '';
+    return number;
   };
 
   const handleLoadNFe = (nfe: NFE) => {
     console.log('🔍 DEBUG - Carregando NFE existente:', {
       nfeId: nfe.id,
-      produtosCount: nfe.produtos?.length,
-      produtos: nfe.produtos,
+      productsCount: nfe.products?.length,
+      products: nfe.products,
       hiddenItems: nfe.hiddenItems,
       showHidden: nfe.showHidden
     });
@@ -320,32 +320,32 @@ const Index = () => {
     // Definir como NFE atual
     setCurrentNFeId(nfe.id);
     
-    // Carregar produtos IMEDIATAMENTE se existirem
-    if (nfe.produtos && nfe.produtos.length > 0) {
-      console.log('🔍 DEBUG - Carregando produtos da NFE existente:', {
-        count: nfe.produtos.length,
-        produtos: nfe.produtos
+    // Carregar products IMEDIATAMENTE se existirem
+    if (nfe.products && nfe.products.length > 0) {
+      console.log('🔍 DEBUG - Carregando products da NFE existente:', {
+        count: nfe.products.length,
+        products: nfe.products
       });
       
-      // Normalizar produtos para garantir compatibilidade
-      const normalizedProducts = nfe.produtos.map(p => ({
+      // Normalizar products para garantir compatibilidade
+      const normalizedProducts = nfe.products.map(p => ({
         ...p,
-        codigo: p.codigo ?? p.code ?? '',
-        descricao: p.descricao ?? p.description ?? p.name ?? '',
+        code: p.code ?? p.code ?? '',
+        description: p.description ?? p.description ?? p.name ?? '',
         cor: p.cor ?? '',
-        totalPrice: p.totalPrice ?? p.valorTotal ?? 0
+        totalPrice: p.totalPrice ?? p.totalValue ?? 0
       }));
       
       setProducts(normalizedProducts);
-      setInvoiceNumber(nfe.numero);
-      setBrandName(nfe.fornecedor);
+      setInvoiceNumber(nfe.number);
+      setBrandName(nfe.supplier);
       
       console.log('🔍 DEBUG - Produtos carregados da NFE existente:', {
         count: normalizedProducts.length,
-        produtos: normalizedProducts
+        products: normalizedProducts
       });
     } else {
-      console.warn('⚠️ NFE sem produtos:', nfe.id);
+      console.warn('⚠️ NFE sem products:', nfe.id);
       setProducts([]);
     }
   };
@@ -388,7 +388,7 @@ const Index = () => {
     setIsEditingBrand(false);
   };
 
-  // Função robusta para ocultar/exibir itens
+  // Função robusta para ocultar/exibir items
   const handleToggleVisibility = async (index: number) => {
     if (!currentNFeId) return;
     
@@ -436,12 +436,12 @@ const Index = () => {
                         className="w-full text-left p-3 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-colors group"
                       >
                         <div className="font-medium text-slate-900 group-hover:text-blue-700 truncate">
-                          {nfe.fornecedor}
+                          {nfe.supplier}
                         </div>
                         <div className="text-sm text-slate-600 flex items-center justify-between">
-                          <span>NF-e {nfe.numero}</span>
+                          <span>NF-e {nfe.number}</span>
                           <span className="text-xs bg-slate-100 px-2 py-1 rounded">
-                            {nfe.itens} itens
+                            {nfe.items} items
                           </span>
                         </div>
                       </button>
@@ -460,7 +460,7 @@ const Index = () => {
                 </div>
                 <h1 className="text-3xl font-bold text-slate-900 mb-2">Importação de Produtos via XML</h1>
                 <p className="text-slate-600 w-full max-w-2xl">
-                  Faça upload do arquivo XML da NF-e para importar automaticamente os produtos
+                  Faça upload do arquivo XML da NF-e para importar automaticamente os products
                 </p>
               </div>
 
@@ -496,8 +496,8 @@ const Index = () => {
                                 {pdfItems.map((item, idx) => (
                                   <tr key={idx}>
                                     <td className="px-4 py-2 border">{item.item}</td>
-                                    <td className="px-4 py-2 border">{item.descricao}</td>
-                                    <td className="px-4 py-2 border">{item.quantidade}</td>
+                                    <td className="px-4 py-2 border">{item.description}</td>
+                                    <td className="px-4 py-2 border">{item.quantity}</td>
                                     <td className="px-4 py-2 border">{item.totalBruto}</td>
                                     <td className="px-4 py-2 border">{item.totalLiquido}</td>
                                   </tr>

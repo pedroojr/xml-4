@@ -165,7 +165,24 @@ app.get('/api/nfes', (req, res) => {
       } catch (e) {
         hiddenItems = [];
       }
-      return { ...row, hiddenItems, showHidden: Boolean(row.showHidden) };
+      return {
+        id: row.id,
+        date: row.data,
+        number: row.numero,
+        nfeKey: row.chaveNFE,
+        supplier: row.fornecedor,
+        value: row.valor,
+        items: row.itens,
+        entryTax: row.impostoEntrada,
+        xapuriMarkup: row.xapuriMarkup,
+        epitaMarkup: row.epitaMarkup,
+        roundingType: row.roundingType,
+        freightValue: row.valorFrete,
+        hiddenItems,
+        showHidden: Boolean(row.showHidden),
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt
+      };
     });
     res.json(nfes);
   } catch (error) {
@@ -179,13 +196,55 @@ app.get('/api/nfes/:id', (req, res) => {
   try {
     const { id } = req.params;
     const nfeStmt = db.prepare('SELECT * FROM nfes WHERE id = ?');
-    const nfe = nfeStmt.get(id);
-    if (!nfe) return res.status(404).json({ error: 'NFE não encontrada' });
+    const nfeRow = nfeStmt.get(id);
+    if (!nfeRow) return res.status(404).json({ error: 'NFE não encontrada' });
     const produtosStmt = db.prepare('SELECT * FROM produtos WHERE nfeId = ?');
-    const produtos = produtosStmt.all(id);
+    const produtosRows = produtosStmt.all(id);
     let hiddenItems = [];
-    try { hiddenItems = nfe.hiddenItems ? JSON.parse(nfe.hiddenItems) : []; } catch { hiddenItems = []; }
-    res.json({ ...nfe, hiddenItems, showHidden: Boolean(nfe.showHidden), produtos });
+    try { hiddenItems = nfeRow.hiddenItems ? JSON.parse(nfeRow.hiddenItems) : []; } catch { hiddenItems = []; }
+    const products = produtosRows.map(p => ({
+      id: p.id,
+      code: p.codigo,
+      description: p.descricao,
+      ncm: p.ncm,
+      cfop: p.cfop,
+      unit: p.unidade,
+      quantity: p.quantidade,
+      unitPrice: p.valorUnitario,
+      totalPrice: p.valorTotal,
+      icmsBase: p.baseCalculoICMS,
+      icmsValue: p.valorICMS,
+      icmsRate: p.aliquotaICMS,
+      ipiBase: p.baseCalculoIPI,
+      ipiValue: p.valorIPI,
+      ipiRate: p.aliquotaIPI,
+      ean: p.ean,
+      reference: p.reference,
+      brand: p.brand,
+      imageUrl: p.imageUrl,
+      additionalDescription: p.descricao_complementar,
+      extraCost: p.custoExtra,
+      freightShare: p.freteProporcional
+    }));
+    res.json({
+      id: nfeRow.id,
+      date: nfeRow.data,
+      number: nfeRow.numero,
+      nfeKey: nfeRow.chaveNFE,
+      supplier: nfeRow.fornecedor,
+      value: nfeRow.valor,
+      items: nfeRow.itens,
+      entryTax: nfeRow.impostoEntrada,
+      xapuriMarkup: nfeRow.xapuriMarkup,
+      epitaMarkup: nfeRow.epitaMarkup,
+      roundingType: nfeRow.roundingType,
+      freightValue: nfeRow.valorFrete,
+      hiddenItems,
+      showHidden: Boolean(nfeRow.showHidden),
+      products,
+      createdAt: nfeRow.createdAt,
+      updatedAt: nfeRow.updatedAt
+    });
   } catch (error) {
     console.error('Erro ao buscar NFE:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -195,11 +254,11 @@ app.get('/api/nfes/:id', (req, res) => {
 // POST - Criar nova NFE
 app.post('/api/nfes', (req, res) => {
   try {
-    const { id, data, numero, chaveNFE, fornecedor, valor, itens, produtos, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete, hiddenItems, showHidden } = req.body;
+    const { id, date, number, nfeKey, supplier, value, items, products, entryTax, xapuriMarkup, epitaMarkup, roundingType, freightValue, hiddenItems, showHidden } = req.body;
     
     const insertNFE = db.prepare(`
       INSERT OR REPLACE INTO nfes (
-        id, data, numero, chaveNFE, fornecedor, valor, itens, 
+        id, data, numero, chaveNFE, fornecedor, valor, itens,
         impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete,
         hiddenItems, showHidden
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -219,9 +278,9 @@ app.post('/api/nfes', (req, res) => {
     db.transaction(() => {
       // Inserir/atualizar NFE
       insertNFE.run(
-        id, data, numero, chaveNFE, fornecedor, valor, itens,
-        impostoEntrada || 12, xapuriMarkup || 160, epitaMarkup || 130,
-        roundingType || 'none', valorFrete || 0,
+        id, date, number, nfeKey, supplier, value, items,
+        entryTax || 12, xapuriMarkup || 160, epitaMarkup || 130,
+        roundingType || 'none', freightValue || 0,
         JSON.stringify(hiddenItems || []), showHidden ? 1 : 0
       );
       
@@ -229,16 +288,16 @@ app.post('/api/nfes', (req, res) => {
       deleteProdutos.run(id);
       
       // Inserir novos produtos
-      if (produtos && Array.isArray(produtos)) {
-        produtos.forEach(produto => {
+      if (products && Array.isArray(products)) {
+        products.forEach(produto => {
           insertProduto.run(
-            id, produto.codigo, produto.descricao, produto.ncm, produto.cfop,
-            produto.unidade, produto.quantidade, produto.valorUnitario,
-            produto.valorTotal, produto.baseCalculoICMS, produto.valorICMS,
-            produto.aliquotaICMS, produto.baseCalculoIPI, produto.valorIPI,
-            produto.aliquotaIPI, produto.ean, produto.reference, produto.brand,
-            produto.imageUrl, produto.descricao_complementar,
-            produto.custoExtra || 0, produto.freteProporcional || 0
+            id, produto.code, produto.description, produto.ncm, produto.cfop,
+            produto.unit, produto.quantity, produto.unitPrice,
+            produto.totalPrice, produto.icmsBase, produto.icmsValue,
+            produto.icmsRate, produto.ipiBase, produto.ipiValue,
+            produto.ipiRate, produto.ean, produto.reference, produto.brand,
+            produto.imageUrl, produto.additionalDescription,
+            produto.extraCost || 0, produto.freightShare || 0
           );
         });
       }
@@ -255,19 +314,19 @@ app.post('/api/nfes', (req, res) => {
 app.put('/api/nfes/:id', (req, res) => {
   try {
     const { id } = req.params;
-    const { fornecedor, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete } = req.body;
-    
+    const { supplier, entryTax, xapuriMarkup, epitaMarkup, roundingType, freightValue } = req.body;
+
     const updateStmt = db.prepare(`
-      UPDATE nfes SET 
-        fornecedor = ?, impostoEntrada = ?, xapuriMarkup = ?, 
-        epitaMarkup = ?, roundingType = ?, valorFrete = ?, 
+      UPDATE nfes SET
+        fornecedor = ?, impostoEntrada = ?, xapuriMarkup = ?,
+        epitaMarkup = ?, roundingType = ?, valorFrete = ?,
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
-    
+
     const result = updateStmt.run(
-      fornecedor, impostoEntrada, xapuriMarkup, epitaMarkup, 
-      roundingType, valorFrete, id
+      supplier, entryTax, xapuriMarkup, epitaMarkup,
+      roundingType, freightValue, id
     );
     
     if (result.changes === 0) {

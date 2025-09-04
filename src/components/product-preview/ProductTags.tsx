@@ -44,13 +44,13 @@ export const ProductTags: React.FC<ProductTagsProps> = ({ product, index, onUpda
 
   // Gerar sugestões de tags com base na descrição do produto
   useEffect(() => {
-    if (product.name) {
-      const descricaoLowerCase = product.name.toLowerCase();
+    if (product.description) {
+      const descriptionLowerCase = product.description.toLowerCase();
       const sugestoes: string[] = [];
       
       CATEGORIAS_PREDEFINIDAS.forEach(categoria => {
         const matchesKeyword = categoria.keywords.some(keyword => 
-          descricaoLowerCase.includes(keyword.toLowerCase())
+          descriptionLowerCase.includes(keyword.toLowerCase())
         );
         
         if (matchesKeyword && !tags.includes(categoria.nome)) {
@@ -73,7 +73,7 @@ export const ProductTags: React.FC<ProductTagsProps> = ({ product, index, onUpda
       
       setSuggestedTags(sugestoes);
     }
-  }, [product.name, product.color, product.size, product.brand, tags]);
+  }, [product.description, product.color, product.size, product.brand, tags]);
 
   const handleAddTag = () => {
     if (newTag.trim() && !tags.includes(newTag.trim())) {

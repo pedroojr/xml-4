@@ -55,7 +55,7 @@ export const PriceCharts: React.FC<PriceChartsProps> = ({
   // Preparar dados para o gráfico de comparação de preços
   const preparePriceComparison = () => {
     return products.slice(0, 10).map(product => ({
-      name: product.name.substring(0, 15) + '...',
+      name: product.description.substring(0, 15) + '...',
       custo: product.netPrice,
       vendaXapuri: product.netPrice * (1 + xapuriMarkup / 100),
       vendaEpita: product.netPrice * (1 + epitaMarkup / 100),
@@ -73,7 +73,7 @@ export const PriceCharts: React.FC<PriceChartsProps> = ({
       const margemEpita = ((vendaEpita - custoUnitario) / vendaEpita) * 100;
       
       return {
-        name: product.name.substring(0, 15) + '...',
+        name: product.description.substring(0, 15) + '...',
         margemXapuri: parseFloat(margemXapuri.toFixed(1)),
         margemEpita: parseFloat(margemEpita.toFixed(1)),
       };
