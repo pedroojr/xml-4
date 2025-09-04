@@ -1,15 +1,15 @@
 {
   "requests": {
-    "total": 27559,
+    "total": 27582,
     "byEndpoint": {
       "/api/analytics/reset": 1,
       "/api/analytics/summary": 1,
       "/api/analytics/metrics": 1,
-      "/api/nfes": 13960,
-      "/api/status": 4825,
+      "/api/nfes": 13962,
+      "/api/status": 4845,
       "undefined": 4,
       "/api/export/files": 4,
-      "/api/upload-xml": 58,
+      "/api/upload-xml": 59,
       "/api/nfes/:id": 8688,
       "/": 1,
       "/api/nfes/:id/compare-original": 4,
@@ -23,17 +23,17 @@
       "/api/nfes/upload": 1
     },
     "byMethod": {
-      "POST": 613,
-      "GET": 18956,
+      "POST": 614,
+      "GET": 18978,
       "undefined": 4,
       "DELETE": 42,
       "PUT": 7944
     },
     "byStatusCode": {
-      "200": 5608,
+      "200": 5630,
       "201": 3,
       "204": 7457,
-      "304": 13484,
+      "304": 13485,
       "400": 5,
       "404": 21,
       "409": 6,
@@ -42,28 +42,28 @@
     }
   },
   "uploads": {
-    "total": 51,
-    "successful": 51,
+    "total": 52,
+    "successful": 52,
     "failed": 0,
-    "totalSize": 1941824
+    "totalSize": 1952532
   },
   "nfes": {
-    "total": 51,
-    "processed": 51,
+    "total": 52,
+    "processed": 52,
     "errors": 0,
     "byMonth": {
-      "2025-09": 51
+      "2025-09": 52
     }
   },
   "performance": {
-    "averageResponseTime": 10.507114136183235,
+    "averageResponseTime": 10.508032719856201,
     "slowestEndpoints": [],
     "cacheHitRate": 0,
     "totalCacheHits": 0,
-    "totalCacheMisses": 14116
+    "totalCacheMisses": 14118
   },
   "system": {
-    "uptime": 133752,
+    "uptime": 144686,
     "startTime": "2025-09-02T20:38:38.151Z",
     "lastRestart": "2025-09-02T20:38:38.151Z"
   },
