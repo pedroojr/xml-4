@@ -148,10 +148,10 @@ export const getDefaultColumns = (): Column[] => [
     format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
     getValue: (product: Product) => {
       const unitDiscount = product.quantity > 0 ? product.discount / product.quantity : 0;
-      const custoComDesconto = product.unitPrice - unitDiscount;
-      // Aqui assumimos que o impostoEntrada está disponível globalmente ou é passado como parâmetro
-      // O valor real será calculado no ProductTable.tsx
-      return custoComDesconto; // O valor real com imposto será calculado no ProductTable
+      const costWithDiscount = product.unitPrice - unitDiscount;
+      // We assume the entry tax is available globally or passed as a parameter
+      // The real value will be calculated in ProductTable.tsx
+      return costWithDiscount; // The actual value with tax will be calculated in ProductTable
     }
   },
   {

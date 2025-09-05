@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Product } from '../../types/nfe';
-import { calculateSalePrice, roundPrice, RoundingType, calcularFreteProporcional } from './productCalculations';
+import { calculateSalePrice, roundPrice, RoundingType, calculateProportionalFreight } from './productCalculations';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { ProductAnalysis } from './insights/ProductAnalysis';
@@ -10,7 +10,7 @@ import { getDefaultColumns, compactColumns, Column } from './types/column';
 import { ProductAnalysisTabs } from './ProductAnalysisTabs';
 import { ExportOptions } from './ExportOptions';
 import { ProductImageModal } from './ProductImageModal';
-import { useImpostoEntrada } from '../../hooks/useImpostoEntrada';
+import { useEntryTax } from '../../hooks/useEntryTax';
 
 interface ProductPreviewProps {
   products: Product[];
@@ -43,17 +43,17 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   onEpitaMarkupChange,
   onRoundingTypeChange
 }) => {
-  const { impostoEntrada, setImpostoEntrada } = useImpostoEntrada(0);
+  const { entryTax, setEntryTax } = useEntryTax(0);
 
   const [freightValue, setFreightValue] = useState<number>(0);
 
   // Calculate suggested markups
-  const totalBruto = products.reduce((sum, p) => sum + p.totalPrice, 0);
-  const totalLiquido = products.reduce((sum, p) => sum + p.netPrice, 0);
+  const totalGross = products.reduce((sum, p) => sum + p.totalPrice, 0);
+  const totalNet = products.reduce((sum, p) => sum + p.netPrice, 0);
   
   // Markup sugerido para Xapuri (ajustando para custo líquido)
-  const precoVendaXapuri = totalBruto * 2.2;
-  const xapuriSuggestedMarkup = totalLiquido > 0 ? Math.round(((precoVendaXapuri / totalLiquido) - 1) * 100) : 120;
+  const precoVendaXapuri = totalGross * 2.2;
+  const xapuriSuggestedMarkup = totalNet > 0 ? Math.round(((precoVendaXapuri / totalNet) - 1) * 100) : 120;
   
   // Markup sugerido para Epitaciolândia (já está em relação ao custo líquido)
   const epitaSuggestedMarkup = 130; // Equivalente a preço = custo líquido * 2.3
@@ -98,8 +98,8 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
     localStorage.setItem('epitaMarkup', epitaMarkup.toString());
     localStorage.setItem('roundingType', roundingType);
     localStorage.setItem('compactMode', JSON.stringify(compactMode));
-    localStorage.setItem('impostoEntrada', impostoEntrada.toString());
-  }, [xapuriMarkup, epitaMarkup, roundingType, compactMode, impostoEntrada]);
+    localStorage.setItem('entryTax', entryTax.toString());
+  }, [xapuriMarkup, epitaMarkup, roundingType, compactMode, entryTax]);
 
   useEffect(() => {
     const savedColumnOrder = localStorage.getItem('columnOrder');
@@ -178,17 +178,17 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
 
   const effectiveHiddenItems = onToggleVisibility ? hiddenItems : localHiddenItems;
 
-  // Calcular frete proporcional para cada item
-  const fretesProporcionais = calcularFreteProporcional(products, freightValue, impostoEntrada);
-  // Adiciona o campo nfeId para cada produto (usando invoiceNumber ou um valor fixo se não houver)
+  // Calculate proportional freight for each item
+  const proportionalFreights = calculateProportionalFreight(products, freightValue, entryTax);
+  // Add the nfeId field for each product (using invoiceNumber or a fixed value if none)
   const nfeId = invoiceNumber || 'nfe-id-unico';
-  // Atualizar produtos com frete proporcional
-  const productsWithFrete = products.map((p, idx) => ({
+  // Update products with proportional freight
+  const productsWithFreight = products.map((p, idx) => ({
     ...p,
     nfeId,
-    freightShare: fretesProporcionais[idx] || 0,
-    // Custo final unitário: custo líquido unitário + frete proporcional unitário
-    netPrice: (p.netPrice || 0) + (fretesProporcionais[idx] || 0)
+    freightShare: proportionalFreights[idx] || 0,
+    // Final unit cost: net cost + proportional freight unit
+    netPrice: (p.netPrice || 0) + (proportionalFreights[idx] || 0)
   }));
 
   return (
@@ -206,11 +206,11 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
             <ProductToolbar
               xapuriMarkup={xapuriMarkup}
               epitaMarkup={epitaMarkup}
-              impostoEntrada={impostoEntrada}
+              entryTax={entryTax}
               roundingType={roundingType}
               onXapuriMarkupChange={(value) => handleMarkupChange(value, epitaMarkup, roundingType)}
               onEpitaMarkupChange={(value) => handleMarkupChange(xapuriMarkup, value, roundingType)}
-              onImpostoEntradaChange={setImpostoEntrada}
+              onEntryTaxChange={setEntryTax}
               onRoundingChange={(value) => handleMarkupChange(xapuriMarkup, epitaMarkup, value)}
               compactMode={compactMode}
               toggleCompactMode={toggleCompactMode}
@@ -227,7 +227,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
             />
 
             <ProductTable
-              products={productsWithFrete}
+              products={productsWithFreight}
               visibleColumns={visibleColumns}
               columns={sortedColumns}
               hiddenItems={effectiveHiddenItems}
@@ -235,11 +235,11 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
               handleImageSearch={handleImageSearch}
               xapuriMarkup={xapuriMarkup}
               epitaMarkup={epitaMarkup}
-              impostoEntrada={impostoEntrada}
+              entryTax={entryTax}
               roundingType={roundingType}
               onXapuriMarkupChange={onXapuriMarkupChange}
               onEpitaMarkupChange={onEpitaMarkupChange}
-              onImpostoEntradaChange={setImpostoEntrada}
+              onEntryTaxChange={setEntryTax}
               onRoundingTypeChange={onRoundingTypeChange}
             />
           </TabsContent>

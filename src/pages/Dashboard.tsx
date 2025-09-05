@@ -30,18 +30,18 @@ import SavedNFEList from '@/components/SavedNFEList';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { savedNFEs, toggleFavorite } = useNFEStorage();
-  const [periodoSelecionado, setPeriodoSelecionado] = useState('mes');
+  const [selectedPeriod, setSelectedPeriod] = useState('mes');
 
-  // Cálculos dos totais com verificações de segurança
-  const totalNotas = savedNFEs.length;
+  // Total calculations with safety checks
+  const totalInvoices = savedNFEs.length;
   const totalProducts = savedNFEs.reduce((acc, nfe) => acc + (Array.isArray(nfe.products) ? nfe.products.length : 0), 0);
   const totalQuantity = savedNFEs.reduce((acc, nfe) =>
     acc + (Array.isArray(nfe.products) ? nfe.products.reduce((sum, prod) => sum + (Number(prod.quantity) || 0), 0) : 0), 0);
   const totalValue = savedNFEs.reduce((acc, nfe) => acc + (Number(nfe.value) || 0), 0);
   const totalTaxes = totalValue * 0.17; // 17% de impostos
-  const notasFavoritas = savedNFEs.filter(nfe => nfe.isFavorite).length;
+  const favoriteInvoices = savedNFEs.filter(nfe => nfe.isFavorite).length;
 
-  // Cálculo do volume de compras por fornecedor
+  // Calculate purchase volume per supplier
   const volumePerSupplier = savedNFEs.reduce((acc: any, nfe) => {
     const supplierName = nfe.supplier || 'Fornecedor não especificado';
     if (!acc[supplierName]) {
@@ -49,7 +49,7 @@ const Dashboard = () => {
         value: 0,
         items: 0,
         performance: 0,
-        crescimento: Math.random() * 20 - 10 // Simulação de crescimento (-10% a +10%)
+        growth: Math.random() * 20 - 10 // Growth simulation (-10% to +10%)
       };
     }
     acc[supplierName].value += Number(nfe.value) || 0;
@@ -57,28 +57,28 @@ const Dashboard = () => {
     return acc;
   }, {});
 
-  // Convertendo para array e ordenando por valor
+  // Convert to array and sort by value
   const suppliersOrdered = Object.entries(volumePerSupplier)
-    .map(([nome, dados]: [string, any]) => ({
-      name: nome,
-      value: dados.value,
-      items: dados.items,
+    .map(([name, data]: [string, any]) => ({
+      name,
+      value: data.value,
+      items: data.items,
       performance: '80%',
-      crescimento: dados.crescimento
+      growth: data.growth
     }))
     .sort((a, b) => b.value - a.value);
 
-  // Encontrar o fornecedor com maior crescimento
+  // Find supplier with highest growth
   const supplierLargestGrowth = suppliersOrdered[0] || {
     name: 'Nenhum fornecedor',
     value: 0,
     items: 0,
-    crescimento: 0
+    growth: 0
   };
 
-  // Função para navegar para a página de produtos com filtros
-  const navegarParaProdutos = (filtro?: string) => {
-    navigate('/produtos', { state: { filtro } });
+  // Function to navigate to products page with filters
+  const navigateToProducts = (filter?: string) => {
+    navigate('/produtos', { state: { filtro: filter } });
   };
 
   const handleNFESelect = (nfeId: string) => {
@@ -100,8 +100,8 @@ const Dashboard = () => {
         <div className="flex gap-4">
           <select
             className="px-3 py-1 border rounded-md text-sm"
-            value={periodoSelecionado}
-            onChange={(e) => setPeriodoSelecionado(e.target.value)}
+            value={selectedPeriod}
+            onChange={(e) => setSelectedPeriod(e.target.value)}
           >
             <option value="semana">Última Semana</option>
             <option value="mes">Último Mês</option>
@@ -119,18 +119,18 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Cards de Métricas */}
+      {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card 
           className="bg-white hover:bg-gray-50 cursor-pointer transition-colors"
-          onClick={() => navegarParaProdutos('notas')}
+          onClick={() => navigateToProducts('notas')}
         >
           <CardContent className="p-4">
             <div className="flex flex-col">
               <span className="text-sm text-muted-foreground">Total de Notas</span>
               <div className="flex items-center mt-2">
                 <FileText className="w-4 h-4 text-blue-500 mr-2" />
-                <span className="text-2xl font-bold">{totalNotas}</span>
+                <span className="text-2xl font-bold">{totalInvoices}</span>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -152,7 +152,7 @@ const Dashboard = () => {
 
         <Card 
           className="bg-white hover:bg-gray-50 cursor-pointer transition-colors"
-          onClick={() => navegarParaProdutos('produtos')}
+          onClick={() => navigateToProducts('produtos')}
         >
           <CardContent className="p-4">
             <div className="flex flex-col">
@@ -181,7 +181,7 @@ const Dashboard = () => {
 
         <Card 
           className="bg-white hover:bg-gray-50 cursor-pointer transition-colors"
-          onClick={() => navegarParaProdutos('quantidade')}
+          onClick={() => navigateToProducts('quantidade')}
         >
           <CardContent className="p-4">
             <div className="flex flex-col">
@@ -201,7 +201,7 @@ const Dashboard = () => {
 
         <Card 
           className="bg-white hover:bg-gray-50 cursor-pointer transition-colors"
-          onClick={() => navegarParaProdutos('valor')}
+          onClick={() => navigateToProducts('valor')}
         >
           <CardContent className="p-4">
             <div className="flex flex-col">
@@ -241,7 +241,7 @@ const Dashboard = () => {
               <span className="text-sm text-muted-foreground">Notas Favoritas</span>
               <div className="flex items-center mt-2">
                 <Bookmark className="w-4 h-4 text-yellow-500 mr-2" />
-                <span className="text-2xl font-bold">{notasFavoritas}</span>
+                <span className="text-2xl font-bold">{favoriteInvoices}</span>
               </div>
               <div className="flex items-center mt-2 text-xs">
                 <ArrowUpRight className="w-3 h-3 text-green-500 mr-1" />
@@ -252,7 +252,7 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Seção de Fornecedores VIP e Gráfico */}
+      {/* VIP Suppliers Section and Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="bg-white">
           <CardContent className="p-6">
@@ -294,10 +294,10 @@ const Dashboard = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`text-sm ${supplier.crescimento >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {supplier.crescimento >= 0 ? '+' : ''}{supplier.crescimento.toFixed(1)}%
+                    <span className={`text-sm ${supplier.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {supplier.growth >= 0 ? '+' : ''}{supplier.growth.toFixed(1)}%
                     </span>
-                    {supplier.crescimento >= 0 ? (
+                    {supplier.growth >= 0 ? (
                       <ArrowUpRight className="w-4 h-4 text-green-500" />
                     ) : (
                       <ArrowDownRight className="w-4 h-4 text-red-500" />
@@ -327,15 +327,15 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Gráfico de Volume de Compras */}
+        {/* Purchase Volume Chart */}
         <Card className="bg-white">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Volume de Compras por Fornecedor</h2>
               <select
                 className="px-2 py-1 border rounded-md text-sm"
-                value={periodoSelecionado}
-                onChange={(e) => setPeriodoSelecionado(e.target.value)}
+                value={selectedPeriod}
+                onChange={(e) => setSelectedPeriod(e.target.value)}
               >
                 <option value="semana">Por Semana</option>
                 <option value="mes">Por Mês</option>
@@ -364,7 +364,7 @@ const Dashboard = () => {
                         <p className="font-medium">{item.name}</p>
                         <p className="text-sm">Valor: {formatCurrency(item.value)}</p>
                         <p className="text-sm">Itens: {item.items}</p>
-                        <p className="text-sm">Crescimento: {item.crescimento.toFixed(1)}%</p>
+                        <p className="text-sm">Crescimento: {item.growth.toFixed(1)}%</p>
                       </div>
                     </TooltipContent>
                   </Tooltip>
@@ -375,7 +375,7 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Indicadores Comparativos */}
+      {/* Comparative Indicators */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="bg-white">
           <CardContent className="p-6">
@@ -409,7 +409,7 @@ const Dashboard = () => {
                 <div className="flex justify-between">
                   <span>Crescimento</span>
                   <span className="text-green-600">
-                    +{supplierLargestGrowth.crescimento.toFixed(1)}%
+                    +{supplierLargestGrowth.growth.toFixed(1)}%
                   </span>
                 </div>
                 <div className="flex justify-between">
