@@ -66,7 +66,7 @@ export const ProductTableRow: React.FC<ProductTableRowProps> = ({
       <TableCell className="text-right">{formatNumber(product.quantity)}</TableCell>
       <TableCell className="text-right">{formatCurrency(product.unitPrice)}</TableCell>
       <TableCell className="text-right">{formatCurrency(product.totalPrice)}</TableCell>
-      <TableCell className="text-right">{formatCurrency(product.discount)}</TableCell>
+      <TableCell className="text-right">{formatCurrency(product.discount ?? 0)}</TableCell>
       <TableCell className="text-right">{formatCurrency(unitNetPrice)}</TableCell>
       <TableCell className="text-right">
         {formatCurrency(calculateNetCost(product, product.icmsValue))}

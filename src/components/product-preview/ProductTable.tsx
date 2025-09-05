@@ -467,7 +467,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     if (sortedFilteredProducts.length === 0) return 0;
 
     const totalOriginalPrice = sortedFilteredProducts.reduce((acc, p) => acc + p.totalPrice, 0);
-    const totalDiscount = sortedFilteredProducts.reduce((acc, p) => acc + p.discount, 0);
+    const totalDiscount = sortedFilteredProducts.reduce((acc, p) => acc + (p.discount || 0), 0);
 
     return totalOriginalPrice > 0 ? (totalDiscount / totalOriginalPrice) * 100 : 0;
   };
@@ -477,10 +477,10 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     return prods.reduce((acc, p) => acc + p.quantity, 0);
   };
 
-  // Função para calcular o valor líquido total (Valor Total - Desconto Total)
+  // Function to calculate the total net value (Total Value - Total Discount)
   const calculateTotalNetValue = (prods: Product[]) => {
     const totalValue = prods.reduce((acc, p) => acc + p.totalPrice, 0);
-    const totalDiscount = prods.reduce((acc, p) => acc + p.discount, 0);
+    const totalDiscount = prods.reduce((acc, p) => acc + (p.discount || 0), 0);
     return totalValue - totalDiscount;
   };
 
@@ -593,7 +593,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
             </Card>
             <Card className="bg-white/50">
               <CardContent className="p-3">
-                <div className="text-xs font-medium text-muted-foreground">Desconto Médio</div>
+                <div className="text-xs font-medium text-muted-foreground">Average Discount</div>
                 <div className="text-sm font-medium tabular-nums">{averageDiscountPercent.toFixed(1)}%</div>
               </CardContent>
             </Card>

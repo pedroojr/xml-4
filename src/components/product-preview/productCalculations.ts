@@ -2,7 +2,7 @@ import { Product } from '../../types/nfe';
 
 // Calculates cost with discount (Gross Cost - Average Discount)
 export const calculateCostWithDiscount = (product: Product): number => {
-  const unitDiscount = product.quantity > 0 ? product.discount / product.quantity : 0;
+  const unitDiscount = product.quantity > 0 ? (product.discount || 0) / product.quantity : 0;
   return product.unitPrice - unitDiscount;
 };
 
@@ -38,7 +38,7 @@ export const calculateTotals = (products: Product[], entryTax: number) => {
     const netCost = calculateNetCost(product, entryTax);
     return {
       grossTotal: acc.grossTotal + product.totalPrice,
-      discountTotal: acc.discountTotal + product.discount,
+      discountTotal: acc.discountTotal + (product.discount || 0),
       netTotal: acc.netTotal + product.netPrice,
       netCostTotal: acc.netCostTotal + netCost,
     };
