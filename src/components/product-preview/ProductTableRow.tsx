@@ -5,7 +5,7 @@ import { formatCurrency, formatNumber } from '../../utils/formatters';
 import { Product } from '../../types/nfe';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Corrected import path
 import { CORES_OPCOES } from '../../utils/colorParser';
-import { calculateSalePrice, roundPrice, RoundingType, calculateCustoLiquido } from './productCalculations';
+import { calculateSalePrice, roundPrice, RoundingType, calculateNetCost } from './productCalculations';
 import { ProductTags } from './ProductTags';
 
 interface ProductTableRowProps {
@@ -69,7 +69,7 @@ export const ProductTableRow: React.FC<ProductTableRowProps> = ({
       <TableCell className="text-right">{formatCurrency(product.discount)}</TableCell>
       <TableCell className="text-right">{formatCurrency(unitNetPrice)}</TableCell>
       <TableCell className="text-right">
-        {formatCurrency(calculateCustoLiquido(product, product.icmsValue))}
+        {formatCurrency(calculateNetCost(product, product.icmsValue))}
       </TableCell>
       <TableCell>
         <ProductTags 

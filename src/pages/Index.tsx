@@ -57,7 +57,7 @@ const Index = () => {
   // Valores vindos APENAS do servidor
   const xapuriMarkup = currentNFE?.xapuriMarkup || 160;
   const epitaMarkup = currentNFE?.epitaMarkup || 130;
-  const impostoEntrada = currentNFE?.impostoEntrada || 12;
+  const entryTax = currentNFE?.entryTax || 12;
   const roundingType = (currentNFE?.roundingType as RoundingType) || 'none';
   const hiddenItems = new Set(currentNFE?.hiddenItems || []);
   const showHidden = currentNFE?.showHidden || false;
@@ -68,14 +68,14 @@ const Index = () => {
       console.log('🔍 DEBUG - Valores Derivados:', {
         xapuriMarkup,
         epitaMarkup,
-        impostoEntrada,
+        entryTax,
         roundingType,
         hiddenItems: Array.from(hiddenItems),
         showHidden,
         timestamp: new Date().toISOString()
       });
     }
-  }, [currentNFeId, currentNFE, xapuriMarkup, epitaMarkup, impostoEntrada, roundingType, hiddenItems, showHidden]);
+  }, [currentNFeId, currentNFE, xapuriMarkup, epitaMarkup, entryTax, roundingType, hiddenItems, showHidden]);
 
   // DEBUG: Log para savedNFEs
   useEffect(() => {
@@ -206,7 +206,7 @@ const Index = () => {
         value: extractedProducts.reduce((sum, p) => sum + p.totalPrice, 0),
         items: extractedProducts.length,
         products: extractedProducts,
-        impostoEntrada: 12,
+        entryTax: 12,
         xapuriMarkup: 160,
         epitaMarkup: 130,
         roundingType: 'none',
@@ -369,7 +369,7 @@ const Index = () => {
 
   const handleImpostoEntradaChange = async (value: number) => {
     if (currentNFeId) {
-      await updateNFE(currentNFeId, { impostoEntrada: value });
+      await updateNFE(currentNFeId, { entryTax: value });
       // Forçar sincronização imediata
       await loadNFEs();
     }
@@ -603,7 +603,7 @@ const Index = () => {
               xapuriMarkup={xapuriMarkup}
               epitaMarkup={epitaMarkup}
               roundingType={roundingType}
-              impostoEntrada={impostoEntrada}
+              entryTax={entryTax}
               onXapuriMarkupChange={handleXapuriMarkupChange}
               onEpitaMarkupChange={handleEpitaMarkupChange}
               onImpostoEntradaChange={handleImpostoEntradaChange}

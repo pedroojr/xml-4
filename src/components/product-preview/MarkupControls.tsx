@@ -9,11 +9,11 @@ import { HelpCircle } from "lucide-react";
 interface MarkupControlsProps {
   xapuriMarkup: number;
   epitaMarkup: number;
-  impostoEntrada: number;
+  entryTax: number;
   roundingType: RoundingType;
   onXapuriMarkupChange: (value: number) => void;
   onEpitaMarkupChange: (value: number) => void;
-  onImpostoEntradaChange: (value: number) => void;
+  onEntryTaxChange: (value: number) => void;
   onRoundingChange: (value: RoundingType) => void;
   xapuriSuggestedMarkup?: number;
   epitaSuggestedMarkup?: number;
@@ -24,11 +24,11 @@ interface MarkupControlsProps {
 export const MarkupControls: React.FC<MarkupControlsProps> = ({
   xapuriMarkup,
   epitaMarkup,
-  impostoEntrada,
+  entryTax,
   roundingType,
   onXapuriMarkupChange,
   onEpitaMarkupChange,
-  onImpostoEntradaChange,
+  onEntryTaxChange,
   onRoundingChange,
   xapuriSuggestedMarkup,
   epitaSuggestedMarkup,
@@ -100,7 +100,7 @@ export const MarkupControls: React.FC<MarkupControlsProps> = ({
 
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <Label htmlFor="imposto-entrada" className="text-xs font-semibold text-amber-800 mb-1">
+            <Label htmlFor="entry-tax" className="text-xs font-semibold text-amber-800 mb-1">
               Imposto de Entrada (%)
             </Label>
             <TooltipProvider>
@@ -118,10 +118,10 @@ export const MarkupControls: React.FC<MarkupControlsProps> = ({
           </div>
           <div className="relative">
             <Input
-              id="imposto-entrada"
+              id="entry-tax"
               type="number"
-              value={impostoEntrada}
-              onChange={(e) => onImpostoEntradaChange(Number(e.target.value))}
+              value={entryTax}
+              onChange={(e) => onEntryTaxChange(Number(e.target.value))}
               className="w-full min-w-[80px] border-amber-200 focus:border-amber-400 px-2 py-1 rounded text-sm"
               min="0"
               max="100"

@@ -16,11 +16,11 @@ import { RoundingType } from './productCalculations';
 interface ProductToolbarProps {
   xapuriMarkup: number;
   epitaMarkup: number;
-  impostoEntrada: number;
+  entryTax: number;
   roundingType: RoundingType;
   onXapuriMarkupChange: (value: number) => void;
   onEpitaMarkupChange: (value: number) => void;
-  onImpostoEntradaChange: (value: number) => void;
+  onEntryTaxChange: (value: number) => void;
   onRoundingChange: (value: RoundingType) => void;
   compactMode: boolean;
   toggleCompactMode: () => void;
@@ -39,11 +39,11 @@ interface ProductToolbarProps {
 export const ProductToolbar: React.FC<ProductToolbarProps> = ({
   xapuriMarkup,
   epitaMarkup,
-  impostoEntrada,
+  entryTax,
   roundingType,
   onXapuriMarkupChange,
   onEpitaMarkupChange,
-  onImpostoEntradaChange,
+  onEntryTaxChange,
   onRoundingChange,
   compactMode,
   toggleCompactMode,
@@ -65,11 +65,11 @@ export const ProductToolbar: React.FC<ProductToolbarProps> = ({
           <MarkupControls
             xapuriMarkup={xapuriMarkup}
             epitaMarkup={epitaMarkup}
-            impostoEntrada={impostoEntrada}
+            entryTax={entryTax}
             roundingType={roundingType}
             onXapuriMarkupChange={onXapuriMarkupChange}
             onEpitaMarkupChange={onEpitaMarkupChange}
-            onImpostoEntradaChange={onImpostoEntradaChange}
+            onEntryTaxChange={onEntryTaxChange}
             onRoundingChange={onRoundingChange}
             xapuriSuggestedMarkup={xapuriSuggestedMarkup}
             epitaSuggestedMarkup={epitaSuggestedMarkup}

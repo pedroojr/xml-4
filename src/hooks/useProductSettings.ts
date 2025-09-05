@@ -6,7 +6,7 @@ interface ProductSettings {
   xapuriMarkup: number;
   epitaMarkup: number;
   roundingType: 'none' | '50' | '90';
-  impostoEntrada: number;
+  entryTax: number;
   showOnlyWithImage: boolean;
   showOnlyHidden: boolean;
 }
@@ -23,7 +23,7 @@ export function useProductSettings(defaultSettings: Partial<ProductSettings> = {
         xapuriMarkup: parsed.xapuriMarkup || 120,
         epitaMarkup: parsed.epitaMarkup || 130,
         roundingType: parsed.roundingType || 'none',
-        impostoEntrada: parsed.impostoEntrada || 0,
+        entryTax: parsed.entryTax || 0,
         showOnlyWithImage: parsed.showOnlyWithImage || false,
         showOnlyHidden: parsed.showOnlyHidden || false,
         ...defaultSettings
@@ -35,7 +35,7 @@ export function useProductSettings(defaultSettings: Partial<ProductSettings> = {
       xapuriMarkup: 120,
       epitaMarkup: 130,
       roundingType: 'none',
-      impostoEntrada: 0,
+      entryTax: 0,
       showOnlyWithImage: false,
       showOnlyHidden: false,
       ...defaultSettings
@@ -88,8 +88,8 @@ export function useProductSettings(defaultSettings: Partial<ProductSettings> = {
     setSettings(prev => ({ ...prev, roundingType: type }));
   };
 
-  const updateImpostoEntrada = (value: number) => {
-    setSettings(prev => ({ ...prev, impostoEntrada: value }));
+  const updateEntryTax = (value: number) => {
+    setSettings(prev => ({ ...prev, entryTax: value }));
   };
 
   const toggleShowOnlyWithImage = () => {
@@ -106,7 +106,7 @@ export function useProductSettings(defaultSettings: Partial<ProductSettings> = {
     toggleVisibleColumn,
     updateMarkup,
     updateRoundingType,
-    updateImpostoEntrada,
+    updateEntryTax,
     toggleShowOnlyWithImage,
     toggleShowOnlyHidden
   };

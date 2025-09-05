@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, Image as ImageIcon, Copy, Check, ArrowLeftRight, Search, Filter } from "lucide-react";
 import { Product } from '../../types/nfe';
 import { Column } from './types/column';
-import { calculateSalePrice, roundPrice, RoundingType, calculateCustoComDesconto, calculateCustoLiquido } from './productCalculations';
+import { calculateSalePrice, roundPrice, RoundingType, calculateCostWithDiscount, calculateNetCost } from './productCalculations';
 import { toast } from "sonner";
 import { formatNumberForCopy, formatCurrency, formatNumber } from '../../utils/formatters';
 import { Switch } from "@/components/ui/switch";
@@ -45,8 +45,8 @@ interface ProductTableProps {
   xapuriMarkup: number;
   epitaMarkup: number;
   roundingType: RoundingType;
-  impostoEntrada: number;
-  onImpostoEntradaChange: (value: number) => void;
+  entryTax: number;
+  onEntryTaxChange: (value: number) => void;
   onXapuriMarkupChange: (value: number) => void;
   onEpitaMarkupChange: (value: number) => void;
   onRoundingTypeChange: (value: RoundingType) => void;
@@ -270,8 +270,8 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   xapuriMarkup,
   epitaMarkup,
   roundingType,
-  impostoEntrada,
-  onImpostoEntradaChange,
+  entryTax,
+  onEntryTaxChange,
   onXapuriMarkupChange,
   onEpitaMarkupChange,
   onRoundingTypeChange,
@@ -305,7 +305,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
-  // Estado local para custo extra de cada produto
+  // Local state for extra cost of each product
   const [extraCostMap, setExtraCostMap] = useState<{ [code: string]: string }>(() => {
     const initial: { [code: string]: string } = {};
     products.forEach(p => {
@@ -461,7 +461,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
       })
     : filteredProducts;
 
-  // Calcular a média de desconto em percentual
+  // Calculate average discount percentage
   // Observação: usar o conjunto atualmente exibido (após filtros/ocultos)
   const calculateAverageDiscountPercent = () => {
     if (sortedFilteredProducts.length === 0) return 0;
@@ -492,11 +492,11 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     setFilters(newFilters);
   };
 
-  // Efeito para recalcular os valores quando o imposto de entrada mudar
+  // Effect to recalculate values when entry tax changes
   useEffect(() => {
-    // Força a re-renderização da tabela quando o imposto de entrada mudar
+    // Force table re-render when entry tax changes
     setFilters(prevFilters => ({ ...prevFilters }));
-  }, [impostoEntrada]);
+  }, [entryTax]);
 
   const handleCopyValue = async (value: any) => {
     try {
@@ -532,8 +532,8 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     }
   };
 
-  const calcularCustoComImposto = (custoLiquido: number): number => {
-    return custoLiquido * (1 + (impostoEntrada / 100));
+  const calculateCostWithTax = (netCost: number): number => {
+    return netCost * (1 + (entryTax / 100));
   };
 
   return (
@@ -645,17 +645,23 @@ export const ProductTable: React.FC<ProductTableProps> = ({
               const productIndex = products.indexOf(product);
               const isHidden = hiddenItems.has(productIndex);
 
-              // Calcular o custo com desconto (Custo Bruto - Desconto Médio)
-              const custoComDesconto = calculateCustoComDesconto(product);
-              
-              // Calculate net cost (Cost with discount + Entry Tax)
-              const custoLiquido = calculateCustoLiquido(product, impostoEntrada);
-              // New: net cost + proportional freight
-              const custoLiquidoComFrete = custoLiquido + (product.freightShare || 0);
+              // Calculate cost with discount (Gross Cost - Average Discount)
+              const costWithDiscount = calculateCostWithDiscount(product);
+
+              // Calculate net cost (cost with discount + entry tax)
+              const netCost = calculateNetCost(product, entryTax);
+              // Net cost plus proportional freight
+              const netCostWithFreight = netCost + (product.freightShare || 0);
 
               // Calculate sale prices based on net cost + proportional freight
-              const xapuriPrice = roundPrice(calculateSalePrice({ ...product, netPrice: custoLiquidoComFrete }, xapuriMarkup), roundingType);
-              const epitaPrice = roundPrice(calculateSalePrice({ ...product, netPrice: custoLiquidoComFrete }, epitaMarkup), roundingType);
+              const xapuriPrice = roundPrice(
+                calculateSalePrice({ ...product, netPrice: netCostWithFreight }, xapuriMarkup),
+                roundingType
+              );
+              const epitaPrice = roundPrice(
+                calculateSalePrice({ ...product, netPrice: netCostWithFreight }, epitaMarkup),
+                roundingType
+              );
 
               const referenceSize = extractSizeFromReference(product.reference);
               const descriptionSize = extractSizeFromDescription(product.description);
@@ -687,7 +693,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                       );
                     }
 
-                    // Campo editável para custo extra
+                    // Editable field for extra cost
                     if (column.id === 'extraCost') {
                       return (
                         <TableCell key={column.id} className="text-right">
@@ -710,26 +716,34 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                       );
                     }
 
-                    // Ajustar preços finais para somar custo extra
+                    // Adjust final prices to include extra cost
                     let value: any = column.getValue ?
                       column.getValue(product) :
                       product[column.id as keyof Product];
                     if (column.id === 'xapuriPrice') {
                       const extraCost = parseFloat(extraCostMap[product.code] || '0') || 0;
-                      const netCost = calculateCustoLiquido(product, impostoEntrada);
+                      const netCost = calculateNetCost(product, entryTax);
                       const netCostWithFreight = netCost + (product.freightShare || 0);
-                      value = roundPrice(calculateSalePrice({ ...product, netPrice: netCostWithFreight }, xapuriMarkup), roundingType) + extraCost;
+                      value =
+                        roundPrice(
+                          calculateSalePrice({ ...product, netPrice: netCostWithFreight }, xapuriMarkup),
+                          roundingType
+                        ) + extraCost;
                     }
                     if (column.id === 'epitaPrice') {
                       const extraCost = parseFloat(extraCostMap[product.code] || '0') || 0;
-                      const netCost = calculateCustoLiquido(product, impostoEntrada);
+                      const netCost = calculateNetCost(product, entryTax);
                       const netCostWithFreight = netCost + (product.freightShare || 0);
-                      value = roundPrice(calculateSalePrice({ ...product, netPrice: netCostWithFreight }, epitaMarkup), roundingType) + extraCost;
+                      value =
+                        roundPrice(
+                          calculateSalePrice({ ...product, netPrice: netCostWithFreight }, epitaMarkup),
+                          roundingType
+                        ) + extraCost;
                     }
                     if (column.id === 'size') value = size;
                     if (column.id === 'netPrice') {
                       // Net cost = unit cost + proportional freight
-                      const netCost = calculateCustoLiquido(product, impostoEntrada);
+                      const netCost = calculateNetCost(product, entryTax);
                       const freightShare = product.freightShare || 0;
                       value = netCost + freightShare;
                     }
@@ -785,7 +799,7 @@ const getMinWidth = (columnId: string): number => {
     case 'quantity':
       return 80; // Quantidade
     case 'unitPrice':
-    case 'unitPriceWithDiscount': // Nova coluna de custo com desconto
+    case 'unitPriceWithDiscount': // New column for cost with discount
     case 'netPrice':
     case 'xapuriPrice':
     case 'epitaPrice':

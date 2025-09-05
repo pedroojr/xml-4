@@ -25,7 +25,7 @@ const Products = () => {
     toggleVisibleColumn,
     updateMarkup,
     updateRoundingType,
-    updateImpostoEntrada,
+    updateEntryTax,
     toggleShowOnlyWithImage,
     toggleShowOnlyHidden
   } = useProductSettings({
@@ -216,8 +216,8 @@ const Products = () => {
             xapuriMarkup={settings.xapuriMarkup}
             epitaMarkup={settings.epitaMarkup}
             roundingType={settings.roundingType}
-            impostoEntrada={settings.impostoEntrada}
-            onImpostoEntradaChange={updateImpostoEntrada}
+            entryTax={settings.entryTax}
+            onEntryTaxChange={updateEntryTax}
             onXapuriMarkupChange={(value) => updateMarkup('xapuri', value)}
             onEpitaMarkupChange={(value) => updateMarkup('epita', value)}
             onRoundingTypeChange={updateRoundingType}

@@ -7,14 +7,14 @@ export function getDefaultColumns(): ColumnDef<any>[] {
   return [
     // ... existing columns ...
     {
-      id: "lucroEpitaComDesconto",
+      id: "epitaProfitWithDiscount",
       header: "Lucro Epita c/ Desc.",
       accessorFn: (row) => {
-        const custoLiquido = row.value * (1 + (row.impostoEntrada || 0) / 100);
-        const precoEpita = custoLiquido * (row.epitaMarkup || 130) / 100;
-        const precoComDesconto = precoEpita * 0.9; // 10% de desconto
-        const lucro = precoComDesconto - custoLiquido;
-        return lucro;
+        const netCost = row.value * (1 + (row.entryTax || 0) / 100);
+        const epitaPrice = netCost * (row.epitaMarkup || 130) / 100;
+        const priceWithDiscount = epitaPrice * 0.9; // 10% discount
+        const profit = priceWithDiscount - netCost;
+        return profit;
       },
       cell: ({ getValue }) => {
         const value = getValue() as number;

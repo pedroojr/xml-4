@@ -15,7 +15,7 @@ interface NFEPreviewProps {
 }
 
 const NFEPreview: React.FC<NFEPreviewProps> = ({ nfe, onClose }) => {
-  const { updateNFEImpostoEntrada } = useNFEStorage();
+  const { updateNFEEntryTax } = useNFEStorage();
 
   const handleCopyValue = async (value: number | string) => {
     let success;
@@ -32,10 +32,10 @@ const NFEPreview: React.FC<NFEPreviewProps> = ({ nfe, onClose }) => {
     }
   };
 
-  const handleImpostoEntradaChange = (value: string) => {
+  const handleEntryTaxChange = (value: string) => {
     const numValue = parseFloat(value) || 0;
     if (numValue >= 0 && numValue <= 100) {
-      updateNFEImpostoEntrada(nfe.id, numValue);
+      updateNFEEntryTax(nfe.id, numValue);
     }
   };
 
@@ -53,15 +53,15 @@ const NFEPreview: React.FC<NFEPreviewProps> = ({ nfe, onClose }) => {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="impostoEntrada">Imposto de Entrada (%)</Label>
+              <Label htmlFor="entryTax">Imposto de Entrada (%)</Label>
               <Input
-                id="impostoEntrada"
+                id="entryTax"
                 type="number"
                 min="0"
                 max="100"
                 step="0.1"
-                value={nfe.impostoEntrada || 0}
-                onChange={(e) => handleImpostoEntradaChange(e.target.value)}
+                value={nfe.entryTax || 0}
+                onChange={(e) => handleEntryTaxChange(e.target.value)}
                 className="w-full"
               />
             </div>

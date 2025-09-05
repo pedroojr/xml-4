@@ -1,15 +1,15 @@
 import { Product } from '../../types/nfe';
 
-// Calcula o custo com desconto (Custo Bruto - Desconto Médio)
-export const calculateCustoComDesconto = (product: Product): number => {
+// Calculates cost with discount (Gross Cost - Average Discount)
+export const calculateCostWithDiscount = (product: Product): number => {
   const unitDiscount = product.quantity > 0 ? product.discount / product.quantity : 0;
   return product.unitPrice - unitDiscount;
 };
 
-// Calcula o custo líquido (Custo c/ desconto × (1 + Imposto de Entrada / 100))
-export const calculateCustoLiquido = (product: Product, impostoEntrada: number): number => {
-  const custoComDesconto = calculateCustoComDesconto(product);
-  return custoComDesconto * (1 + (impostoEntrada / 100));
+// Calculates net cost (Cost with discount × (1 + Entry Tax / 100))
+export const calculateNetCost = (product: Product, entryTax: number): number => {
+  const costWithDiscount = calculateCostWithDiscount(product);
+  return costWithDiscount * (1 + (entryTax / 100));
 };
 
 export const calculateSalePrice = (product: Product, markup: number): number => {
@@ -32,34 +32,34 @@ export const roundPrice = (price: number, type: RoundingType): number => {
   }
 };
 
-export const calculateTotals = (products: Product[], impostoEntrada: number) => {
+export const calculateTotals = (products: Product[], entryTax: number) => {
   return products.reduce((acc, product) => {
-    const custoComDesconto = calculateCustoComDesconto(product);
-    const custoLiquido = calculateCustoLiquido(product, impostoEntrada);
+    const costWithDiscount = calculateCostWithDiscount(product);
+    const netCost = calculateNetCost(product, entryTax);
     return {
-      totalBruto: acc.totalBruto + product.totalPrice,
-      totalDesconto: acc.totalDesconto + product.discount,
-      totalLiquido: acc.totalLiquido + product.netPrice,
-      totalCustoLiquido: acc.totalCustoLiquido + custoLiquido,
+      grossTotal: acc.grossTotal + product.totalPrice,
+      discountTotal: acc.discountTotal + product.discount,
+      netTotal: acc.netTotal + product.netPrice,
+      netCostTotal: acc.netCostTotal + netCost,
     };
   }, {
-    totalBruto: 0,
-    totalDesconto: 0,
-    totalLiquido: 0,
-    totalCustoLiquido: 0,
+    grossTotal: 0,
+    discountTotal: 0,
+    netTotal: 0,
+    netCostTotal: 0,
   });
 };
 
-// Função para calcular o frete proporcional por item
-export const calcularFreteProporcional = (
+// Calculates proportional freight per item
+export const calculateProportionalFreight = (
   products: Product[],
   freightValue: number,
-  impostoEntrada: number
+  entryTax: number
 ): number[] => {
-  // Primeiro, calcula o custo líquido de cada item
-  const custosLiquidos = products.map(p => calculateCustoLiquido(p, impostoEntrada));
-  const totalCustoLiquido = custosLiquidos.reduce((acc, v) => acc + v, 0);
-  if (totalCustoLiquido === 0) return products.map(() => 0);
-  // Rateia o frete proporcionalmente ao custo líquido
-  return custosLiquidos.map(custo => (custo / totalCustoLiquido) * freightValue);
+  // First, calculate the net cost of each item
+  const netCosts = products.map(p => calculateNetCost(p, entryTax));
+  const totalNetCost = netCosts.reduce((acc, v) => acc + v, 0);
+  if (totalNetCost === 0) return products.map(() => 0);
+  // Distribute freight proportionally to the net cost
+  return netCosts.map(cost => (cost / totalNetCost) * freightValue);
 };
