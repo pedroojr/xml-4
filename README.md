@@ -38,7 +38,7 @@ xml-4/
 │   ├── dist/               # Build de produção
 │   └── package.json        # Dependências frontend
 ├── server/                  # Backend Node.js
-│   ├── server-production.js # Servidor principal
+│   ├── server.js            # Servidor principal
 │   └── package.json        # Dependências backend
 ├── .github/workflows/       # GitHub Actions
 ├── provision-scripts/       # Scripts de provisionamento
@@ -138,7 +138,7 @@ ALLOWED_ORIGINS=https://xml.lojasrealce.shop,https://www.xml.lojasrealce.shop
 module.exports = {
   apps: [{
     name: 'xml-importer-api',
-    script: 'server/server-production.js',
+    script: 'server/server.js',
     env: {
       NODE_ENV: 'production',
       PORT: 3001,
@@ -153,7 +153,7 @@ module.exports = {
 module.exports = {
   apps: [{
     name: 'xml-importer-api-dev',
-    script: 'server/server-production.js',
+    script: 'server/server.js',
     env: {
       NODE_ENV: 'development',
       PORT: 3002,
