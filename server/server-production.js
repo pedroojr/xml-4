@@ -60,7 +60,7 @@ const toText = (val, fallback = '') => {
 };
 
 // Configuração do upload
-const upload = multer({
+constupload = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB
@@ -72,6 +72,29 @@ const upload = multer({
     } else {
       cb(new Error('Apenas arquivos XML são permitidos'), false);
     }
+  }
+});
+
+// POST - Upload de arquivo XML
+app.post('/api/upload-xml', upload.any(), (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+    }
+    
+    // Pegar o primeiro arquivo XML enviado
+    const xmlFile = req.files[0];
+    const xmlContent = xmlFile.buffer.toString('utf-8');
+    
+    // Aqui você pode adicionar a lógica de parsing do XML
+    // Por enquanto, apenas retornamos o conteúdo
+    res.json({ 
+      message: 'Arquivo recebido com sucesso',
+      content: xmlContent.substring(0, 500) + '...' // Primeiros 500 caracteres
+    });
+  } catch (error) {
+    console.error('Erro no upload:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
 
@@ -394,29 +417,6 @@ app.delete('/api/nfes/:id', (req, res) => {
     res.json({ message: 'NFE excluída com sucesso' });
   } catch (error) {
     console.error('Erro ao excluir NFE:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
-  }
-});
-
-// POST - Upload de arquivo XML
-app.post('/api/upload-xml', upload.any(), (req, res) => {
-  try {
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ error: 'Nenhum arquivo enviado' });
-    }
-    
-    // Pegar o primeiro arquivo XML enviado
-    const xmlFile = req.files[0];
-    const xmlContent = xmlFile.buffer.toString('utf-8');
-    
-    // Aqui você pode adicionar a lógica de parsing do XML
-    // Por enquanto, apenas retornamos o conteúdo
-    res.json({ 
-      message: 'Arquivo recebido com sucesso',
-      content: xmlContent.substring(0, 500) + '...' // Primeiros 500 caracteres
-    });
-  } catch (error) {
-    console.error('Erro no upload:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
