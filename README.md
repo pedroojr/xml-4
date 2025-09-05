@@ -33,17 +33,17 @@
 ### **Estrutura do Projeto**
 ```
 xml-4/
-├── lixo/                    # Frontend React
-│   ├── src/                # Código fonte
-│   ├── dist/               # Build de produção
-│   └── package.json        # Dependências frontend
-├── server/                  # Backend Node.js
-│   ├── server.js            # Servidor principal
-│   └── package.json        # Dependências backend
-├── .github/workflows/       # GitHub Actions
-├── provision-scripts/       # Scripts de provisionamento
-└── README.md               # Esta documentação
+├── src/                   # Frontend React
+├── public/                # Assets estáticos do frontend
+├── server/                # Backend Node.js
+│   ├── server.js          # Servidor principal
+│   └── package.json       # Dependências backend
+├── .github/workflows/     # GitHub Actions
+├── provision-scripts/     # Scripts de provisionamento
+└── README.md              # Esta documentação
 ```
+
+> **Nota:** o frontend legado antes localizado em `lixo/` foi removido. O conteúdo permanece disponível para referência histórica no commit `15da140915cf6e02979702ec2191f21e80b6b055`.
 
 ---
 
@@ -353,21 +353,19 @@ sequenceDiagram
 git clone https://github.com/pedroojr/xml-4.git
 cd xml-4
 
-# Instalar dependências frontend
-cd lixo
+# Instalar dependências frontend (raiz do projeto)
 npm install
 
 # Instalar dependências backend
-cd ../server
+cd server
 npm install
 ```
 
 ### **Comandos de Desenvolvimento**
 ```bash
-# Frontend (desde lixo/)
+# Frontend (na raiz do projeto)
 npm run dev          # Servidor de desenvolvimento
-npm run build:dev    # Build para desenvolvimento
-npm run build:prod   # Build para produção
+npm run build        # Build de produção
 
 # Backend (desde server/)
 npm start            # Iniciar servidor
