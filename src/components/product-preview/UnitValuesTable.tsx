@@ -55,7 +55,7 @@ export const UnitValuesTable: React.FC<UnitValuesTableProps> = ({
       <TableBody>
         {products.map((product, index) => {
           const unitNetPrice = product.quantity > 0 ? product.netPrice / product.quantity : 0;
-          const unitDiscount = product.quantity > 0 ? product.discount / product.quantity : 0;
+            const unitDiscount = product.quantity > 0 ? (product.discount || 0) / product.quantity : 0;
           const xapuriPrice = product.quantity > 0 ? 
             roundPrice(calculateSalePrice({ ...product, netPrice: unitNetPrice }, xapuriMarkup), roundingType) : 0;
           const epitaPrice = product.quantity > 0 ? 

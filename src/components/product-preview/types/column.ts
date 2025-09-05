@@ -123,7 +123,7 @@ export const getDefaultColumns = (): Column[] => [
     order: 12,
     format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
     getValue: (product: Product) => {
-      const unitDiscount = product.quantity > 0 ? product.discount / product.quantity : 0;
+      const unitDiscount = product.quantity > 0 ? (product.discount || 0) / product.quantity : 0;
       return product.unitPrice - unitDiscount;
     }
   },
@@ -147,7 +147,7 @@ export const getDefaultColumns = (): Column[] => [
     order: 14,
     format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
     getValue: (product: Product) => {
-      const unitDiscount = product.quantity > 0 ? product.discount / product.quantity : 0;
+      const unitDiscount = product.quantity > 0 ? (product.discount || 0) / product.quantity : 0;
       const costWithDiscount = product.unitPrice - unitDiscount;
       // We assume the entry tax is available globally or passed as a parameter
       // The real value will be calculated in ProductTable.tsx
@@ -185,7 +185,7 @@ export const getDefaultColumns = (): Column[] => [
     minWidth: 112,
     order: 15,
     format: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-    getValue: (product: Product) => product.quantity > 0 ? product.discount / product.quantity : 0
+    getValue: (product: Product) => (product.quantity > 0 ? (product.discount || 0) / product.quantity : 0)
   },
   { 
     id: 'xapuriPrice', 

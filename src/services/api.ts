@@ -73,6 +73,7 @@ export interface Product {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  discount?: number;
   icmsBase?: number;
   icmsValue?: number;
   icmsRate?: number;

@@ -94,7 +94,7 @@ const Products = () => {
   const totalQuantity = filteredProducts.reduce((acc, prod) => acc + (prod.quantity || 0), 0);
   const totalUnits = filteredProducts.length;
   const totalValue = filteredProducts.reduce((acc, prod) => acc + (prod.totalPrice || 0), 0);
-  const averageDiscount = filteredProducts.reduce((acc, prod) => acc + (prod.desconto || 0), 0) / filteredProducts.length || 0;
+  const averageDiscount = filteredProducts.reduce((acc, prod) => acc + (prod.discount || 0), 0) / filteredProducts.length || 0;
 
   // Renderizar números de página
   const renderPageNumbers = () => {
